@@ -1,0 +1,8 @@
+instances/
+out/
+*.pdf
+*.o
+checker*
+solver
+results.txt
+materials.tgz

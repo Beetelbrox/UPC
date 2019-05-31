@@ -21,7 +21,7 @@ NLSP::NLSP(int height, int num_inputs, int* tt):
     CONFIGS ( env, max_nodes*size_tt, 0, 1, ILOBOOL)
 {
 
-  std::cerr << "Adding Constraint 1: Exactly 1 input selected per node" << std::endl;
+  // CONSTRAINT 1: Exactly 1 input selected per node" << std::endl;
   // CONSTRAINT: Exactly 1 input is selected per node
   for ( int j=1; j <= max_nodes; ++j ) {
     IloExpr expr3(env);

@@ -8,7 +8,7 @@ NLSP.o: src/NLSP.cpp
 	$(CCC) -c $(CCFLAGS) src/NLSP.cpp
 
 clean:
-	rm --force solver solver.o
+	rm --force solver solver.o NLSP.o
 
 ################################
 

@@ -12,7 +12,11 @@ if [[ $ACTION = "solve" ]]; then
     FILENAME="${INSTANCE%.*}"
     echo "----------------------------------------------------------"
     echo "Solving instance ${FILENAME}..."
-    ./solver < "instances/$INSTANCE" > "${OUT_FOLDER}/${FILENAME}.out"
+    timeout --preserve-status 60 ./solver < instances/$INSTANCE > "${OUT_FOLDER}/${FILENAME}.out"
+    if [[ -z "$(cat ${OUT_FOLDER}/${FILENAME}.out)" ]]; then
+      >&2 echo "Instance ${FILENAME} timed out!"
+      rm --force ${OUT_FOLDER}/${FILENAME}.out
+    fi
   done
 fi
 
