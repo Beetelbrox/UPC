@@ -6,3 +6,4 @@ checker*
 solver
 results.txt
 materials.tgz
+*.log

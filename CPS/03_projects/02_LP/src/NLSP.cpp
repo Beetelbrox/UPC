@@ -110,7 +110,7 @@ IloNumVar NLSP::is_gate(int i) {
 // Helper function to allow 1-indexing at a given configuration
 IloNumVar NLSP::configs(int n, int i) {
   if (i > max_nodes) {
-    std::cout << "WARNING: Overflowing when accessing configuration " << n <<
+    std::cout << "WARNING: Indexing overlfow when trying to access configuration " << n <<
     " (" << i << ")";
   }
   return CONFIGS[n*max_nodes + i - 1];
@@ -118,7 +118,7 @@ IloNumVar NLSP::configs(int n, int i) {
 
 IloNumVar NLSP::layout(int n, int i) {
   if (i > num_inputs+1) {
-    std::cout << "WARNING: Overflowing when accessing layout " << n <<
+    std::cout << "WARNING: Indexing overlfow when trying to access layout " << n <<
     " (" << i << ")";
   }
   return LAYOUT[(n-1)*(num_inputs+1) + i ];
