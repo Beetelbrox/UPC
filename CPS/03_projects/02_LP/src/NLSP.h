@@ -1,3 +1,11 @@
+/*------------------------------------------------------------
+ - Project: Linear Programming NLSP Solver
+ - Subject: Combinatorial Problem Solving
+ - Author:  Francisco Javier Jurado Moreno
+ - Date:    June 2019
+ - File:    NLSP.h
+*///----------------------------------------------------------
+
 #ifndef NLSP_H
 #define NLSP_H
 
@@ -13,7 +21,7 @@ public:
   void print_solution ();
   void print_debug ();
 private:
-  int height, num_inputs, size_tt, max_nodes, max_gates, sol_found;
+  int depth, num_inputs, size_tt, max_nodes, max_gates, sol_found;
   int* tt;
 
   IloEnv env;
