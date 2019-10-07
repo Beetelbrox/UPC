@@ -1,0 +1,96 @@
+---
+title: "Complex & Social Networks: Lab 02 Report"
+author:
+  - Sergio Mosquera Dopico
+  - Francisco Javier Jurado Moreno
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r cars, include=FALSE}
+# Load the igraph library and require the packages stats4 & VGAM
+library(igraph)
+require('stats4')
+require('VGAM')
+```
+
+```{r}
+write_summary <- function(language,file) {
+   degree_sequence = read.table(file, header = FALSE)
+   # | Language | num nodes | max degree | mean degree | inv mean degree |
+   cat(language,length(degree_sequence$V1),max(degree_sequence$V1),sum(degree_sequence$V1)/length(degree_sequence$V1),length(degree_sequence$V1)/sum(degree_sequence$V1),"\n")
+}
+
+source = read.table("list.txt", 
+         header = TRUE,               # this is to indicate the first line of the file contains the names of the columns instead of the real data
+         as.is = c("language","file") # this is need to have the cells treated as real strings and not as categorial data.
+        )
+for (x in 1:nrow(source)) {
+    write_summary(source$language[x], source$file[x])
+}
+
+```
+
+```{r}
+degree_sequence
+```
+
+```{r}
+# Read the in-degree data table
+degree_sequence <- read.table('./data/English_in-degree_sequence.txt', header=FALSE)
+degree_spectrum = table(degree_sequence)
+```
+
+```{r}
+barplot(degree_spectrum, main = 'English', xlab='degree', ylab='number of vertices')
+```
+
+```{r}
+plot(degree_spectrum, log='x')
+```
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+x <- degree_sequence$V1
+N <- length(x)
+M <- sum(x)
+M_prime <- sum(log(x))
+C <- sum(sapply(seq(from=1, to=N, by=1), function(i) sum(sapply(seq(from=1, to=x[i], by=1), function(j) log(j)))))
+```
+
+```{r}
+minus_log_likelihood_zeta <- function(gamma) {
+   M_prime*gamma + N*log(zeta(gamma))
+}
+
+minus_log_likelihood_poisson <- function (lambda) {
+  M*log(lambda) - N*(lambda + log(1 - exp(-lambda))) - C
+}
+
+minus_log_likelihood_geometric <- function (q) {
+  (M - N)*log(1-q) + N*log(q)
+}
+
+minus_log_likelihood_zeta_gamma_2 <- -2*M_prime - N*log((pi^2)/6)
+
+minus_log_likelihood_rtrunc_zeta <- function (gamma, k_max) {
+  -gamma*M_prime - N*log(sum(sapply(seq(from=1, to=k_max, by=1), function(x) x^(-gamma))))
+}
+```
+
+```{r}
+mle_zeta <- mle(minus_log_likelihood_zeta,
+                start = list(gamma = 2),
+                method = "L-BFGS-B",
+                lower = c(1.0000001))
+```
+
+```{r}
+attributes(summary(mle_zeta))
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
