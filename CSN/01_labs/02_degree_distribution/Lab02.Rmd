@@ -21,15 +21,19 @@ require('VGAM')
 write_summary <- function(language,file) {
    degree_sequence = read.table(file, header = FALSE)
    # | Language | num nodes | max degree | mean degree | inv mean degree |
-   cat(language,length(degree_sequence$V1),max(degree_sequence$V1),sum(degree_sequence$V1)/length(degree_sequence$V1),length(degree_sequence$V1)/sum(degree_sequence$V1),"\n")
+   # cat(language,length(degree_sequence$V1),max(degree_sequence$V1),sum(degree_sequence$V1)/length(degree_sequence$V1),length(degree_sequence$V1)/sum(degree_sequence$V1),"\n")
+   return (list(language,length(degree_sequence$V1),max(degree_sequence$V1),sum(degree_sequence$V1)/length(degree_sequence$V1),length(degree_sequence$V1)/sum(degree_sequence$V1)))
 }
 
 source = read.table("list.txt", 
          header = TRUE,               # this is to indicate the first line of the file contains the names of the columns instead of the real data
          as.is = c("language","file") # this is need to have the cells treated as real strings and not as categorial data.
         )
+Table1 <- data.frame(matrix(ncol = 5, nrow = 0))                       # Create an empty dataframe
+colnames(Table1) <- c('Language', 'N', 'Maximum degree', 'M/N', 'N/M') # Assign the column names to Table1
 for (x in 1:nrow(source)) {
-    write_summary(source$language[x], source$file[x])
+    Table1 [nrow(Table1) + 1,] <- write_summary(source$language[x], source$file[x])
+    #write_summary(source$language[x], source$file[x])
 }
 
 ```
