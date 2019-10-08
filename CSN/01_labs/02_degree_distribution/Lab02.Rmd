@@ -85,8 +85,10 @@ minus_log_likelihood_rtrunc_zeta <- function (gamma, k_max) {
 
 ```{r}
 
-parameters <-data.frame(matrix(ncol = 6, nrow = 0))
+parameters <- data.frame(matrix(ncol = 6, nrow = 0))
+models <- data.frame(matrix(ncol = 6, nrow = 0))
 colnames(parameters) <- c("Language", "lambda", "q", "zeta", "rtrunc_zeta", "k_max")
+colnames(models) <- c("Language", "poisson", "geometric", "zeta_gamma_2", "zeta", "rtrunc_zeta")
 
 for (l in seq(1, nrow(languages))) {
   x <- langs_in_degree[[l]]
@@ -110,12 +112,18 @@ for (l in seq(1, nrow(languages))) {
 
   q <- attributes(summary(mle_geometric))$coef[1]
 
-  mle_zeta <- mle(minus_log_likelihood_zeta,
+  mle_zeta_2 <- mle(minus_log_likelihood_zeta,
                   start = list(gamma = 2),
                   method = "L-BFGS-B",
                   lower = c(1.0000001))
 
-  zeta <- attributes(summary(mle_zeta))$coef[1]
+  zeta <- attributes(summary(mle_zeta_2))$coef[1]
+  
+  
+  mle_zeta <- mle(minus_log_likelihood_zeta,
+                  start = list(gamma = zeta),
+                  method = "L-BFGS-B",
+                  lower = c(1.0000001))
 
   mle_rtrunc_zeta <- mle(minus_log_likelihood_rtrunc_zeta,
                   start = list(gamma = 2, k_max = max(x)), #We've chosen the largest k
@@ -124,9 +132,19 @@ for (l in seq(1, nrow(languages))) {
   rtrunc_zeta <- attributes(summary(mle_rtrunc_zeta))$coef[1]
   k_max <- attributes(summary(mle_rtrunc_zeta))$coef[2]
 
-  parameters[nrow(parameters) + 1,] = c(languages$language[[l]], lambda, q, zeta, rtrunc_zeta, k_max)
+  parameters[nrow(parameters) + 1,] = c(languages$language[[l]],
+                                        lambda,
+                                        q,
+                                        zeta,
+                                        rtrunc_zeta,
+                                        k_max)
+  models[nrow(models) + 1,] = c(languages$language[[l]],
+                                    attributes(summary(mle_poisson))$m2logL,
+                                    attributes(summary(mle_geometric))$m2logL,
+                                    attributes(summary(mle_zeta_2))$m2logL,
+                                    attributes(summary(mle_zeta))$m2logL,
+                                    attributes(summary(mle_rtrunc_zeta))$m2logL)
 }
-
 ```
 
 ```{r}
@@ -151,3 +169,33 @@ for (i in seq(from=1, to=nrow(parameters))){
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r}
+get_AIC <- function(m2logL, K, N){
+  m2logL + 2*K*N/(N-K-1)
+}
+```
+
+```{r}
+# Function to write the languages summary (Table 2) from the data retrieved in previous chunk
+write_summary_3 <- function(row, index) {
+   # Generate the language summary (corresponding to a table row) by concatenating the following fields (Language name must be accessed)
+   # | Language | poisson | geometric | zeta | right_truncated_zeta |
+  k_used <- as.numeric(parameters$k_max[index])
+  n_used <- length(row)
+  cat(row$Language,
+       get_AIC(as.numeric(row$poisson), k_used, n_used),
+       get_AIC(as.numeric(row$geometric), k_used, n_used),
+       get_AIC(as.numeric(row$zeta_gamma_2), k_used, n_used),
+       get_AIC(as.numeric(row$zeta), k_used, n_used),
+       get_AIC(as.numeric(row$rtrunc_zeta), k_used, n_used),
+       "\n")
+}
+```
+
+```{r}
+for (i in seq(from=1, to=nrow(models))){
+  write_summary_3(models[i,], i)
+}
+```
+
