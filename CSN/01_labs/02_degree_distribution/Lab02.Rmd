@@ -22,17 +22,9 @@ write_summary <- function(language,file) {
    degree_sequence = read.table(file, header = FALSE)
    # Generate the language summary (corresponding to a table row) by concatenating the following fields
    # | Language | num nodes | max degree | mean degree | inv mean degree |
-<<<<<<< HEAD
-   cat(language,
-       length(degree_sequence$V1),
-       max(degree_sequence$V1),
-       sum(degree_sequence$V1)/length(degree_sequence$V1),
-       length(degree_sequence$V1)/sum(degree_sequence$V1),
-       "\n")
-=======
+
    # cat(language,length(degree_sequence$V1),max(degree_sequence$V1),sum(degree_sequence$V1)/length(degree_sequence$V1),length(degree_sequence$V1)/sum(degree_sequence$V1),"\n")
    return (list(language,length(degree_sequence$V1),max(degree_sequence$V1),sum(degree_sequence$V1)/length(degree_sequence$V1),length(degree_sequence$V1)/sum(degree_sequence$V1)))
->>>>>>> 76b0cf577d19864c9c96c131fb81a8c88083babe
 }
 
 ```
@@ -43,16 +35,12 @@ languages = read.table("list.txt",
          header = TRUE,               # this is to indicate the first line of the file contains the names of the columns instead of the real data
          as.is = c("language","file") # this is need to have the cells treated as real strings and not as categorial data.
         )
-<<<<<<< HEAD
-=======
 Table1 <- data.frame(matrix(ncol = 5, nrow = 0))                       # Create an empty dataframe
 colnames(Table1) <- c('Language', 'N', 'Maximum degree', 'M/N', 'N/M') # Assign the column names to Table1
-for (x in 1:nrow(source)) {
-    Table1 [nrow(Table1) + 1,] <- write_summary(source$language[x], source$file[x])
+for (x in 1:nrow(languages)) {
+    Table1 [nrow(Table1) + 1,] <- write_summary(languages$language[x], languages$file[x])
     #write_summary(source$language[x], source$file[x])
 }
-
->>>>>>> 76b0cf577d19864c9c96c131fb81a8c88083babe
 ```
 
 ```{r}
@@ -137,11 +125,12 @@ mle_rtrunc_zeta <- mle(minus_log_likelihood_rtrunc_zeta,
                 lower = c(1.0000001, 1.000),
                 upper = c(80, max(x))) #
 
-#rtrunc_zeta <- attributes(summary(mle_rtrunc_zeta))$coef[1]
+rtrunc_zeta <- attributes(summary(mle_rtrunc_zeta))$coef[1]
 ```
 
 ```{r}
 zeta
+rtrunc_zeta
 ```
 
 ```{r}
@@ -149,7 +138,7 @@ attributes(summary(mle_zeta))$coef[1]
 ```
 
 ```{r}
-for (x in 1:nrow(languages)) {
+for (i in 1:nrow(languages)) {
   mle_poisson <- mle(minus_log_likelihood_poisson,
                      start = list(lambda = M/N),
                      method = "L-BFGS-B",
