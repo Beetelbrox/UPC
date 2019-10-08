@@ -1,0 +1,161 @@
+---
+title: "Complex & Social Networks: Lab 02 Report"
+author:
+  - Sergio Mosquera Dopico
+  - Francisco Javier Jurado Moreno
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r cars, include=FALSE}
+# Load the igraph library and require the packages stats4 & VGAM
+library(igraph)
+require('stats4')
+require('VGAM')
+```
+
+```{r}
+write_summary <- function(language,file) {
+   degree_sequence = read.table(file, header = FALSE)
+   # Generate the language summary (corresponding to a table row) by concatenating the following fields
+   # | Language | num nodes | max degree | mean degree | inv mean degree |
+<<<<<<< HEAD
+   cat(language,
+       length(degree_sequence$V1),
+       max(degree_sequence$V1),
+       sum(degree_sequence$V1)/length(degree_sequence$V1),
+       length(degree_sequence$V1)/sum(degree_sequence$V1),
+       "\n")
+=======
+   # cat(language,length(degree_sequence$V1),max(degree_sequence$V1),sum(degree_sequence$V1)/length(degree_sequence$V1),length(degree_sequence$V1)/sum(degree_sequence$V1),"\n")
+   return (list(language,length(degree_sequence$V1),max(degree_sequence$V1),sum(degree_sequence$V1)/length(degree_sequence$V1),length(degree_sequence$V1)/sum(degree_sequence$V1)))
+>>>>>>> 76b0cf577d19864c9c96c131fb81a8c88083babe
+}
+
+```
+
+```{r}
+# Read the list of languages from file
+languages = read.table("list.txt", 
+         header = TRUE,               # this is to indicate the first line of the file contains the names of the columns instead of the real data
+         as.is = c("language","file") # this is need to have the cells treated as real strings and not as categorial data.
+        )
+<<<<<<< HEAD
+=======
+Table1 <- data.frame(matrix(ncol = 5, nrow = 0))                       # Create an empty dataframe
+colnames(Table1) <- c('Language', 'N', 'Maximum degree', 'M/N', 'N/M') # Assign the column names to Table1
+for (x in 1:nrow(source)) {
+    Table1 [nrow(Table1) + 1,] <- write_summary(source$language[x], source$file[x])
+    #write_summary(source$language[x], source$file[x])
+}
+
+>>>>>>> 76b0cf577d19864c9c96c131fb81a8c88083babe
+```
+
+```{r}
+for (x in 1:nrow(languages)) {
+    write_summary(languages$language[x], languages$file[x])
+}
+```
+
+```{r}
+# Read the in-degree data table
+degree_sequence <- read.table('./data/English_in-degree_sequence.txt', header=FALSE)
+degree_spectrum = table(degree_sequence)
+```
+
+```{r}
+barplot(degree_spectrum, main = 'English', xlab='degree', ylab='number of vertices')
+```
+
+```{r}
+plot(degree_spectrum, log='x')
+```
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+x <- degree_sequence$V1
+N <- length(x)
+M <- sum(x)
+M_prime <- sum(log(x))
+C <- sum(sapply(seq(from=1, to=N, by=1), function(i) sum(sapply(seq(from=1, to=x[i], by=1), function(j) log(j)))))
+```
+
+```{r}
+minus_log_likelihood_zeta <- function(gamma) {
+   M_prime*gamma + N*log(zeta(gamma))
+}
+
+minus_log_likelihood_poisson <- function (lambda) {
+   N*(lambda + log(1 - exp(-lambda))) + C - M*log(lambda)
+}
+
+minus_log_likelihood_geometric <- function (q) {
+  (N - M)*log(1-q) - N*log(q)
+}
+
+minus_log_likelihood_zeta_gamma_2 <- 2*M_prime + N*log((pi^2)/6)
+
+minus_log_likelihood_rtrunc_zeta <- function (gamma, k_max) {
+  gamma*M_prime + N*log(sum(sapply(seq(from=1, to=k_max, by=1), function(x) x^(-gamma))))
+}
+```
+
+```{r}
+N*log(sum(sapply(seq(from=1, to=12, by=1), function(x) x^(-2))))
+```
+
+```{r}
+mle_poisson <- mle(minus_log_likelihood_poisson,
+                    start = list(lambda = M/N),
+                    method = "L-BFGS-B",
+                    lower = c(1.0000001))
+lambda <- attributes(summary(mle_poisson))$coef[1]
+
+mle_geometric <- mle(minus_log_likelihood_geometric,
+                     start = list(q = N/M),
+                     method = "L-BFGS-B",
+                     lower = c(0.0000001),
+                     upper = c(0.9999999)) # We needed to set an upper bound
+
+q <- attributes(summary(mle_geometric))$coef[1]
+
+mle_zeta <- mle(minus_log_likelihood_zeta,
+                start = list(gamma = 2),
+                method = "L-BFGS-B",
+                lower = c(1.0000001))
+
+zeta <- attributes(summary(mle_zeta))$coef[1]
+
+mle_rtrunc_zeta <- mle(minus_log_likelihood_rtrunc_zeta,
+                start = list(gamma = 2, k_max = max(x)), #We've chosen the largest k
+                method = "L-BFGS-B",
+                lower = c(1.0000001, 1.000),
+                upper = c(80, max(x))) #
+
+#rtrunc_zeta <- attributes(summary(mle_rtrunc_zeta))$coef[1]
+```
+
+```{r}
+zeta
+```
+
+```{r}
+attributes(summary(mle_zeta))$coef[1]
+```
+
+```{r}
+for (x in 1:nrow(languages)) {
+  mle_poisson <- mle(minus_log_likelihood_poisson,
+                     start = list(lambda = M/N),
+                     method = "L-BFGS-B",
+                     lower = c(0.0000001))
+  print(attributes(summary(mle_zeta))$coef[1])
+  }
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
