@@ -18,34 +18,16 @@ require('VGAM')
 ```
 
 ```{r}
-write_summary <- function(language,file) {
-   degree_sequence = read.table(file, header = FALSE)
-   # Generate the language summary (corresponding to a table row) by concatenating the following fields
-   # | Language | num nodes | max degree | mean degree | inv mean degree |
-
-   # cat(language,length(degree_sequence$V1),max(degree_sequence$V1),sum(degree_sequence$V1)/length(degree_sequence$V1),length(degree_sequence$V1)/sum(degree_sequence$V1),"\n")
-   return (list(language,length(degree_sequence$V1),max(degree_sequence$V1),sum(degree_sequence$V1)/length(degree_sequence$V1),length(degree_sequence$V1)/sum(degree_sequence$V1)))
-}
-
-```
-
-```{r}
 # Read the list of languages from file
-languages = read.table("list.txt", 
-         header = TRUE,               # this is to indicate the first line of the file contains the names of the columns instead of the real data
-         as.is = c("language","file") # this is need to have the cells treated as real strings and not as categorial data.
-        )
-Table1 <- data.frame(matrix(ncol = 5, nrow = 0))                       # Create an empty dataframe
-colnames(Table1) <- c('Language', 'N', 'Maximum degree', 'M/N', 'N/M') # Assign the column names to Table1
-for (x in 1:nrow(languages)) {
-    Table1 [nrow(Table1) + 1,] <- write_summary(languages$language[x], languages$file[x])
-    #write_summary(source$language[x], source$file[x])
-}
-```
+languages = read.table("list.txt",
+              header = TRUE,               # this is to indicate the first line of the file contains the names of the columns instead of the real data
+              as.is = c("language","file") # this is need to have the cells treated as real strings and not as categorial data.
+            )
 
-```{r}
-for (x in 1:nrow(languages)) {
-    write_summary(languages$language[x], languages$file[x])
+# Read the language files from disk and store them in memory so we don't have to do so multiple times
+lang_data <- vector('list', nrow(languages))
+for (l in seq(from=1, to=nrow(languages))){
+  lang_data[l] <- read.table(languages$file[l], header = FALSE)
 }
 ```
 
@@ -88,53 +70,61 @@ minus_log_likelihood_geometric <- function (q) {
 
 minus_log_likelihood_zeta_gamma_2 <- 2*M_prime + N*log((pi^2)/6)
 
+gen_harmonic <- function(k_max, gamma) {
+  
+}
+
 minus_log_likelihood_rtrunc_zeta <- function (gamma, k_max) {
   gamma*M_prime + N*log(sum(sapply(seq(from=1, to=k_max, by=1), function(x) x^(-gamma))))
 }
 ```
 
 ```{r}
-N*log(sum(sapply(seq(from=1, to=12, by=1), function(x) x^(-2))))
+
+for (lang in languages) {
+  x <- degree_sequence$V1
+  N <- length(x)
+  M <- sum(x)
+  M_prime <- sum(log(x))
+  C <- sum(sapply(seq(from=1, to=N, by=1), function(i) sum(sapply(seq(from=1, to=x[i], by=1), function(j) log(j)))))
+  mle_poisson <- mle(minus_log_likelihood_poisson,
+                      start = list(lambda = M/N),
+                      method = "L-BFGS-B",
+                      lower = c(1.0000001))
+  
+  lambda <- attributes(summary(mle_poisson))$coef[1]
+  
+  mle_geometric <- mle(minus_log_likelihood_geometric,
+                       start = list(q = N/M),
+                       method = "L-BFGS-B",
+                       lower = c(0.0000001),
+                       upper = c(0.9999999)) # We needed to set an upper bound
+  
+  q <- attributes(summary(mle_geometric))$coef[1]
+  
+  mle_zeta <- mle(minus_log_likelihood_zeta,
+                  start = list(gamma = 2),
+                  method = "L-BFGS-B",
+                  lower = c(1.0000001))
+  
+  zeta <- attributes(summary(mle_zeta))$coef[1]
+  
+  mle_rtrunc_zeta <- mle(minus_log_likelihood_rtrunc_zeta,
+                  start = list(gamma = 2, k_max = max(x)), #We've chosen the largest k
+                  method = "L-BFGS-B") #
+  
+  rtrunc_zeta <- attributes(summary(mle_rtrunc_zeta))$coef[1]
+  k_max <- attributes(summary(mle_rtrunc_zeta))$coef[2]
+}
+
 ```
 
 ```{r}
-mle_poisson <- mle(minus_log_likelihood_poisson,
-                    start = list(lambda = M/N),
-                    method = "L-BFGS-B",
-                    lower = c(1.0000001))
-lambda <- attributes(summary(mle_poisson))$coef[1]
-
-mle_geometric <- mle(minus_log_likelihood_geometric,
-                     start = list(q = N/M),
-                     method = "L-BFGS-B",
-                     lower = c(0.0000001),
-                     upper = c(0.9999999)) # We needed to set an upper bound
-
-q <- attributes(summary(mle_geometric))$coef[1]
-
-mle_zeta <- mle(minus_log_likelihood_zeta,
-                start = list(gamma = 2),
-                method = "L-BFGS-B",
-                lower = c(1.0000001))
-
-zeta <- attributes(summary(mle_zeta))$coef[1]
-
-mle_rtrunc_zeta <- mle(minus_log_likelihood_rtrunc_zeta,
-                start = list(gamma = 2, k_max = max(x)), #We've chosen the largest k
-                method = "L-BFGS-B",
-                lower = c(1.0000001, 1.000),
-                upper = c(80, max(x))) #
-
-rtrunc_zeta <- attributes(summary(mle_rtrunc_zeta))$coef[1]
+k_max
 ```
 
 ```{r}
-zeta
-rtrunc_zeta
-```
-
-```{r}
-attributes(summary(mle_zeta))$coef[1]
+max(x)
 ```
 
 ```{r}
