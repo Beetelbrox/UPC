@@ -53,18 +53,6 @@ for (i in seq(from=1, to=nrow(languages))){
 ```
 
 ```{r}
-for (x in 1:nrow(languages)) {
-    write_summary(languages$language[x], languages$file[x])
-}
-```
-
-```{r}
-# Read the in-degree data table
-degree_sequence <- read.table('./data/English_in-degree_sequence.txt', header=FALSE)
-degree_spectrum = table(degree_sequence)
-```
-
-```{r}
 barplot(degree_spectrum, main = 'English', xlab='degree', ylab='number of vertices')
 ```
 
@@ -98,7 +86,7 @@ minus_log_likelihood_geometric <- function (q) {
 minus_log_likelihood_zeta_gamma_2 <- 2*M_prime + N*log((pi^2)/6)
 
 gen_harmonic <- function(k_max, gamma) {
-  
+
 }
 
 minus_log_likelihood_rtrunc_zeta <- function (gamma, k_max) {
@@ -118,28 +106,28 @@ for (lang in languages) {
                       start = list(lambda = M/N),
                       method = "L-BFGS-B",
                       lower = c(1.0000001))
-  
+
   lambda <- attributes(summary(mle_poisson))$coef[1]
-  
+
   mle_geometric <- mle(minus_log_likelihood_geometric,
                        start = list(q = N/M),
                        method = "L-BFGS-B",
                        lower = c(0.0000001),
                        upper = c(0.9999999)) # We needed to set an upper bound
-  
+
   q <- attributes(summary(mle_geometric))$coef[1]
-  
+
   mle_zeta <- mle(minus_log_likelihood_zeta,
                   start = list(gamma = 2),
                   method = "L-BFGS-B",
                   lower = c(1.0000001))
-  
+
   zeta <- attributes(summary(mle_zeta))$coef[1]
-  
+
   mle_rtrunc_zeta <- mle(minus_log_likelihood_rtrunc_zeta,
                   start = list(gamma = 2, k_max = max(x)), #We've chosen the largest k
                   method = "L-BFGS-B") #
-  
+
   rtrunc_zeta <- attributes(summary(mle_rtrunc_zeta))$coef[1]
   k_max <- attributes(summary(mle_rtrunc_zeta))$coef[2]
 }
@@ -155,7 +143,7 @@ max(x)
 ```
 
 ```{r}
-for (x in 1:nrow(languages)) {
+for (i in 1:nrow(languages)) {
   mle_poisson <- mle(minus_log_likelihood_poisson,
                      start = list(lambda = M/N),
                      method = "L-BFGS-B",
