@@ -1,8 +1,8 @@
 ---
 title: "Complex & Social Networks: Lab 02 Report"
 author:
-  - Sergio Mosquera Dopico
   - Francisco Javier Jurado Moreno
+  - Sergio Mosquera Dopico
 output: pdf_document
 ---
 
@@ -34,8 +34,8 @@ for (i in seq(from=1, to=nrow(languages))){
 ```{r}
 # Function to write the languages summary (Table 1) from the already-read language data
 write_summary <- function(lang_name, lang_in_degree) {
-   # Generate the language summary (corresponding to a table row) by concatenating the following fields (Language name must be accessed)
-   # | num nodes | max degree | mean degree | inv mean degree |
+   # Generate the language summary (corresponding to a row of table 1) by concatenating the following fields (Language name must be accessed)
+   # | language | num nodes | max degree | mean degree | inv mean degree |
    cat(lang_name,
        length(lang_in_degree),
        max(lang_in_degree),
@@ -46,21 +46,12 @@ write_summary <- function(lang_name, lang_in_degree) {
 ```
 
 ```{r}
+# Generate table 1 by iterating through all languages
 for (i in seq(from=1, to=nrow(languages))){
   write_summary(languages$language[i],langs_in_degree[[i]])
 }
 
 ```
-
-```{r}
-barplot(degree_spectrum, main = 'English', xlab='degree', ylab='number of vertices')
-```
-
-```{r}
-plot(degree_spectrum, log='x')
-```
-
-You can also embed plots, for example:
 
 ```{r pressure, echo=FALSE}
 x <- degree_sequence$V1
@@ -68,6 +59,20 @@ N <- length(x)
 M <- sum(x)
 M_prime <- sum(log(x))
 C <- sum(sapply(seq(from=1, to=N, by=1), function(i) sum(sapply(seq(from=1, to=x[i], by=1), function(j) log(j)))))
+```
+
+```{r}
+calculate_mle <- function(degree_sequence) {
+  N <- length(degree_sequence)
+  M <- sum(degree_sequence)
+  M_prime <- sum(log(degree_sequence))
+  C <- sum(sapply(seq(from=1, to=N, by=1), function(i) sum(sapply(seq(from=1, to=degree_sequence[i], by=1), function(j) log(j)))))
+  cat(N,M,M_prime,C)
+}
+```
+
+```{r}
+calculate_mle(langs_in_degree[[1]])
 ```
 
 ```{r}
