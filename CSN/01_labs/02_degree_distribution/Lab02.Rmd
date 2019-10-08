@@ -8,16 +8,29 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
 ```
+
+#Introduction
+
+#Results
+
+#Discussion
+
+#Methods
 
 ```{r cars, include=FALSE}
 # Load the igraph library and require the packages stats4 (mle) & VGAM (Riemman-zeta)
-library(igraph)
+require(igraph)
+require(knitr)
 require('stats4')
 require('VGAM')
+options(kableExtra.latex.load_packages = FALSE )
+require(kableExtra)
+knit_hooks$set(document = function(x) {sub('\\usepackage[]{color}', '\\usepackage[]{xcolor}', x, fixed = TRUE)})
 ```
 
-```{r}
+```{r, include=FALSE}
 # Read the list of languages from file
 languages = read.table("list.txt",
               header = TRUE,               # this is to indicate the first line of the file contains the names of the columns instead of the real data
@@ -34,25 +47,25 @@ for (i in seq(from=1, to=nrow(languages))){
 
 Print the first table
 
-```{r}
+```{r, include=FALSE}
 # Function to write the languages summary (Table 1) from the already-read language data
-write_summary <- function(lang_name, lang_in_degree) {
-   # Generate the language summary (corresponding to a row of table 1) by concatenating the following fields (Language name must be accessed)
+generate_language_summary <- function(lang_in_degree) {
+  # Generate the summary for a given language (corresponding to a row of table 1 minus the language's name)
+  # Returns a vector with the following values:
    # | language | num nodes | max degree | mean degree | inv mean degree |
-   cat(lang_name,
-       length(lang_in_degree),
-       max(lang_in_degree),
+  c(length(lang_in_degree),
+      max(lang_in_degree),
        sum(lang_in_degree)/length(lang_in_degree),
-       length(lang_in_degree)/sum(lang_in_degree),
-       "\n")
+       length(lang_in_degree)/sum(lang_in_degree))
 }
 ```
 
-```{r}
-# Generate table 1 by iterating through all languages
-for (i in seq(from=1, to=nrow(languages))){
-  write_summary(languages$language[i],langs_in_degree[[i]])
-}
+```{r, echo=FALSE}
+# Apply generate_language_summary to every entry in the list of language in-degrees to generate the summary for every language. Use do.call to pass each summary to rbind as a parameter, that way the vectors are concatenated vertically. Column names need to be added afterwards
+summary_df <- data.frame(do.call(rbind, lapply(langs_in_degree, generate_language_summary)), row.names=languages$language)
+
+kable(summary_df, "latex", col.names=c('N', 'Max Degree', 'M/N', 'N/M'))
+  #kable_styling(latex_options = "striped")
 ```
 
 ```{r}
