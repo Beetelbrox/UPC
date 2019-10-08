@@ -31,6 +31,9 @@ for (i in seq(from=1, to=nrow(languages))){
 }
 ```
 
+
+Print the first table
+
 ```{r}
 # Function to write the languages summary (Table 1) from the already-read language data
 write_summary <- function(lang_name, lang_in_degree) {
@@ -50,32 +53,13 @@ write_summary <- function(lang_name, lang_in_degree) {
 for (i in seq(from=1, to=nrow(languages))){
   write_summary(languages$language[i],langs_in_degree[[i]])
 }
-
-```
-
-```{r pressure, echo=FALSE}
-x <- degree_sequence$V1
-N <- length(x)
-M <- sum(x)
-M_prime <- sum(log(x))
-C <- sum(sapply(seq(from=1, to=N, by=1), function(i) sum(sapply(seq(from=1, to=x[i], by=1), function(j) log(j)))))
 ```
 
 ```{r}
-calculate_mle <- function(degree_sequence) {
-  N <- length(degree_sequence)
-  M <- sum(degree_sequence)
-  M_prime <- sum(log(degree_sequence))
-  C <- sum(sapply(seq(from=1, to=N, by=1), function(i) sum(sapply(seq(from=1, to=degree_sequence[i], by=1), function(j) log(j)))))
-  cat(N,M,M_prime,C)
-}
-```
+N <- 0
+M <- 0
+M_prime <- 0
 
-```{r}
-calculate_mle(langs_in_degree[[1]])
-```
-
-```{r}
 minus_log_likelihood_zeta <- function(gamma) {
    M_prime*gamma + N*log(zeta(gamma))
 }
@@ -101,12 +85,16 @@ minus_log_likelihood_rtrunc_zeta <- function (gamma, k_max) {
 
 ```{r}
 
-for (lang in languages) {
-  x <- degree_sequence$V1
+parameters <-data.frame(matrix(ncol = 6, nrow = 0))
+colnames(parameters) <- c("Language", "lambda", "q", "zeta", "rtrunc_zeta", "k_max")
+
+for (l in seq(1, nrow(languages))) {
+  x <- langs_in_degree[[l]]
   N <- length(x)
   M <- sum(x)
   M_prime <- sum(log(x))
   C <- sum(sapply(seq(from=1, to=N, by=1), function(i) sum(sapply(seq(from=1, to=x[i], by=1), function(j) log(j)))))
+
   mle_poisson <- mle(minus_log_likelihood_poisson,
                       start = list(lambda = M/N),
                       method = "L-BFGS-B",
@@ -135,26 +123,31 @@ for (lang in languages) {
 
   rtrunc_zeta <- attributes(summary(mle_rtrunc_zeta))$coef[1]
   k_max <- attributes(summary(mle_rtrunc_zeta))$coef[2]
+
+  parameters[nrow(parameters) + 1,] = c(languages$language[[l]], lambda, q, zeta, rtrunc_zeta, k_max)
 }
 
 ```
 
 ```{r}
-k_max
+# Function to write the languages summary (Table 2) from the data retrieved in previous chunk
+write_summary_2 <- function(row) {
+   # Generate the language summary (corresponding to a table row) by concatenating the following fields (Language name must be accessed)
+   # | Language | lambda | q | zeta | right_truncated_zeta | k_max |
+   cat(row$Language,
+       row$lambda,
+       row$q,
+       row$zeta,
+       row$rtrunc_zeta,
+       row$k_max,
+       "\n")
+}
 ```
 
 ```{r}
-max(x)
-```
-
-```{r}
-for (i in 1:nrow(languages)) {
-  mle_poisson <- mle(minus_log_likelihood_poisson,
-                     start = list(lambda = M/N),
-                     method = "L-BFGS-B",
-                     lower = c(0.0000001))
-  print(attributes(summary(mle_zeta))$coef[1])
-  }
+for (i in seq(from=1, to=nrow(parameters))){
+  write_summary_2(parameters[i,])
+}
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
