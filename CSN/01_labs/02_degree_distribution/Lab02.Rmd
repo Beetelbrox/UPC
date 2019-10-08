@@ -25,9 +25,9 @@ require(igraph)
 require(knitr)
 require('stats4')
 require('VGAM')
-options(kableExtra.latex.load_packages = FALSE )
+#options(kableExtra.latex.load_packages = FALSE )
 require(kableExtra)
-knit_hooks$set(document = function(x) {sub('\\usepackage[]{color}', '\\usepackage[]{xcolor}', x, fixed = TRUE)})
+#knit_hooks$set(document = function(x) {sub('\\usepackage[]{color}', '\\usepackage[]{xcolor}', x, fixed = TRUE)})
 ```
 
 ```{r, include=FALSE}
@@ -43,7 +43,6 @@ for (i in seq(from=1, to=nrow(languages))){
   langs_in_degree[i] <- read.table(languages$file[i], header = FALSE)
 }
 ```
-
 
 Print the first table
 
@@ -64,11 +63,11 @@ generate_language_summary <- function(lang_in_degree) {
 # Apply generate_language_summary to every entry in the list of language in-degrees to generate the summary for every language. Use do.call to pass each summary to rbind as a parameter, that way the vectors are concatenated vertically. Column names need to be added afterwards
 summary_df <- data.frame(do.call(rbind, lapply(langs_in_degree, generate_language_summary)), row.names=languages$language)
 
-kable(summary_df, "latex", col.names=c('N', 'Max Degree', 'M/N', 'N/M'))
-  #kable_styling(latex_options = "striped")
+kable(summary_df, "latex", col.names=c('N', 'Max Degree', 'M/N', 'N/M'), booktabs=T, linesep='', align='c') %>%
+  kable_styling(latex_options = "striped", full_width=T)
 ```
 
-```{r}
+```{r, echo=FALSE}
 N <- 0
 M <- 0
 M_prime <- 0
@@ -96,7 +95,7 @@ minus_log_likelihood_rtrunc_zeta <- function (gamma, k_max) {
 }
 ```
 
-```{r}
+```{r, echo=FALSE}
 
 parameters <-data.frame(matrix(ncol = 6, nrow = 0))
 colnames(parameters) <- c("Language", "lambda", "q", "zeta", "rtrunc_zeta", "k_max")
@@ -142,7 +141,7 @@ for (l in seq(1, nrow(languages))) {
 
 ```
 
-```{r}
+```{r, echo=FALSE}
 # Function to write the languages summary (Table 2) from the data retrieved in previous chunk
 write_summary_2 <- function(row) {
    # Generate the language summary (corresponding to a table row) by concatenating the following fields (Language name must be accessed)
@@ -157,7 +156,7 @@ write_summary_2 <- function(row) {
 }
 ```
 
-```{r}
+```{r, echo=FALSE}
 for (i in seq(from=1, to=nrow(parameters))){
   write_summary_2(parameters[i,])
 }
