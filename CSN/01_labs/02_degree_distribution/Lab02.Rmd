@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r cars, include=FALSE}
-# Load the igraph library and require the packages stats4 & VGAM
+# Load the igraph library and require the packages stats4 (mle) & VGAM (Riemman-zeta)
 library(igraph)
 require('stats4')
 require('VGAM')
@@ -25,41 +25,29 @@ languages = read.table("list.txt",
             )
 
 # Read the language files from disk and store them in memory so we don't have to do so multiple times
-lang_data <- vector('list', nrow(languages))
-for (l in seq(from=1, to=nrow(languages))){
-  lang_data[l] <- read.table(languages$file[l], header = FALSE)
+langs_in_degree <- vector('list', nrow(languages))
+for (i in seq(from=1, to=nrow(languages))){
+  langs_in_degree[i] <- read.table(languages$file[i], header = FALSE)
 }
 ```
 
 ```{r}
-write_summary <- function(language,file) {
-   degree_sequence = read.table(file, header = FALSE)
-   # Generate the language summary (corresponding to a table row) by concatenating the following fields
-   # | Language | num nodes | max degree | mean degree | inv mean degree |
-   cat(language,
-       length(degree_sequence$V1),
-       max(degree_sequence$V1),
-       sum(degree_sequence$V1)/length(degree_sequence$V1),
-       length(degree_sequence$V1)/sum(degree_sequence$V1),
+# Function to write the languages summary (Table 1) from the already-read language data
+write_summary <- function(lang_name, lang_in_degree) {
+   # Generate the language summary (corresponding to a table row) by concatenating the following fields (Language name must be accessed)
+   # | num nodes | max degree | mean degree | inv mean degree |
+   cat(lang_name,
+       length(lang_in_degree),
+       max(lang_in_degree),
+       sum(lang_in_degree)/length(lang_in_degree),
+       length(lang_in_degree)/sum(lang_in_degree),
        "\n")
-   # cat(language,length(degree_sequence$V1),max(degree_sequence$V1),sum(degree_sequence$V1)/length(degree_sequence$V1),length(degree_sequence$V1)/sum(degree_sequence$V1),"\n")
-   return (list(language,length(degree_sequence$V1),max(degree_sequence$V1),sum(degree_sequence$V1)/length(degree_sequence$V1),length(degree_sequence$V1)/sum(degree_sequence$V1)))
 }
-
 ```
 
 ```{r}
-# Read the list of languages from file
-languages = read.table("list.txt", 
-         header = TRUE,               # this is to indicate the first line of the file contains the names of the columns instead of the real data
-         as.is = c("language","file") # this is need to have the cells treated as real strings and not as categorial data.
-        )
-
-Table1 <- data.frame(matrix(ncol = 5, nrow = 0))                       # Create an empty dataframe
-colnames(Table1) <- c('Language', 'N', 'Maximum degree', 'M/N', 'N/M') # Assign the column names to Table1
-for (x in 1:nrow(source)) {
-    Table1 [nrow(Table1) + 1,] <- write_summary(source$language[x], source$file[x])
-    #write_summary(source$language[x], source$file[x])
+for (i in seq(from=1, to=nrow(languages))){
+  write_summary(languages$language[i],langs_in_degree[[i]])
 }
 
 ```
