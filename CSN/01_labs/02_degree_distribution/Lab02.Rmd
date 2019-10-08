@@ -128,4 +128,25 @@ for (l in seq(1, nrow(languages))) {
 
 ```
 
+```{r}
+# Function to write the languages summary (Table 2) from the data retrieved in previous chunk
+write_summary_2 <- function(row) {
+   # Generate the language summary (corresponding to a table row) by concatenating the following fields (Language name must be accessed)
+   # | Language | lambda | q | zeta | right_truncated_zeta | k_max |
+   cat(row$Language,
+       row$lambda,
+       row$q,
+       row$zeta,
+       row$rtrunc_zeta,
+       row$k_max,
+       "\n")
+}
+```
+
+```{r}
+for (i in seq(from=1, to=nrow(parameters))){
+  write_summary_2(parameters[i,])
+}
+```
+
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
