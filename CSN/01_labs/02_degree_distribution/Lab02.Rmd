@@ -63,7 +63,7 @@ generate_language_summary <- function(lang_in_degree) {
 # Apply generate_language_summary to every entry in the list of language in-degrees to generate the summary for every language. Use do.call to pass each summary to rbind as a parameter, that way the vectors are concatenated vertically. Column names need to be added afterwards
 summary_df <- data.frame(do.call(rbind, lapply(langs_in_degree, generate_language_summary)), row.names=languages$language)
 
-kable(summary_df, "latex", col.names=c('N', 'Max Degree', 'M/N', 'N/M'), booktabs=T, linesep='', align='c') %>%
+kable(summary_df, "latex", col.names=c('N', 'Max Degree', 'M/N', 'N/M'), booktabs=T, linesep='', align='c', digits=4) %>%
   kable_styling(latex_options = "striped", full_width=T)
 ```
 
@@ -178,6 +178,8 @@ write_summary_2 <- function(row) {
 for (i in seq(from=1, to=nrow(parameters))){
   write_summary_2(parameters[i,])
 }
+kable(parameters, "latex", col.names=colnames(parameters), booktabs=T, linesep='', align='c', digits=4) %>%
+  kable_styling(latex_options = "striped", full_width=T)
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
@@ -209,5 +211,7 @@ write_summary_3 <- function(row, index) {
 for (i in seq(from=1, to=nrow(models))){
   write_summary_3(models[i,], i)
 }
+kable(models, "latex", col.names=colnames(models), booktabs=T, linesep='', align='c', digits=4) %>%
+  kable_styling(latex_options = "striped", full_width=T)
 ```
 
