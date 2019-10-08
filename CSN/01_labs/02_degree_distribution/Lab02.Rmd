@@ -32,6 +32,28 @@ for (i in seq(from=1, to=nrow(languages))){
 ```
 
 
+Print the first table
+
+```{r}
+# Function to write the languages summary (Table 1) from the already-read language data
+write_summary <- function(lang_name, lang_in_degree) {
+   # Generate the language summary (corresponding to a table row) by concatenating the following fields (Language name must be accessed)
+   # | num nodes | max degree | mean degree | inv mean degree |
+   cat(lang_name,
+       length(lang_in_degree),
+       max(lang_in_degree),
+       sum(lang_in_degree)/length(lang_in_degree),
+       length(lang_in_degree)/sum(lang_in_degree),
+       "\n")
+}
+```
+
+```{r}
+for (i in seq(from=1, to=nrow(languages))){
+  write_summary(languages$language[i],langs_in_degree[[i]])
+}
+```
+
 ```{r}
 N <- 0
 M <- 0
