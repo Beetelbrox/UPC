@@ -54,6 +54,7 @@ lang_stats <- lapply(in_degree_sequences,
 ```{r, echo=FALSE}
 # Define the minus log likelihood functions for the different probaiblity mass functions to be passed to the optimizer
 models <- c('Poisson', 'Geometric', 'Zeta_2', 'Zeta', 'Right-truncated Zeta')
+num_params <- c(1, 1, 0, 1, 2)
 
 generate_minus_log_likelihoods <- function(stats) {
   c(
@@ -64,7 +65,7 @@ generate_minus_log_likelihoods <- function(stats) {
     function (q) { (stats$N - stats$M)*log(1-q) - stats$N*log(q) },
     
     # Zeta with gamma=2
-    #function() { 2*stats$M_prime + stats$N*log((pi^2)/6) },
+    function() { 2*stats$M_prime + stats$N*log((pi^2)/6) },
     
     # Zeta
     function(gamma) { stats$M_prime*gamma + stats$N*log(zeta(gamma))} ,
@@ -77,7 +78,7 @@ generate_minus_log_likelihoods <- function(stats) {
 start_parameters <- c(
   function(stats) { list( lambda=stats$M/stats$N ) },
   function(stats) { list( q=stats$N/stats$M ) },
-  #function(stats) { list( NA ) },
+  NA,
   function(stats) { list( gamma=2 )},
   function(stats) { list( gamma=2, k_max=stats$max )}
 )
@@ -85,7 +86,7 @@ start_parameters <- c(
 lower_bounds <- c(
   function(stats) { c(1.0000001) },
   function(stats) { c(0.0000001) },
-  #function(stats) { c(1.9999999) },
+  NA,
   function(stats) { c(1.0000001) },
   function(stats) { NA }
 )
@@ -93,7 +94,7 @@ lower_bounds <- c(
 upper_bounds <- c(
   function(stats) { NA },
   function(stats) { c(0.9999999) },
-  #function(stats) { c(2) },
+  NA,
   function(stats) { NA },
   function(stats) { c(NA, k_max=stats$N) } #This does not work with anything below N
 )
@@ -101,18 +102,19 @@ upper_bounds <- c(
 
 ```{r, echo = FALSE}
 calculate_likelihoods <- function(stats) {
-  minus_log_likelihood <- generate_minus_log_likelihoods(stats)
-  lapply(seq(from=1, to=length(models)-1, by=1), function(i) {
-          mle(minus_log_likelihood[[i]],
+  minus_log_likelihoods <- generate_minus_log_likelihoods(stats)
+  lapply(seq(from=1, to=length(models), by=1), function(i) {
+    if(num_params[i] > 0) {
+          mle(minus_log_likelihoods[[i]],
               start = start_parameters[[i]](stats),
               method = "L-BFGS-B",
               lower = lower_bounds[[i]](stats),
               upper = upper_bounds[[i]](stats)
           )
-        })
+    }})
 }
 
-mle_attributes <- lapply(lang_stats, function(x) lapply(calculate_likelihoods(x), function(l) attributes(summary(l))))
+coef_estimates <- lapply(lang_stats, function(x) lapply(calculate_likelihoods(x), function(l) attributes(summary(l))$coef[,1])) 
 ```
 
 ```{r, echo=FALSE}
@@ -124,46 +126,31 @@ kable(summary_df, col.names=c('N', 'Max Degree', 'M/N', 'N/M'), booktabs=T, line
 ```
 
 ```{r}
-parameters_df <- data.frame(do.call(rbind, lapply(mle_attributes, function(x) unlist(lapply(x, function(x) x$coef[,1])))), row.names=languages$language)
+parameters_df <- data.frame(do.call(rbind, lapply(coef_estimates, unlist)), row.names=languages$language)
 
 kable(parameters_df,  col.names=c("lambda", 'q', 'gamma_1', 'gamma_2', 'k_{max}'), booktabs=T, linesep='', align='c', digits=4) %>%
   kable_styling(latex_options = "striped", full_width=T)
-```
-
+``` 
 
 ```{r}
 calculate_AIC <- function(m2logL, K, N){
   m2logL + 2*K*N/(N-K-1)
 }
+
+AICs <- lapply(seq(from=1, to=length(lang_stats), by=1), function(l) {
+  minus_log_likelihoods <- generate_minus_log_likelihoods(lang_stats[[l]])
+  unlist(lapply(seq(from=1, to=length(models), by=1), function(i) {
+    calculate_AIC(2*do.call(minus_log_likelihoods[[i]], as.list(coef_estimates[[l]][[i]])), num_params[i], lang_stats[[l]]$N)
+  }))
+})
 ```
+
 
 ```{r}
-lapply(mle_attributes, function(x) sapply(unlist(lapply(x, function(x) x$m2logL)))
+data.frame(do.call(rbind, AICs), row.names=languages$language)
 ```
 
 
-```{r}
-# Function to write the languages summary (Table 2) from the data retrieved in previous chunk
-write_summary_3 <- function(row, index) {
-   # Generate the language summary (corresponding to a table row) by concatenating the following fields (Language name must be accessed)
-   # | Language | poisson | geometric | zeta | right_truncated_zeta |
-  k_used <- as.numeric(parameters$k_max[index])
-  n_used <- length(row)
-  cat(row$Language,
-       get_AIC(as.numeric(row$poisson), k_used, n_used),
-       get_AIC(as.numeric(row$geometric), k_used, n_used),
-       get_AIC(as.numeric(row$zeta_gamma_2), k_used, n_used),
-       get_AIC(as.numeric(row$zeta), k_used, n_used),
-       get_AIC(as.numeric(row$rtrunc_zeta), k_used, n_used),
-       "\n")
-}
-```
 
-```{r}
-for (i in seq(from=1, to=nrow(models))){
-  write_summary_3(models[i,], i)
-}
-kable(models, "latex", col.names=colnames(models), booktabs=T, linesep='', align='c', digits=4) %>%
-  kable_styling(latex_options = "striped", full_width=T)
-```
+
 
