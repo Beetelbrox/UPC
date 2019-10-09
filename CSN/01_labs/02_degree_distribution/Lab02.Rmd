@@ -8,7 +8,6 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-
 ```
 
 #Introduction
@@ -25,9 +24,7 @@ require(igraph)
 require(knitr)
 require('stats4')
 require('VGAM')
-#options(kableExtra.latex.load_packages = FALSE )
 require(kableExtra)
-#knit_hooks$set(document = function(x) {sub('\\usepackage[]{color}', '\\usepackage[]{xcolor}', x, fixed = TRUE)})
 ```
 
 ```{r, include=FALSE}
@@ -38,9 +35,9 @@ languages = read.table("list.txt",
             )
 
 # Read the language files from disk and store them in memory so we don't have to do so multiple times
-langs_in_degree <- vector('list', nrow(languages))
+in_degree_sequences <- vector('list', nrow(languages))
 for (i in seq(from=1, to=nrow(languages))){
-  langs_in_degree[i] <- read.table(languages$file[i], header = FALSE)
+  in_degree_sequences[i] <- read.table(languages$file[i], header = FALSE)
 }
 ```
 
@@ -48,51 +45,85 @@ Print the first table
 
 ```{r, include=FALSE}
 # Function to write the languages summary (Table 1) from the already-read language data
-generate_language_summary <- function(lang_in_degree) {
+language_summary <- function(in_degree_sequence) {
   # Generate the summary for a given language (corresponding to a row of table 1 minus the language's name)
   # Returns a vector with the following values:
    # | language | num nodes | max degree | mean degree | inv mean degree |
-  c(length(lang_in_degree),
-      max(lang_in_degree),
-       sum(lang_in_degree)/length(lang_in_degree),
-       length(lang_in_degree)/sum(lang_in_degree))
+  c(length(in_degree_sequence),
+      max(in_degree_sequence),
+       sum(in_degree_sequence)/length(in_degree_sequence),
+       length(in_degree_sequence)/sum(in_degree_sequence))
 }
 ```
 
 ```{r, echo=FALSE}
-# Apply generate_language_summary to every entry in the list of language in-degrees to generate the summary for every language. Use do.call to pass each summary to rbind as a parameter, that way the vectors are concatenated vertically. Column names need to be added afterwards
-summary_df <- data.frame(do.call(rbind, lapply(langs_in_degree, generate_language_summary)), row.names=languages$language)
+# Apply generate_language_summary to every entry in the list of language in-degrees to generate the summary for every language. Use do.call to pass each summary to rbind as a parameter, that way the vectors are concatenated vertically
+summary_df <- data.frame(do.call(rbind, lapply(in_degree_sequences, language_summary)), row.names=languages$language)
 
 kable(summary_df, "latex", col.names=c('N', 'Max Degree', 'M/N', 'N/M'), booktabs=T, linesep='', align='c') %>%
   kable_styling(latex_options = "striped", full_width=T)
 ```
 
 ```{r, echo=FALSE}
-N <- 0
-M <- 0
-M_prime <- 0
+# Define the minus log likelihood functions for the different probaiblity mass functions to be passed to the optimizer
+models <- c('Poisson', 'Geometric', 'Zeta_2', 'Zeta', 'Right-truncated Zeta')
+minus_log_likelihoods <- c(
+  # Displaced Poisson
+  function (lambda) { N*(lambda + log(1 - exp(-lambda))) + C - M*log(lambda) },
+  
+  # Displaced Geometric
+  function (q) {
+    (N - M)*log(1-q) - N*log(q)
+  },
+  
+  # Zeta with gamma=2
+  function() {
+    2*M_prime + N*log((pi^2)/6)
+  },
+  
+  # Zeta
+  function(gamma) {
+     M_prime*gamma + N*log(zeta(gamma))
+  },
+  
+  # Right-truncated Zeta
+  function (gamma, k_max) {
+    gamma*M_prime + N*log(sum(sapply(seq(from=1, to=k_max, by=1), function(x) x^(-gamma))))
+  })
 
-minus_log_likelihood_zeta <- function(gamma) {
-   M_prime*gamma + N*log(zeta(gamma))
+start_parameters <- c(
+  function() { list( lambda=M/N ) },
+  function() { list( q=N/M ) },
+  function() { list( gamma=2 )},
+  function() { list( gamma=2 )},
+  function() { list( gamma=2 )}
+)
+
+```
+
+```{r}
+calculate_likelihoods <- function(in_degree_sequence) {
+  N <<- length(in_degree_sequence)
+  M <<- sum(in_degree_sequence)
+  M_prime <<- sum(log(in_degree_sequence))
+  C <<- sum(sapply(seq(from=1, to=N, by=1), function(i) sum(sapply(seq(from=1, to=in_degree_sequence[i], by=1), function(j) log(j)))))
+
+  for (i in seq(from=1, to=length(models), by=1)) {
+    mle(minus_log_likelihoods[[i]],
+        start = start_parameters[[i]](),
+                      method = "L-BFGS-B")
+  }
 }
+#minus_log_likelihoods[[1]](0.5)
+calculate_likelihoods(in_degree_sequences[[1]])
+```
 
-minus_log_likelihood_poisson <- function (lambda) {
-   N*(lambda + log(1 - exp(-lambda))) + C - M*log(lambda)
-}
+```{r}
+list(lambda=M/N)
+```
 
-minus_log_likelihood_geometric <- function (q) {
-  (N - M)*log(1-q) - N*log(q)
-}
-
-minus_log_likelihood_zeta_gamma_2 <- 2*M_prime + N*log((pi^2)/6)
-
-gen_harmonic <- function(k_max, gamma) {
-
-}
-
-minus_log_likelihood_rtrunc_zeta <- function (gamma, k_max) {
-  gamma*M_prime + N*log(sum(sapply(seq(from=1, to=k_max, by=1), function(x) x^(-gamma))))
-}
+```{r}
+length(models)
 ```
 
 ```{r, echo=FALSE}
@@ -105,14 +136,15 @@ for (l in seq(1, nrow(languages))) {
   N <- length(x)
   M <- sum(x)
   M_prime <- sum(log(x))
+  print(minus_log_likelihood_geometric(0.5))
   C <- sum(sapply(seq(from=1, to=N, by=1), function(i) sum(sapply(seq(from=1, to=x[i], by=1), function(j) log(j)))))
 
   mle_poisson <- mle(minus_log_likelihood_poisson,
                       start = list(lambda = M/N),
                       method = "L-BFGS-B",
-                      lower = c(1.0000001))
+                      lower = NA)
 
-  lambda <- attributes(summary(mle_poisson))$coef[1]
+  #lambda <- attributes(summary(mle_poisson))$coef[1]
 
   mle_geometric <- mle(minus_log_likelihood_geometric,
                        start = list(q = N/M),
