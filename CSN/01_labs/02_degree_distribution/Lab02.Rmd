@@ -41,89 +41,97 @@ for (i in seq(from=1, to=nrow(languages))){
 }
 ```
 
-Print the first table
-
-```{r, include=FALSE}
-# Function to write the languages summary (Table 1) from the already-read language data
-language_summary <- function(in_degree_sequence) {
-  # Generate the summary for a given language (corresponding to a row of table 1 minus the language's name)
-  # Returns a vector with the following values:
-   # | language | num nodes | max degree | mean degree | inv mean degree |
-  c(length(in_degree_sequence),
-      max(in_degree_sequence),
-       sum(in_degree_sequence)/length(in_degree_sequence),
-       length(in_degree_sequence)/sum(in_degree_sequence))
-}
+```{r}
+lang_stats <- lapply(in_degree_sequences, 
+                     function(x) list(N=length(x), 
+                                      M=sum(x),
+                                      max=max(x),
+                                      M_prime=sum(log(x)),
+                                      C=sum(sapply(seq(from=1, to=length(x), by=1), 
+                                            function(i) sum(sapply(seq(from=1, to=x[i], by=1), function(j) log(j)))))))
 ```
 
 ```{r, echo=FALSE}
 # Apply generate_language_summary to every entry in the list of language in-degrees to generate the summary for every language. Use do.call to pass each summary to rbind as a parameter, that way the vectors are concatenated vertically
-summary_df <- data.frame(do.call(rbind, lapply(in_degree_sequences, language_summary)), row.names=languages$language)
+summary_df <- data.frame(do.call(rbind, lapply(lang_stats, function(x) c(x$N, x$max, x$M/x$N, x$N/x$M))), row.names=languages$language)
 
-kable(summary_df, "latex", col.names=c('N', 'Max Degree', 'M/N', 'N/M'), booktabs=T, linesep='', align='c', digits=4) %>%
+kable(summary_df, 'latex', col.names=c('N', 'Max Degree', 'M/N', 'N/M'), booktabs=T, linesep='', align='c', digits=4) %>%
   kable_styling(latex_options = "striped", full_width=T)
 ```
+
 
 ```{r, echo=FALSE}
 # Define the minus log likelihood functions for the different probaiblity mass functions to be passed to the optimizer
 models <- c('Poisson', 'Geometric', 'Zeta_2', 'Zeta', 'Right-truncated Zeta')
-minus_log_likelihoods <- c(
-  # Displaced Poisson
-  function (lambda) { N*(lambda + log(1 - exp(-lambda))) + C - M*log(lambda) },
-  
-  # Displaced Geometric
-  function (q) {
-    (N - M)*log(1-q) - N*log(q)
-  },
-  
-  # Zeta with gamma=2
-  function() {
-    2*M_prime + N*log((pi^2)/6)
-  },
-  
-  # Zeta
-  function(gamma) {
-     M_prime*gamma + N*log(zeta(gamma))
-  },
-  
-  # Right-truncated Zeta
-  function (gamma, k_max) {
-    gamma*M_prime + N*log(sum(sapply(seq(from=1, to=k_max, by=1), function(x) x^(-gamma))))
-  })
+
+generate_minus_log_likelihoods <- function(stats) {
+  c(
+    # Displaced Poisson
+    function (lambda) { stats$N*(lambda + log(1 - exp(-lambda))) + stats$C - stats$M*log(lambda) },
+    
+    # Displaced Geometric
+    function (q) { (stats$N - stats$M)*log(1-q) - stats$N*log(q) },
+    
+    # Zeta with gamma=2
+    #function() { 2*stats$M_prime + stats$N*log((pi^2)/6) },
+    
+    # Zeta
+    function(gamma) { stats$M_prime*gamma + stats$N*log(zeta(gamma))} ,
+    
+    # Right-truncated Zeta
+    function (gamma, k_max) { gamma*stats$M_prime + stats$N*log(sum(sapply(seq(from=1, to=k_max, by=1), function(x) x^(-gamma)))) }
+  )
+}
 
 start_parameters <- c(
-  function() { list( lambda=M/N ) },
-  function() { list( q=N/M ) },
-  function() { list( gamma=2 )},
-  function() { list( gamma=2 )},
-  function() { list( gamma=2 )}
+  function(stats) { list( lambda=stats$M/stats$N ) },
+  function(stats) { list( q=stats$N/stats$M ) },
+  #function(stats) { list( NA ) },
+  function(stats) { list( gamma=2 )},
+  function(stats) { list( gamma=2, k_max=stats$max )}
 )
 
+lower_bounds <- c(
+  function(stats) { c(1.0000001) },
+  function(stats) { c(0.0000001) },
+  #function(stats) { c(1.9999999) },
+  function(stats) { c(1.0000001) },
+  function(stats) { NA }
+)
+
+upper_bounds <- c(
+  function(stats) { NA },
+  function(stats) { c(0.9999999) },
+  #function(stats) { c(2) },
+  function(stats) { NA },
+  function(stats) { c(NA, k_max=stats$N) } #This does not work with anything below N
+)
 ```
 
 ```{r}
-calculate_likelihoods <- function(in_degree_sequence) {
-  N <<- length(in_degree_sequence)
-  M <<- sum(in_degree_sequence)
-  M_prime <<- sum(log(in_degree_sequence))
-  C <<- sum(sapply(seq(from=1, to=N, by=1), function(i) sum(sapply(seq(from=1, to=in_degree_sequence[i], by=1), function(j) log(j)))))
-
-  for (i in seq(from=1, to=length(models), by=1)) {
-    mle(minus_log_likelihoods[[i]],
-        start = start_parameters[[i]](),
-                      method = "L-BFGS-B")
-  }
+calculate_likelihoods <- function(stats) {
+  minus_log_likelihood <- generate_minus_log_likelihoods(stats)
+  lapply(seq(from=1, to=length(models)-1, by=1), function(i) {
+          mle(minus_log_likelihood[[i]],
+              start = start_parameters[[i]](stats),
+              method = "L-BFGS-B",
+              lower = lower_bounds[[i]](stats),
+              upper = upper_bounds[[i]](stats)
+          )
+        })
 }
-#minus_log_likelihoods[[1]](0.5)
-calculate_likelihoods(in_degree_sequences[[1]])
 ```
 
 ```{r}
-list(lambda=M/N)
+data.frame(do.call(rbind, lapply(lang_stats, function(x) unlist(sapply(calculate_likelihoods(x), function(l) attributes(summary(l))$coef[,1] )))), row.names=languages$language)
 ```
 
 ```{r}
-length(models)
+summary_df <- data.frame(do.call(rbind, lapply(lang_stats, function(x) c(x$N, x$max, x$M/x$N, x$N/x$M))), row.names=languages$language)
+
+kable(summary_df, 'latex', col.names=c('N', 'Max Degree', 'M/N', 'N/M'), booktabs=T, linesep='', align='c', digits=4) %>%
+  kable_styling(latex_options = "striped", full_width=T)
+```
 ```
 
 ```{r, echo=FALSE}
