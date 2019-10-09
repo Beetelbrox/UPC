@@ -53,8 +53,12 @@ lang_stats <- lapply(in_degree_sequences,
 
 ```{r, echo=FALSE}
 # Define the minus log likelihood functions for the different probaiblity mass functions to be passed to the optimizer
-models <- c('Poisson', 'Geometric', 'Zeta_2', 'Zeta', 'Right-truncated Zeta')
-num_params <- c(1, 1, 0, 1, 2)
+models <- c('Poisson', 'Geometric', 'Zeta_2', 'Zeta', 'Right-truncated Zeta', 'Altmann')
+num_params <- c(1, 1, 0, 1, 2, 3)
+
+
+
+##### AQUÍ SOLO AÑADÍ UNA FUNCIÓN MÁS Y SUS CORRESPONDIENTES UPPER Y LOWER BOUNDS (APARTE DE LA INFO DE ARRIBA PARA MODELS Y NUM_PARAMS). ####
 
 generate_minus_log_likelihoods <- function(stats) {
   c(
@@ -71,7 +75,13 @@ generate_minus_log_likelihoods <- function(stats) {
     function(gamma) { stats$M_prime*gamma + stats$N*log(zeta(gamma))} ,
     
     # Right-truncated Zeta
-    function (gamma, k_max) { gamma*stats$M_prime + stats$N*log(sum(sapply(seq(from=1, to=k_max, by=1), function(x) x^(-gamma)))) }
+    function (gamma, k_max) { gamma*stats$M_prime + stats$N*log(sum(sapply(seq(from=1, to=k_max, by=1), function(x) x^(-gamma))))},
+    
+    # Altmann function (assume k is the mean degree)
+    function(c, gamma, delta) {
+      k <- stats$M/stats$N
+      c*k^(-gamma)*exp(-delta*k)
+    }
   )
 }
 
@@ -80,7 +90,8 @@ start_parameters <- c(
   function(stats) { list( q=stats$N/stats$M ) },
   NA,
   function(stats) { list( gamma=2 )},
-  function(stats) { list( gamma=2, k_max=stats$max )}
+  function(stats) { list( gamma=2, k_max=stats$max )},
+  function(stats) { list(c=stats$N, gamma=-1, delta=0 )}
 )
 
 lower_bounds <- c(
@@ -88,6 +99,7 @@ lower_bounds <- c(
   function(stats) { c(0.0000001) },
   NA,
   function(stats) { c(1.0000001) },
+  function(stats) { NA },
   function(stats) { NA }
 )
 
@@ -96,7 +108,8 @@ upper_bounds <- c(
   function(stats) { c(0.9999999) },
   NA,
   function(stats) { NA },
-  function(stats) { c(NA, k_max=stats$N) } #This does not work with anything below N
+  function(stats) { c(NA, k_max=stats$N) }, #This does not work with anything below N
+  function(stats) { NA }
 )
 ```
 
@@ -113,6 +126,9 @@ calculate_likelihoods <- function(stats) {
           )
     }})
 }
+
+
+#### PETA AQUÍ CON MILLONES DE NANs ####
 
 coef_estimates <- lapply(lang_stats, function(x) lapply(calculate_likelihoods(x), function(l) attributes(summary(l))$coef[,1])) 
 ```
@@ -147,10 +163,13 @@ AICs <- lapply(seq(from=1, to=length(lang_stats), by=1), function(l) {
 
 
 ```{r}
-data.frame(do.call(rbind, AICs), row.names=languages$language)
+
+#### DATAFRAME Y KABLE PARA LA ÚLTIMA TABLA ####
+
+aic_distributions_df <- data.frame(do.call(rbind, lapply(AICs, function(x) sapply(x, function(y) y - min(x)))), row.names=languages$language)
+colnames(aic_distributions_df) <- models
+
+kable(aic_distributions_df, booktabs=T, linesep='', align='c', digits=4) %>%
+kable_styling(latex_options = "striped", full_width=T)
 ```
-
-
-
-
 
