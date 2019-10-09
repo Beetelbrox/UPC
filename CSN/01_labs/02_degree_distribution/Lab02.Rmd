@@ -52,15 +52,6 @@ lang_stats <- lapply(in_degree_sequences,
 ```
 
 ```{r, echo=FALSE}
-# Apply generate_language_summary to every entry in the list of language in-degrees to generate the summary for every language. Use do.call to pass each summary to rbind as a parameter, that way the vectors are concatenated vertically
-summary_df <- data.frame(do.call(rbind, lapply(lang_stats, function(x) c(x$N, x$max, x$M/x$N, x$N/x$M))), row.names=languages$language)
-
-kable(summary_df, 'latex', col.names=c('N', 'Max Degree', 'M/N', 'N/M'), booktabs=T, linesep='', align='c', digits=4) %>%
-  kable_styling(latex_options = "striped", full_width=T)
-```
-
-
-```{r, echo=FALSE}
 # Define the minus log likelihood functions for the different probaiblity mass functions to be passed to the optimizer
 models <- c('Poisson', 'Geometric', 'Zeta_2', 'Zeta', 'Right-truncated Zeta')
 
@@ -108,7 +99,7 @@ upper_bounds <- c(
 )
 ```
 
-```{r}
+```{r, echo = FALSE}
 calculate_likelihoods <- function(stats) {
   minus_log_likelihood <- generate_minus_log_likelihoods(stats)
   lapply(seq(from=1, to=length(models)-1, by=1), function(i) {
@@ -120,115 +111,36 @@ calculate_likelihoods <- function(stats) {
           )
         })
 }
+
+mle_attributes <- lapply(lang_stats, function(x) lapply(calculate_likelihoods(x), function(l) attributes(summary(l))))
 ```
 
-```{r}
-data.frame(do.call(rbind, lapply(lang_stats, function(x) unlist(sapply(calculate_likelihoods(x), function(l) attributes(summary(l))$coef[,1] )))), row.names=languages$language)
-```
-
-```{r}
+```{r, echo=FALSE}
+# Apply generate_language_summary to every entry in the list of language in-degrees to generate the summary for every language. Use do.call to pass each summary to rbind as a parameter, that way the vectors are concatenated vertically
 summary_df <- data.frame(do.call(rbind, lapply(lang_stats, function(x) c(x$N, x$max, x$M/x$N, x$N/x$M))), row.names=languages$language)
 
-kable(summary_df, 'latex', col.names=c('N', 'Max Degree', 'M/N', 'N/M'), booktabs=T, linesep='', align='c', digits=4) %>%
+kable(summary_df, col.names=c('N', 'Max Degree', 'M/N', 'N/M'), booktabs=T, linesep='', align='c', digits=4) %>%
   kable_styling(latex_options = "striped", full_width=T)
 ```
-```
-
-```{r, echo=FALSE}
-
-parameters <- data.frame(matrix(ncol = 6, nrow = 0))
-models <- data.frame(matrix(ncol = 6, nrow = 0))
-colnames(parameters) <- c("Language", "lambda", "q", "zeta", "rtrunc_zeta", "k_max")
-colnames(models) <- c("Language", "poisson", "geometric", "zeta_gamma_2", "zeta", "rtrunc_zeta")
-
-for (l in seq(1, nrow(languages))) {
-  x <- langs_in_degree[[l]]
-  N <- length(x)
-  M <- sum(x)
-  M_prime <- sum(log(x))
-  print(minus_log_likelihood_geometric(0.5))
-  C <- sum(sapply(seq(from=1, to=N, by=1), function(i) sum(sapply(seq(from=1, to=x[i], by=1), function(j) log(j)))))
-
-  mle_poisson <- mle(minus_log_likelihood_poisson,
-                      start = list(lambda = M/N),
-                      method = "L-BFGS-B",
-                      lower = NA)
-
-  #lambda <- attributes(summary(mle_poisson))$coef[1]
-
-  mle_geometric <- mle(minus_log_likelihood_geometric,
-                       start = list(q = N/M),
-                       method = "L-BFGS-B",
-                       lower = c(0.0000001),
-                       upper = c(0.9999999)) # We needed to set an upper bound
-
-  q <- attributes(summary(mle_geometric))$coef[1]
-
-  mle_zeta_2 <- mle(minus_log_likelihood_zeta,
-                  start = list(gamma = 2),
-                  method = "L-BFGS-B",
-                  lower = c(1.0000001))
-
-  zeta <- attributes(summary(mle_zeta_2))$coef[1]
-  
-  
-  mle_zeta <- mle(minus_log_likelihood_zeta,
-                  start = list(gamma = zeta),
-                  method = "L-BFGS-B",
-                  lower = c(1.0000001))
-
-  mle_rtrunc_zeta <- mle(minus_log_likelihood_rtrunc_zeta,
-                  start = list(gamma = 2, k_max = max(x)), #We've chosen the largest k
-                  method = "L-BFGS-B") #
-
-  rtrunc_zeta <- attributes(summary(mle_rtrunc_zeta))$coef[1]
-  k_max <- attributes(summary(mle_rtrunc_zeta))$coef[2]
-
-  parameters[nrow(parameters) + 1,] = c(languages$language[[l]],
-                                        lambda,
-                                        q,
-                                        zeta,
-                                        rtrunc_zeta,
-                                        k_max)
-  models[nrow(models) + 1,] = c(languages$language[[l]],
-                                    attributes(summary(mle_poisson))$m2logL,
-                                    attributes(summary(mle_geometric))$m2logL,
-                                    attributes(summary(mle_zeta_2))$m2logL,
-                                    attributes(summary(mle_zeta))$m2logL,
-                                    attributes(summary(mle_rtrunc_zeta))$m2logL)
-}
-```
-
-```{r, echo=FALSE}
-# Function to write the languages summary (Table 2) from the data retrieved in previous chunk
-write_summary_2 <- function(row) {
-   # Generate the language summary (corresponding to a table row) by concatenating the following fields (Language name must be accessed)
-   # | Language | lambda | q | zeta | right_truncated_zeta | k_max |
-   cat(row$Language,
-       row$lambda,
-       row$q,
-       row$zeta,
-       row$rtrunc_zeta,
-       row$k_max,
-       "\n")
-}
-```
-
-```{r, echo=FALSE}
-for (i in seq(from=1, to=nrow(parameters))){
-  write_summary_2(parameters[i,])
-}
-kable(parameters, "latex", col.names=colnames(parameters), booktabs=T, linesep='', align='c', digits=4) %>%
-  kable_styling(latex_options = "striped", full_width=T)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
 ```{r}
-get_AIC <- function(m2logL, K, N){
+parameters_df <- data.frame(do.call(rbind, lapply(mle_attributes, function(x) unlist(lapply(x, function(x) x$coef[,1])))), row.names=languages$language)
+
+kable(parameters_df,  col.names=c("lambda", 'q', 'gamma_1', 'gamma_2', 'k_{max}'), booktabs=T, linesep='', align='c', digits=4) %>%
+  kable_styling(latex_options = "striped", full_width=T)
+```
+
+
+```{r}
+calculate_AIC <- function(m2logL, K, N){
   m2logL + 2*K*N/(N-K-1)
 }
 ```
+
+```{r}
+lapply(mle_attributes, function(x) sapply(unlist(lapply(x, function(x) x$m2logL)))
+```
+
 
 ```{r}
 # Function to write the languages summary (Table 2) from the data retrieved in previous chunk
