@@ -101,6 +101,7 @@ upper_bounds <- c(
 ```
 
 ```{r, echo = FALSE}
+# Function to calculate the likelihoods given a set of statistics
 calculate_likelihoods <- function(stats) {
   minus_log_likelihoods <- generate_minus_log_likelihoods(stats)
   lapply(seq(from=1, to=length(models), by=1), function(i) {
@@ -147,7 +148,9 @@ AICs <- lapply(seq(from=1, to=length(lang_stats), by=1), function(l) {
 
 
 ```{r}
-data.frame(do.call(rbind, AICs), row.names=languages$language)
+delta_AIC_df <- data.frame(do.call(rbind, lapply(AICs, function(x) sapply(x, function(y) y - min(x)))), row.names=languages$language)
+kable(delta_AIC_df,  col.names=models, booktabs=T, linesep='', align='c', digits=4) %>%
+  kable_styling(latex_options = "striped", full_width=T)
 ```
 
 
