@@ -27,38 +27,14 @@ require('VGAM')
 require(kableExtra)
 ```
 
-```{r, include=FALSE}
-# Read the list of languages from file
-languages = read.table("list.txt",
-              header = TRUE,               # this is to indicate the first line of the file contains the names of the columns instead of the real data
-              as.is = c("language","file") # this is need to have the cells treated as real strings and not as categorial data.
-            )
-
-# Read the language files from disk and store them in memory so we don't have to do so multiple times
-in_degree_sequences <- vector('list', nrow(languages))
-for (i in seq(from=1, to=nrow(languages))){
-  in_degree_sequences[i] <- read.table(languages$file[i], header = FALSE)
-}
-```
-
-```{r}
-lang_stats <- lapply(in_degree_sequences,
-                     function(x) list(N=length(x),
-                                      M=sum(x),
-                                      max=max(x),
-                                      M_prime=sum(log(x)),
-                                      C=sum(sapply(seq(from=1, to=length(x), by=1),
-                                            function(i) sum(sapply(seq(from=1, to=x[i], by=1), function(j) log(j)))))))
-```
-
 ```{r, echo=FALSE}
 # Define the minus log likelihood functions for the different probaiblity mass functions to be passed to the optimizer
-models <- c('Poisson', 'Geometric', 'Zeta_2', 'Zeta', 'Right-truncated Zeta', 'Altmann')
-num_params <- c(1, 1, 0, 1, 2, 3)
+models <- c('Poisson', 'Geometric', 'Zeta_2', 'Zeta', 'Right-truncated Zeta')
+params <- c("lambda", 'q', 'gamma_1', 'gamma_2', 'k_max')
+num_params <- c(1, 1, 0, 1, 2 )
 
-
-
-##### AQUÍ SOLO AÑADÍ UNA FUNCIÓN MÁS Y SUS CORRESPONDIENTES UPPER Y LOWER BOUNDS (APARTE DE LA INFO DE ARRIBA PARA MODELS Y NUM_PARAMS). ####
+H <- function(gamma, k_max) { sum(sapply(seq(from=1, to=k_max, by=1), function(x) x^(-gamma))) }
+c_inv <- function(N, gamma, delta) { log(sum(sapply(seq(from=1, to=N, by=1), function(x) (x^(-gamma))*exp(-delta*x)))) }
 
 generate_minus_log_likelihoods <- function(stats) {
   c(
@@ -72,16 +48,13 @@ generate_minus_log_likelihoods <- function(stats) {
     function() { 2*stats$M_prime + stats$N*log((pi^2)/6) },
 
     # Zeta
-    function(gamma) { stats$M_prime*gamma + stats$N*log(zeta(gamma))} ,
+    function(gamma) { stats$M_prime*gamma + stats$N*log(zeta(gamma))},
 
     # Right-truncated Zeta
-    function (gamma, k_max) { gamma*stats$M_prime + stats$N*log(sum(sapply(seq(from=1, to=k_max, by=1), function(x) x^(-gamma))))},
+    function (gamma, k_max) { gamma*stats$M_prime + stats$N*log(H(gamma, k_max)) }
 
     # Altmann function (assume k is the mean degree)
-    function(c, gamma, delta) {
-      k <- stats$M/stats$N
-      c*k^(-gamma)*exp(-delta*k)
-    }
+    #function(gamma, delta) { gamma*stats$M_prime + stats$M *delta +  stats$N*c_inv(stats$N, gamma, delta) }
   )
 }
 
@@ -90,8 +63,8 @@ start_parameters <- c(
   function(stats) { list( q=stats$N/stats$M ) },
   NA,
   function(stats) { list( gamma=2 )},
-  function(stats) { list( gamma=2, k_max=stats$max )},
-  function(stats) { list(c=stats$N, gamma=-1, delta=0 )}
+  function(stats) { list( gamma=2, k_max=stats$max )}
+  #function(stats) { list(gamma=1, delta=0 )}
 )
 
 lower_bounds <- c(
@@ -99,8 +72,8 @@ lower_bounds <- c(
   function(stats) { c(0.0000001) },
   NA,
   function(stats) { c(1.0000001) },
-  function(stats) { NA },
-  function(stats) { NA }
+  function(stats) { c(gamma=1.0000001, k_max=stats$max) }
+  #function(stats) { c(0.0000001, 0.0000001) }
 )
 
 upper_bounds <- c(
@@ -108,17 +81,16 @@ upper_bounds <- c(
   function(stats) { c(0.9999999) },
   NA,
   function(stats) { NA },
-  function(stats) { c(NA, k_max=stats$N) }, #This does not work with anything below N
-  function(stats) { NA }
+  function(stats) { c(NA, k_max=100*stats$max) } #This does not work with anything below N
+  #function(stats) { c(0.9999999, 0.9999999) }
 )
-```
 
-```{r, echo = FALSE}
 # Function to calculate the likelihoods given a set of statistics
 calculate_likelihoods <- function(stats) {
   minus_log_likelihoods <- generate_minus_log_likelihoods(stats)
   lapply(seq(from=1, to=length(models), by=1), function(i) {
     if(num_params[i] > 0) {
+      print(i)
           mle(minus_log_likelihoods[[i]],
               start = start_parameters[[i]](stats),
               method = "L-BFGS-B",
@@ -128,31 +100,57 @@ calculate_likelihoods <- function(stats) {
     }})
 }
 
-
-#### PETA AQUÍ CON MILLONES DE NANs ####
-
-coef_estimates <- lapply(lang_stats, function(x) lapply(calculate_likelihoods(x), function(l) attributes(summary(l))$coef[,1]))
-```
-
-```{r, echo=FALSE}
-# Apply generate_language_summary to every entry in the list of language in-degrees to generate the summary for every language. Use do.call to pass each summary to rbind as a parameter, that way the vectors are concatenated vertically
-summary_df <- data.frame(do.call(rbind, lapply(lang_stats, function(x) c(x$N, x$max, x$M/x$N, x$N/x$M))), row.names=languages$language)
-
-kable(summary_df, col.names=c('N', 'Max Degree', 'M/N', 'N/M'), booktabs=T, linesep='', align='c', digits=4) %>%
-  kable_styling(latex_options = "striped", full_width=T)
-```
-
-```{r}
-parameters_df <- data.frame(do.call(rbind, lapply(coef_estimates, unlist)), row.names=languages$language)
-
-kable(parameters_df,  col.names=c("lambda", 'q', 'gamma_1', 'gamma_2', 'k_{max}'), booktabs=T, linesep='', align='c', digits=4) %>%
-  kable_styling(latex_options = "striped", full_width=T)
-```
-
-```{r}
 calculate_AIC <- function(m2logL, K, N){
   m2logL + 2*K*N/(N-K-1)
 }
+```
+
+```{r}
+
+###################################################################################################################################
+# TEST SWITCH - Make 'test=TRUE' to run
+test = TRUE
+
+if (test) {
+  test_prefix_geom <- 'sample_of_geometric_with_parameter_'
+  test_prefix_zeta <- 'sample_of_zeta_with_parameter_'
+  test_geom_param_values <- c(0.05, 0.1, 0.2, 0.4, 0.8)
+  test_zeta_param_values <- c(2, 2.5, 3, 3.5)
+  test_param_values <- c(test_geom_param_values, test_zeta_param_values)
+  
+  test_names_geom <- sapply(test_geom_param_values, function(x) paste('Geometric [q = ', x,']', sep=''))
+  test_names_zeta <- sapply(test_zeta_param_values, function(x) paste('Zeta [gamma = ', x,']', sep=''))
+  test_names <- c(test_names_geom, test_names_zeta)
+  
+  test_filenames_geom <- sapply(test_geom_param_values, function(x) paste('test/',test_prefix_geom, x, '.txt', sep=''))
+  test_filenames_zeta <- sapply(test_zeta_param_values, function(x) paste('test/',test_prefix_zeta, x, '.txt', sep=''))
+  test_filenames <- c(test_filenames_geom, test_filenames_zeta)
+  
+  in_degree_sequences <- sapply(test_filenames, function(x) read.table(x, header=FALSE))
+  output_table_labels=test_names
+}else{
+  # Read the list of languages from file
+  languages = read.table("list.txt",
+                header = TRUE,               # this is to indicate the first line of the file contains the names of the columns instead of the real data
+                as.is = c("language","file") # this is need to have the cells treated as real strings and not as categorial data.
+              )
+  
+  # Read the language files from disk and store them in memory so we don't have to do so multiple times
+  in_degree_sequences <- vector('list', nrow(languages))
+  for (i in seq(from=1, to=nrow(languages))){
+    in_degree_sequences[i] <- read.table(languages$file[i], header = FALSE)
+  }
+  output_table_labels=languages$language
+}
+
+lang_stats <- lapply(in_degree_sequences, function(x) list(
+                N=length(x),
+                M=sum(x),
+                max=max(x),
+                M_prime=sum(log(x)),
+                C=sum(sapply(seq(from=1, to=length(x), by=1), function(i) sum(sapply(seq(from=1, to=x[i], by=1), function(j) log(j)))))))
+
+coef_estimates <- lapply(lang_stats, function(x) lapply(calculate_likelihoods(x), function(l) attributes(summary(l))$coef[,1]))
 
 AICs <- lapply(seq(from=1, to=length(lang_stats), by=1), function(l) {
   minus_log_likelihoods <- generate_minus_log_likelihoods(lang_stats[[l]])
@@ -162,19 +160,25 @@ AICs <- lapply(seq(from=1, to=length(lang_stats), by=1), function(l) {
 })
 ```
 
+```{r, echo=FALSE}
+# Apply generate_language_summary to every entry in the list of language in-degrees to generate the summary for every language. Use do.call to pass each summary to rbind as a parameter, that way the vectors are concatenated vertically
+summary_df <- data.frame(do.call(rbind, lapply(lang_stats, function(x) c(x$N, x$max, x$M/x$N, x$N/x$M))), row.names=output_table_labels)
+
+kable(summary_df, col.names=c('N', 'Max Degree', 'M/N', 'N/M'), booktabs=T, linesep='', align='c', digits=4) %>%
+  kable_styling(latex_options = "striped", full_width=T)
+```
 
 ```{r}
-delta_AIC_df <- data.frame(do.call(rbind, lapply(AICs, function(x) sapply(x, function(y) y - min(x)))), row.names=languages$language)
-kable(delta_AIC_df,  col.names=models, booktabs=T, linesep='', align='c', digits=4) %>%
+parameters_df <- data.frame(do.call(rbind, lapply(coef_estimates, unlist)), row.names=output_table_labels)
+
+kable(parameters_df,  col.names=params, booktabs=T, linesep='', align='c', digits=4) %>%
   kable_styling(latex_options = "striped", full_width=T)
 ```
 
 
-#### DATAFRAME Y KABLE PARA LA ÚLTIMA TABLA ####
 
-aic_distributions_df <- data.frame(do.call(rbind, lapply(AICs, function(x) sapply(x, function(y) y - min(x)))), row.names=languages$language)
-colnames(aic_distributions_df) <- models
-
-kable(aic_distributions_df, booktabs=T, linesep='', align='c', digits=4) %>%
-kable_styling(latex_options = "striped", full_width=T)
+```{r}
+delta_AIC_df <- data.frame(do.call(rbind, lapply(AICs, function(x) sapply(x, function(y) y - min(x)))), row.names=output_table_labels)
+kable(delta_AIC_df,  col.names=models, booktabs=T, linesep='', align='c', digits=4) %>%
+  kable_styling(latex_options = "striped", full_width=T)
 ```
