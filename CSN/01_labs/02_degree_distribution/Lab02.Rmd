@@ -13,6 +13,20 @@ opts_chunk$set(echo = TRUE)
 opts_chunk$set(tidy.opts=list(width.cutoff=80),tidy=TRUE)
 ```
 
+```{r set-options, include=FALSE}
+options(width=80)
+```
+
+
+```{r cars, include=FALSE}
+# Load the igraph library and require the packages stats4 (mle) & VGAM (Riemman-zeta)
+require(igraph)
+require(knitr)
+require('stats4')
+require('VGAM')
+require(kableExtra)
+```
+
 #Introduction
 
 The goal of this lab session is to practice on information theoretic model selection for the degree distribution of global syntactic dependency networks. We are required to carry out a deep analysis over the \textit{in-degree-sequence} dataset. This analysis would be divided in four main phases:
@@ -40,32 +54,27 @@ We already know all the needed values from previous steps but $-2\mathcal{L}$. A
 
 #Results
 
-#Discussion
+This section contains the different figures (tables and plots) we have generated during the implementation of our solution. For sake of clearness, we decided to avoid the code on this section and just show the resulting elements, but along with this report, find attached a R markdown notebook that holds all the code that is executed throughout the whole solution to obtain the results that are being shown.  
 
-#Methods
-
-```{r cars, include=FALSE}
-# Load the igraph library and require the packages stats4 (mle) & VGAM (Riemman-zeta)
-require(igraph)
-require(knitr)
-require('stats4')
-require('VGAM')
-require(kableExtra)
-```
-
-```{r, echo=FALSE}
-# Define the minus log likelihood functions for the different probaiblity mass functions to be passed to the optimizer
-models <- c('Poisson', 'Geometric', 'Zeta_2', 'Zeta', 'Right-truncated Zeta', 'Altmann')
+```{r, echo = FALSE}
+# Define the minus log likelihood functions for the different probability
+# mass functions to be passed to the optimizer
+models <- c('Poisson', 'Geometric', 'Zeta_2', 'Zeta', 'Right-truncated Zeta',
+            'Altmann')
 params <- c("lambda", 'q', 'gamma_1', 'gamma_2', 'k_max', 'gamma', 'delta')
 num_params <- c(1, 1, 0, 1, 2, 2)
 
-H <- function(gamma, k_max) { sum(sapply(seq(from=1, to=k_max, by=1), function(k) k^(-gamma))) }
-c_f <- function(N, gamma, delta) { 1/sum(sapply(seq(from=1, to=N, by=1), function(k) (k^(-gamma))*exp(-delta*k))) }
+H <- function(gamma, k_max) { sum(sapply(seq(from=1, to=k_max, by=1),
+                                    function(k) k^(-gamma))) }
+c_f <- function(N, gamma, delta) { 1/sum(sapply(seq(from=1, to=N, by=1),
+                                    function(k) (k^(-gamma))*exp(-delta*k))) }
 
 generate_minus_log_likelihoods <- function(stats) {
   c(
     # Displaced Poisson
-    function (lambda) { stats$N*(lambda + log(1 - exp(-lambda))) + stats$C - stats$M*log(lambda) },
+    function(lambda){
+      stats$N*(lambda + log(1 - exp(-lambda))) + stats$C - stats$M*log(lambda)
+    },
 
     # Displaced Geometric
     function (q) { (stats$N - stats$M)*log(1-q) - stats$N*log(q) },
@@ -77,10 +86,13 @@ generate_minus_log_likelihoods <- function(stats) {
     function(gamma) { stats$M_prime*gamma + stats$N*log(zeta(gamma))},
 
     # Right-truncated Zeta
-    function (gamma, k_max) { gamma*stats$M_prime + stats$N*log(H(gamma, k_max)) },
+    function(gamma, k_max){
+      gamma*stats$M_prime + stats$N*log(H(gamma, k_max))
+    },
 
     # Altmann function
-    function(gamma, delta) { gamma*stats$M_prime + delta*stats$M - stats$N*log( c_f(stats$N, gamma, delta ) ) }
+    function(gamma, delta) { gamma*stats$M_prime + delta*stats$M - stats$N*log(
+      c_f(stats$N, gamma, delta)) }
   )
 }
 
@@ -98,7 +110,8 @@ lower_bounds <- c(
   function(stats) { c(0.0000001) },
   NA,
   function(stats) { c(1.0000001) },
-  function(stats) { c(gamma=1.0000001, k_max=stats$max-0.0000001) }, # Substratc 1e-6 to get rid of the 'NaNs produced' issue
+  function(stats) { c(gamma=1.0000001, k_max=stats$max-0.0000001) }, # Substract 1e-6 to
+                                                  # get rid of the 'NaNs produced' issue
   function(stats) { c(1.0000001, 0.0000001) }
 )
 
@@ -126,16 +139,18 @@ calculate_likelihoods <- function(stats) {
     }})
 }
 
+# Function to calculate the AIC from an mle
+# calculated for some distribution
 calculate_AIC <- function(m2logL, K, N){
   m2logL + 2*K*N/(N-K-1)
 }
 ```
 
-```{r}
+```{r, results="hide", warning=FALSE, echo=FALSE}
 
-###################################################################################################################################
+#######################################
 # TEST SWITCH - Make 'test=TRUE' to run
-###################################################################################################################################
+#######################################
 test = FALSE
 
 if (test) {
@@ -145,24 +160,30 @@ if (test) {
   test_zeta_param_values <- c(2, 2.5, 3, 3.5)
   test_param_values <- c(test_geom_param_values, test_zeta_param_values)
   
-  test_names_geom <- sapply(test_geom_param_values, function(x) paste('Geometric [q = ', x,']', sep=''))
-  test_names_zeta <- sapply(test_zeta_param_values, function(x) paste('Zeta [gamma = ', x,']', sep=''))
+  test_names_geom <- sapply(test_geom_param_values, function(x)
+    paste('Geometric [q = ', x,']', sep=''))
+  test_names_zeta <- sapply(test_zeta_param_values, function(x)
+    paste('Zeta [gamma = ', x,']', sep=''))
   test_names <- c(test_names_geom, test_names_zeta)
   
-  test_filenames_geom <- sapply(test_geom_param_values, function(x) paste('test/',test_prefix_geom, x, '.txt', sep=''))
-  test_filenames_zeta <- sapply(test_zeta_param_values, function(x) paste('test/',test_prefix_zeta, x, '.txt', sep=''))
+  test_filenames_geom <- sapply(test_geom_param_values,
+          function(x) paste('test/', test_prefix_geom, x, '.txt', sep=''))
+  test_filenames_zeta <- sapply(test_zeta_param_values,
+          function(x) paste('test/', test_prefix_zeta, x, '.txt', sep=''))
   test_filenames <- c(test_filenames_geom, test_filenames_zeta)
   
-  in_degree_sequences <- sapply(test_filenames, function(x) read.table(x, header=FALSE))
+  in_degree_sequences <- sapply(test_filenames,
+          function(x) read.table(x, header=FALSE))
   output_table_labels=test_names
 }else{
   # Read the list of languages from file
   languages = read.table("list.txt",
-                header = TRUE,               # this is to indicate the first line of the file contains the names of the columns instead of the real data
-                as.is = c("language","file") # this is need to have the cells treated as real strings and not as categorial data.
+                header = TRUE,
+                as.is = c("language","file")
               )
   
-  # Read the language files from disk and store them in memory so we don't have to do so multiple times
+  # Read the language files from disk and store them in memory so
+  # we don't have to do so multiple times
   in_degree_sequences <- vector('list', nrow(languages))
   for (i in seq(from=1, to=nrow(languages))){
     in_degree_sequences[i] <- read.table(languages$file[i], header = FALSE)
@@ -170,42 +191,125 @@ if (test) {
   output_table_labels=languages$language
 }
 
+## Extracting the stats from the different languages.
+
 lang_stats <- lapply(in_degree_sequences, function(x) list(
                 N=length(x),
                 M=sum(x),
                 max=max(x),
                 M_prime=sum(log(x)),
-                C=sum(sapply(seq(from=1, to=length(x), by=1), function(i) sum(sapply(seq(from=1, to=x[i], by=1), function(j) log(j)))))))
+                C=sum(sapply(seq(from=1, to=length(x), by=1),
+                        function(i) sum(sapply(seq(from=1, to=x[i], by=1),
+                                    function(j) log(j)))))))
 
-coef_estimates <- lapply(lang_stats, function(x) lapply(calculate_likelihoods(x), function(l) attributes(summary(l))$coef[,1]))
+## Obtaining a vector with the coefficient estimations calculating the different
+## log-likelihood functions.
+
+coef_estimates <- lapply(lang_stats, function(x) lapply(calculate_likelihoods(x),
+                                      function(l) attributes(summary(l))$coef[,1]))
+
+## Generating the vector with AIC values for each language and distribution.
 
 AICs <- lapply(seq(from=1, to=length(lang_stats), by=1), function(l) {
   minus_log_likelihoods <- generate_minus_log_likelihoods(lang_stats[[l]])
   unlist(lapply(seq(from=1, to=length(models), by=1), function(i) {
-    calculate_AIC(2*do.call(minus_log_likelihoods[[i]], as.list(coef_estimates[[l]][[i]])), num_params[i], lang_stats[[l]]$N)
+    calculate_AIC(2*do.call(minus_log_likelihoods[[i]],
+            as.list(coef_estimates[[l]][[i]])), num_params[i], lang_stats[[l]]$N)
   }))
 })
 ```
 
-```{r, echo=FALSE}
-# Apply generate_language_summary to every entry in the list of language in-degrees to generate the summary for every language. Use do.call to pass each summary to rbind as a parameter, that way the vectors are concatenated vertically
-summary_df <- data.frame(do.call(rbind, lapply(lang_stats, function(x) c(x$N, x$max, x$M/x$N, x$N/x$M))), row.names=output_table_labels)
+We will follow the steps explained in the Introduction section to illustrate all the work done and the results obtained.
 
-kable(summary_df, col.names=c('N', 'Max Degree', 'M/N', 'N/M'), booktabs=T, linesep='', align='c', digits=4) %>%
-  kable_styling(latex_options = "striped", full_width=T)
+## Properties of degree sequence
+
+First of all, we wanted to extract all the degree distribution related information regarding the language sequences we were given as datasets. To do that, we took advantage of the scripts contained in the guide for this session, and start reading the in-degree values for each of the languages. Once we have read all this information, we needed to extract the valuable information from it and obtain five stats from it:
+
+\begin{itemize}
+
+\item \textbf{N}, which is the number of nodes in the sequence. This values can be easily calculated by counting the number of rows in the document using \textit{nrow} function.
+\item \textbf{Max Degree}, the highest value among all the degrees contained in the sequence file for each language. Is obtained directly with the \textit{max} function.
+\item \textbf{M} or the total in-degree of the sequence, easy to calculate just taking the summation of all the values inside the document with the \textit{sum} function. $M = \sum_{i=1}^{N}k_i$
+\item \textbf{M'}, is the result of taking logarithms on the previous stat, i.e. $M' = log(M)$.
+\item \textbf{C}, which is the sum of the logarithm of degree factorials and is calculated as follows:
+  \begin{equation*}
+    C = \sum_{i=1}^{N}log(k_{i}!) = \sum_{i=1}^{N}\sum_{j=2}^{k_i}log(j)
+  \end{equation*}
+\end{itemize}
+
+```{r, echo=FALSE}
+# Apply generate_language_summary to every entry in the list of language in-degrees
+# to generate the summary for every language. Use do.call to pass each summary to
+# rbind as a parameter, that way the vectors are concatenated vertically
+summary_df <- data.frame(do.call(rbind, lapply(lang_stats,
+                    function(x) c(x$N, x$max, x$M/x$N, x$N/x$M))),
+                    row.names=output_table_labels)
+
+kable(summary_df, col.names=c('N', 'Max Degree', 'M/N', 'N/M'),
+      booktabs=T, linesep='', align='c', digits=4,
+      caption = "Degree properties of the language sequences") %>%
+  kable_styling(latex_options = c("striped", "hold_position"), full_width=T)
 ```
 
-```{r}
+Although we are not using all the properties calculated before and instead we are showing, for instance, the mean degree (which is M/N), the values calculated extracted before will be very useful on further sections, that require more complicated calculations. Finally, on the above table we can see results for the number of nodes, the total in-degree of the sequence, the mean degree and...
+
+## Best parameter estimation
+
+The second task consisted in calculating a temptative estimation of the different parameters required by the distributions we are using for this session. The goal is to maximize the fit of each distribution to the original data, that is why the parameters play a ver important role.
+
+The first step consists in obtaining the log-likelihood function for each of the probability mass functions associated to each distribution. This is easy to calculate, such that we just have to derive a new function from the original one but taking logarithms. Let us show with an example how this process would be. Assume a degree sequence of a network of \textit{N} vertices is $k_1, k_2, ..., k_N$, its log-likelihood function may look like this:
+
+\begin{equation*}
+  \mathcal{L} = log(\prod_{i=1}^{N}p(k_i)) = \sum_{i=1}^{N}log p(k_i)
+\end{equation*}
+
+Once we obtain the log-likelihood function for a given distribution we know that the parameters maximizing $\mathcal{L}$ are the ones providing the best fit for the distribution. To find the best parameter for each case, we are using the \textit{mle} function from R package \textit{stats4}. This function requires an initial value for the parameters to be estimated, as well as (optionally) an upper and/or lower bounds for those parameter. At this point is where we will need the degree stats we have obtained before. If we think in the Poisson distribution, the log-likelihood for this function (after a long derivation process) can be represented as follows:
+
+\begin{equation*}
+  log(\lambda)\sum_{i=1}^{N}k_i - (\lambda + log(1-e^{-\lambda})) - C
+\end{equation*}
+
+If we pay attention to the first part and recall the definition of M we have given on the previous section, we see that we can substitute the first summation by M in the previous equation. And we are finally using C and M in a log-likelihood function. For the sake of clearness, this explanation only covers the derivation into M as it was easier to follow and more straight forward than the $C$ derivation.
+
+```{r, echo=FALSE}
 parameters_df <- data.frame(do.call(rbind, lapply(coef_estimates, unlist)), row.names=output_table_labels)
 
-kable(parameters_df,  col.names=params, booktabs=T, linesep='', align='c', digits=4) %>%
-  kable_styling(latex_options = "striped", full_width=T)
+kable(parameters_df,  col.names=params, booktabs=T, linesep='', align='c',
+      digits=4,
+      caption = "Parameter estimation for language/distribution") %>%
+  kable_styling(latex_options = c("striped", "hold_position"), full_width=T)
 ```
 
+The parameters shown are associated with the following distributions, respectively:
+\begin{itemize}
+  \item \textbf{Lambda} is associated to the displaced Poisson distribution.
+  \item \textbf{q} is associated to the displaced Geometric distribution.
+  \item \textbf{gamma\_1} is associated to the Zeta distribution.
+  \item \textbf{gamma\_2} and \textbf{k\_max} are associated to the Right-truncated Zeta distribution.
+  \item \textbf{gamma} and \textbf{delta} are associated to the Menzerath-Altmann distribution.
+\end{itemize}
 
+We need to make a distinction between the different groups of functions we can find here. There would be two groups of functions: the null models of networks (Poisson and Geometric) and the possible models for power laws (zeta distributions)The Poisson distribution is chosen for being a mathematically simple approximation to the binomial distribution characterizing Erdös-Rényi graphs. There is a very importance difference between the Poisson and the Geometric distribution: they exhibit an exponential tail while the zeta distribution exhibits a so-called heavy tail.
 
-```{r}
-delta_AIC_df <- data.frame(do.call(rbind, lapply(AICs, function(x) sapply(x, function(y) y - min(x)))), row.names=output_table_labels)
-kable(delta_AIC_df,  col.names=models, booktabs=T, linesep='', align='c', digits=4) %>%
-  kable_styling(latex_options = "striped", full_width=T)
+Last but not least, we find the Altmann function, which cannot be included in any of these groups. Menzerath-Altmann law is a linguistic law according to which the increase of the size of a linguistic construct results in a decrease of the size of its constituents, and vice versa. For instance, the longer a sentence (measured in terms of the number of clauses) the shorter the clauses (measured in terms of the number of words).
+Using also this formula was another point of the experiments over the log-likelihood functions. The goal of this experiment was to introduce a new distribution that is more likely to give a better fit than the one providing the best results up to now (this will be discussed in further sections). We can represent the original formula and the log-likelihood function, respectively, for this distribution as follows:
+
+\begin{equation*}
+  p(k)=ck^{-\gamma}e^{-\delta k}
+\end{equation*}
+
+\begin{equation*}
+  \mathcal{L}=\frac{1}{\sum_{i=1}^{N}k_{i}^{-\gamma}}e^{-\delta k}
+\end{equation*}
+
+```{r, echo=FALSE}
+delta_AIC_df <- data.frame(do.call(rbind, lapply(AICs, function(x) sapply(x,
+                        function(y) y - min(x)))), row.names=output_table_labels)
+kable(delta_AIC_df,  col.names=models, booktabs=T, linesep='', align='c',
+      digits=4, caption = "Delta AIC for each language") %>%
+  kable_styling(latex_options = c("striped", "hold_position"), full_width=T)
 ```
+
+#Discussion
+
+#Methods
