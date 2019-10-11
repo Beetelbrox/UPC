@@ -72,7 +72,7 @@ lower_bounds <- c(
   function(stats) { c(0.0000001) },
   NA,
   function(stats) { c(1.0000001) },
-  function(stats) { c(gamma=1.0000001, k_max=stats$max) }
+  function(stats) { c(gamma=1.0000001, k_max=stats$max-0.0000001) } # Substratc 1e-6 to get rid of the 'NaNs produced' issue
   #function(stats) { c(0.0000001, 0.0000001) }
 )
 
@@ -81,7 +81,7 @@ upper_bounds <- c(
   function(stats) { c(0.9999999) },
   NA,
   function(stats) { NA },
-  function(stats) { c(NA, k_max=100*stats$max) } #This does not work with anything below N
+  function(stats) { c(NA, k_max=2*stats$max) } # 2*max is a reasonably low bound
   #function(stats) { c(0.9999999, 0.9999999) }
 )
 
@@ -90,7 +90,6 @@ calculate_likelihoods <- function(stats) {
   minus_log_likelihoods <- generate_minus_log_likelihoods(stats)
   lapply(seq(from=1, to=length(models), by=1), function(i) {
     if(num_params[i] > 0) {
-      print(i)
           mle(minus_log_likelihoods[[i]],
               start = start_parameters[[i]](stats),
               method = "L-BFGS-B",
@@ -109,7 +108,8 @@ calculate_AIC <- function(m2logL, K, N){
 
 ###################################################################################################################################
 # TEST SWITCH - Make 'test=TRUE' to run
-test = TRUE
+###################################################################################################################################
+test = FALSE
 
 if (test) {
   test_prefix_geom <- 'sample_of_geometric_with_parameter_'
