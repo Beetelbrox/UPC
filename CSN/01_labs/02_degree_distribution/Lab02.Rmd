@@ -29,12 +29,12 @@ require(kableExtra)
 
 ```{r, echo=FALSE}
 # Define the minus log likelihood functions for the different probaiblity mass functions to be passed to the optimizer
-models <- c('Poisson', 'Geometric', 'Zeta_2', 'Zeta', 'Right-truncated Zeta')
-params <- c("lambda", 'q', 'gamma_1', 'gamma_2', 'k_max')
-num_params <- c(1, 1, 0, 1, 2 )
+models <- c('Poisson', 'Geometric', 'Zeta_2', 'Zeta', 'Right-truncated Zeta', 'Altmann')
+params <- c("lambda", 'q', 'gamma_1', 'gamma_2', 'k_max', 'gamma', 'delta')
+num_params <- c(1, 1, 0, 1, 2, 2)
 
-H <- function(gamma, k_max) { sum(sapply(seq(from=1, to=k_max, by=1), function(x) x^(-gamma))) }
-c_inv <- function(N, gamma, delta) { log(sum(sapply(seq(from=1, to=N, by=1), function(x) (x^(-gamma))*exp(-delta*x)))) }
+H <- function(gamma, k_max) { sum(sapply(seq(from=1, to=k_max, by=1), function(k) k^(-gamma))) }
+c_f <- function(N, gamma, delta) { 1/sum(sapply(seq(from=1, to=N, by=1), function(k) (k^(-gamma))*exp(-delta*k))) }
 
 generate_minus_log_likelihoods <- function(stats) {
   c(
@@ -51,10 +51,10 @@ generate_minus_log_likelihoods <- function(stats) {
     function(gamma) { stats$M_prime*gamma + stats$N*log(zeta(gamma))},
 
     # Right-truncated Zeta
-    function (gamma, k_max) { gamma*stats$M_prime + stats$N*log(H(gamma, k_max)) }
+    function (gamma, k_max) { gamma*stats$M_prime + stats$N*log(H(gamma, k_max)) },
 
-    # Altmann function (assume k is the mean degree)
-    #function(gamma, delta) { gamma*stats$M_prime + stats$M *delta +  stats$N*c_inv(stats$N, gamma, delta) }
+    # Altmann function
+    function(gamma, delta) { gamma*stats$M_prime + delta*stats$M - stats$N*log( c_f(stats$N, gamma, delta ) ) }
   )
 }
 
@@ -63,8 +63,8 @@ start_parameters <- c(
   function(stats) { list( q=stats$N/stats$M ) },
   NA,
   function(stats) { list( gamma=2 )},
-  function(stats) { list( gamma=2, k_max=stats$max )}
-  #function(stats) { list(gamma=1, delta=0 )}
+  function(stats) { list( gamma=2, k_max=stats$max )},
+  function(stats) { list(gamma=1, delta=0 )}
 )
 
 lower_bounds <- c(
@@ -72,8 +72,8 @@ lower_bounds <- c(
   function(stats) { c(0.0000001) },
   NA,
   function(stats) { c(1.0000001) },
-  function(stats) { c(gamma=1.0000001, k_max=stats$max-0.0000001) } # Substratc 1e-6 to get rid of the 'NaNs produced' issue
-  #function(stats) { c(0.0000001, 0.0000001) }
+  function(stats) { c(gamma=1.0000001, k_max=stats$max-0.0000001) }, # Substratc 1e-6 to get rid of the 'NaNs produced' issue
+  function(stats) { c(1.0000001, 0.0000001) }
 )
 
 upper_bounds <- c(
@@ -81,8 +81,8 @@ upper_bounds <- c(
   function(stats) { c(0.9999999) },
   NA,
   function(stats) { NA },
-  function(stats) { c(NA, k_max=2*stats$max) } # 2*max is a reasonably low bound
-  #function(stats) { c(0.9999999, 0.9999999) }
+  function(stats) { c(NA, k_max=2*stats$max) }, # 2*max is a reasonably low bound
+  function(stats) { c(NA, 0.9999999) }
 )
 
 # Function to calculate the likelihoods given a set of statistics
@@ -90,6 +90,7 @@ calculate_likelihoods <- function(stats) {
   minus_log_likelihoods <- generate_minus_log_likelihoods(stats)
   lapply(seq(from=1, to=length(models), by=1), function(i) {
     if(num_params[i] > 0) {
+      print(i)
           mle(minus_log_likelihoods[[i]],
               start = start_parameters[[i]](stats),
               method = "L-BFGS-B",
