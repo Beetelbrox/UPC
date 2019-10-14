@@ -13,10 +13,6 @@ opts_chunk$set(echo = TRUE)
 opts_chunk$set(tidy.opts=list(width.cutoff=80),tidy=TRUE)
 ```
 
-#```{r set-options, include=FALSE}
-#options(width=80)
-#```
-
 ```{r include=FALSE, echo=FALSE}
 # Load the igraph library and require the packages stats4 (mle) & VGAM (Riemman-zeta)
 require(igraph)
@@ -252,7 +248,6 @@ for (i in seq(from=1, to=length(in_degree_sequences), by=1)) {
 
 As seen in the lectures, the fact that for all sequences the degree spectrum draws an almost straight line in a log-log plot gives us some good intuition that they might follow a power-law, although this linearity gets worse as $k$ increases. This matches with the observation that the in-degree tends to be more power-law than the out-degree, and we can expect the nested Zeta variants and Altmann distributions to be a better fit to the data than the Poisson and geometric ones.
 
-\newpage
 ## Degree sequence statistical properties
 We can now generate the summary of the properties of the degree sequnces:
 
@@ -264,7 +259,7 @@ kable(summary_df, col.names=c('N', 'Max Degree', 'M/N', 'N/M'), booktabs=T, line
   kable_styling(latex_options="striped", full_width=F)
 ```
 
-Although the plots are quite similar to one another, the values of the properties of the different in-degree sequences vary significantly, from the number of nodes to the mean or maximum degree. 
+Although the plots are quite similar to one another, the values of the properties of the different in-degree sequences vary significantly, from the number of nodes to the mean or maximum degree.
 
 ## Model parameter estimation
 Using the previously calculated parameters and the log-likelihood functions of each model with R's \textit{mle} function we can obtain the parameters which give the best fit for each function and in-degree sequence:
@@ -316,30 +311,14 @@ for (i in seq(from=1, to=length(in_degree_sequences), by=1)) {
        col=c('blue', 'red'), lty=1, pch=1, cex=1.8)
 }
 ```
-The fit seems to be quite good for all functions, 
+The fit seems to be quite good for all functions,
 
 \newpage
 \section{Discussion}
 
-In fact, there is a significant difference between the fit using zeta models and the null ones. We just need to take into account the results shown in the table that details the ∆AIC values for the intial data. There is a tendency among almost every language, such that the model that fitted the best was the right-truncated
-zeta before the inclusion of the Altmann function. For all languages zeta functions behavior was significantly better than the null models, specially for the right-truncated zeta which returned the AIC best in 8 out of 10 languages.
-After adding the Altmann function, this result has changed drastically. We were able to check that this new function was the best taking into account the AIC dif f value for 8 out 10 languages. The other 2 best results correspond to the zeta distribution. With these results it is demonstrated that Altmann is the best model
-even thinking of groups of distributions, for instance it is better in all the cases than the null models, and in
-most of them than the zeta functions. Also it is important to remark that even when it does not return the
-best fit, the result is still very close to the best one.
+In fact, there is a significant difference between the fit using zeta models and the null ones. We just need to take into account the results shown in the table that details the $\Delta$AIC values for the intial data. There is a tendency among almost every language, such that the model that fitted the best was the right-truncated zeta before the inclusion of the Altmann function. For all languages zeta functions behavior was significantly better than the null models, specially for the right-truncated zeta which returned the $AIC_{best}$ in 8 out of 10 languages.
 
-Exponential vs heavy tail
-
-Taking a look
-
-% Summary de los resultados y nuestra interpretación particular de los mismos. Principales temas a tratar:
-
-% - If there is any significant difference between the fit of the distributions from null models and those of the zeta family.
-
-In fact, there is a significant difference between the fit using zeta models and the null ones. We just need to take into account the results shown in Table \ref{table:aic}, which details the $\Delta$AIC values for the intial data. There is a tendency among almost every language, such that the model that fits the best is the right-truncated zeta.
-
-
-% - If the distribution giving the best fit gives a reasonably good fit (e.g.). Remember that the best function of an ensemble is not necessarily the best in absolute terms.
+After adding the Altmann function, this result has changed drastically. We were able to check that this new function was the best taking into account the $AIC_{diff}$ value for 8 out 10 languages. The other 2 best results correspond to the zeta distribution. With these results it is demonstrated that Altmann is the best model even thinking of groups of distributions, for instance it is better in all the cases than the null models, and in most of them than the zeta functions. Also it is important to remark that even when it does not return the best fit, the result is still very close to the best one.
 
 % - The extent to which languages resemble or differ.
 
