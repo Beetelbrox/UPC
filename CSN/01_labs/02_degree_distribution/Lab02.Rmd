@@ -320,6 +320,16 @@ The fit seems to be quite good for all functions,
 
 \newpage
 \section{Discussion}
+
+In fact, there is a significant difference between the fit using zeta models and the null ones. We just need to take into account the results shown in the table that details the ∆AIC values for the intial data. There is a tendency among almost every language, such that the model that fitted the best was the right-truncated
+zeta before the inclusion of the Altmann function. For all languages zeta functions behavior was significantly better than the null models, specially for the right-truncated zeta which returned the AIC best in 8 out of 10 languages.
+After adding the Altmann function, this result has changed drastically. We were able to check that this new function was the best taking into account the AIC dif f value for 8 out 10 languages. The other 2 best results correspond to the zeta distribution. With these results it is demonstrated that Altmann is the best model
+even thinking of groups of distributions, for instance it is better in all the cases than the null models, and in
+most of them than the zeta functions. Also it is important to remark that even when it does not return the
+best fit, the result is still very close to the best one.
+
+Exponential vs heavy tail
+
 Taking a look
 
 % Summary de los resultados y nuestra interpretación particular de los mismos. Principales temas a tratar:
