@@ -13,11 +13,6 @@ opts_chunk$set(echo = TRUE)
 opts_chunk$set(tidy.opts=list(width.cutoff=80),tidy=TRUE)
 ```
 
-```{r set-options, include=FALSE}
-options(width=80)
-```
-
-
 ```{r include=FALSE, echo=FALSE}
 # Load the igraph library and require the packages stats4 (mle) & VGAM (Riemman-zeta)
 require(igraph)
@@ -188,34 +183,24 @@ run_real <- function() {
 
 #Introduction
 
-The goal of this lab session is to practice on information theoretic model selection for the degree distribution of global syntactic dependency networks. We are required to carry out a deep analysis over the \textit{in-degree-sequence} dataset. This analysis would be divided in four main phases:
+The goal of this lab session is to practice on information theoretic model selection for the degree distribution of global syntactic dependency networks. We are required to perform a deep analysis over the \textit{in-degree-sequence} dataset. This analysis would be divided in four main phases:
 
 \begin{enumerate}
 
-\item \textbf{Study the basic properties than can be obtained from the given degree sequence.}  
+\item \textbf{Study the basic properties than can be obtained from the given degree sequence}  
 As a first step we can directly extract key properties directly from the datasets like their size (\textbf{N}), maximum node degree or mean degree (as it is done in the file \textit{summary\_table.R}). These will be used in the model parameter estimation.
 
-\item \textbf{Estimation of the best parameters for different degree distributions using Maximum Likelihood Estimation (mle).}  
+\item \textbf{Estimation of the best parameters for different degree distributions using Maximum Likelihood Estimation (mle)}  
 Once we have extracted the basic properties from the sequence we would like to analyze its behavior, i.e. find in an ensemble of degree distribution the one which better fits the real data. To achieve this we make use of R's \textit{mle} method which performs maximum likelihood estimation of parmeters given a log-likelihood function and a set of starting and bound conditions. The parameter values obtained allow to select for each dataset and family of functions which one fits the data best.
 
-\item \textbf{Selection of the best model according to Akaike Information Criterion (AIC).} After obtaining the best values for all the parameters using log likelihood, we have to decide which is the best model, i.e. the one that fits the best the original data. That is decided by calculating the AIC value for each of the distributions and each of the languages. Finally, we calculate the delta of the AICs for each of the languages so we can state which is the best in most of the cases. If we take into account Formula:
-
-\begin{equation}
-    AIC_c = -2\mathcal{L} + 2K\frac{N}{N-K-1}
-\end{equation}
-
-We already know all the needed values from previous steps but $-2\mathcal{L}$. Among all the different values that can be extracted from the \textit{mle} results, one of them is $-2\mathcal{L}$. The last step of this phase would consist in including a new probability distribution that is more likely to return better results than the other models. We are using the Menzerath-Altmann law formulation:
-
-\begin{equation}
-    p(k) = ck^{-\gamma}e^{-\delta k}
-\end{equation}
-
-\item \textbf{Test our implementation with samples from which we already know the distribution.} The problem we have with the initial dataset is that the distribution the sequence follows is unknown, so we cannot ensure the values we are obtaining are correct or not. To solve this problem, we are provided with a new dataset of samples from discrete distributions, such that each sample explains beforehand which is the distribution it is following and with which parameters. Once we know that, we should run the same experiments as before but with this new dataset and check whether the parameters we are obtaining using \textit{mle} match the ones used by the sample.
+\item \textbf{Selection of the best model according to Akaike Information Criterion (AIC)}
+After estimating which are the values for the parameters that provide the best fit for each distribution and language we finally have to select which one models best the real data. To do so we use the Akaike Information Criterion (AIC), which provides a measure of how well a model fits the data with a regularization for the amount of parameters. Once the AIC is calculated for all models on a given dataset, we select the one with the lowest score as the best-fitting model. In order to be able to compare the quality of fit between models we use the AIC difference, which is the difference in score between the best-fitting model and the rest. This allows us to see how close are two models on their ability to fit data.
 \end{enumerate}
 
+\newpage
 \section{Results}
 
-## On correctness
+## On code correctness
 ```{r, echo=FALSE, include=FALSE}
 run_test()
 ```
@@ -261,9 +246,10 @@ for (i in seq(from=1, to=length(in_degree_sequences), by=1)) {
 }
 ```
 
-As seen in the lectures, the fact that for all sequences the degree spectrum draws an almost straight line in a log-log plot gives us some good intuition that they might follow a power-law. This matches with the observation that the in-degree tends to be more power-law than the out-degree. Although most of the plots display some degree of curvature or hump, we can expect the Zeta and Altmann distributions to be a better fit than the Poisson and geometric ones.
+As seen in the lectures, the fact that for all sequences the degree spectrum draws an almost straight line in a log-log plot gives us some good intuition that they might follow a power-law, although this linearity gets worse as $k$ increases. This matches with the observation that the in-degree tends to be more power-law than the out-degree, and we can expect the nested Zeta variants and Altmann distributions to be a better fit to the data than the Poisson and geometric ones.
 
-We can now generate the summary of the properties of the degree sequences:
+## Degree sequence statistical properties
+We can now generate the summary of the properties of the degree sequnces:
 
 ```{r, echo=FALSE}
 # Apply generate_language_summary to every entry in the list of language in-degrees to generate the summary for every language. Use do.call to pass each summary to rbind as a parameter, that way the vectors are concatenated vertically
@@ -273,25 +259,10 @@ kable(summary_df, col.names=c('N', 'Max Degree', 'M/N', 'N/M'), booktabs=T, line
   kable_styling(latex_options="striped", full_width=F)
 ```
 
-We will follow the steps explained in the Introduction section to illustrate all the work done and the results obtained.
+Although the plots are quite similar to one another, the values of the properties of the different in-degree sequences vary significantly, from the number of nodes to the mean or maximum degree. 
 
-## Properties of degree sequence
-
-First of all, we wanted to extract all the degree distribution related information regarding the language sequences we were given as datasets. To do that, we took advantage of the scripts contained in the guide for this session, and start reading the in-degree values for each of the languages. Once we have read all this information, we needed to extract the valuable information from it and obtain five stats from it:
-
-\begin{itemize}
-
-\item \textbf{N}, which is the number of nodes in the sequence. This values can be easily calculated by counting the number of rows in the document using \textit{nrow} function. It is important to remark that there is a significant difference between the number of nodes between languages.
-\item \textbf{Max Degree}, the highest value among all the degrees contained in the sequence file for each language. Is obtained directly with the \textit{max} function.
-\item \textbf{M} or the total in-degree of the sequence, easy to calculate just taking the summation of all the values inside the document with the \textit{sum} function. $M = \sum_{i=1}^{N}k_i$
-\item \textbf{M'}, is the result of taking logarithms on the previous stat, i.e. $M' = log(M)$.
-\item \textbf{C}, which is the sum of the logarithm of degree factorials and is calculated as follows:
-  \begin{equation*}
-    C = \sum_{i=1}^{N}log(k_{i}!) = \sum_{i=1}^{N}\sum_{j=2}^{k_i}log(j)
-  \end{equation*}
-\end{itemize}
-
-Now let's fit:
+## Model parameter estimation
+Using the previously calculated parameters and the log-likelihood functions of each model with R's \textit{mle} function we can obtain the parameters which give the best fit for each function and in-degree sequence:
 
 ```{r, echo=FALSE}
 parameters_df <- data.frame(do.call(rbind, lapply(coef_estimates, unlist)), row.names=output_table_labels)
@@ -299,14 +270,21 @@ parameters_df <- data.frame(do.call(rbind, lapply(coef_estimates, unlist)), row.
 kable(parameters_df, col.names=params, booktabs=T, linesep='', align='c', digits=3) %>%
   kable_styling(latex_options="striped", full_width=F)
 ```
+It is worth noting that, for each degree sequence, the estimated values of $k_{max}$ both for the right-truncated zeta and Altmann distributions correspond to the maximum degree of the sequence. This behaviour is appropriate given the existing data, as the \textit{mle} finds out that the best value for the maximum degree is that of the maximum degree on the real data. The fact that it's the same for both distributions is also to be expected, as the Altmann distribution is a more general case of the right-truncated zeta (for $\delta=0$), that is, it is another nesting level of the zeta functions.
 
-And the $AIC_{diff}$ for each language and model:
+\newpage
+## Model Selection
+Using the previous parameter values we can obtain the corresponding log-likelihood value and with it the $AIC_{diff}$ values:
 
 ```{r, echo=FALSE}
 delta_AIC_df <- data.frame(do.call(rbind, lapply(AICs, function(x) sapply(x, function(y) y - min(x)))), row.names=output_table_labels)
 kable(delta_AIC_df,  col.names=models, booktabs=T, linesep='', align='c', digits=2) %>%
   kable_styling(latex_options="striped", full_width=F)
 ```
+We can see how the Altmann function is the better fit for all languages but the Hungarian and Turkish, which seem to be better fitted by a Zeta distribution. It is interesting to note that for Greek, Hungarian, Italian and Turkish the $AIC_{diff}$ values are the same for the Altmann and right-truncated zeta distribution. This happens because, as we mentioned before, the Altmann is a more general case of the right-truncated zeta. If we check the value of $\delta$ on the previous table we can see that for those datasets it equals 0, making the two distributions equal (as the rest of the distributions become identical if $\delta=0$, the estimator gives the same value to the rest of the parameters too).
+
+\newpage
+We can now plot the best-fitting model against the original data to be able to visually inspect the quality of the fit:
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
 old.par <- par(mfrow=c(ceiling(length(in_degree_sequences)/3), 3))
 par(mar=c(4,4,2,2))
@@ -333,12 +311,7 @@ for (i in seq(from=1, to=length(in_degree_sequences), by=1)) {
        col=c('blue', 'red'), lty=1, pch=1, cex=1.8)
 }
 ```
-
-
-
-
-
-
+The fit seems to be quite good for all functions, 
 
 \newpage
 \section{Discussion}
