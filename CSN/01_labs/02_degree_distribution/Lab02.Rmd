@@ -91,8 +91,9 @@ generate_minus_log_likelihoods <- function(stats) {
     },
 
     # Altmann function
-    function(gamma, delta) { gamma*stats$M_prime + delta*stats$M - stats$N*log(
-      c_f(stats$N, gamma, delta)) }
+    function(gamma, delta) {
+      gamma*stats$M_prime + delta*stats$M - stats$N*log(c_f(stats$N, gamma, delta))
+    }
   )
 }
 
@@ -302,6 +303,40 @@ Using also this formula was another point of the experiments over the log-likeli
   \mathcal{L}=\frac{1}{\sum_{i=1}^{N}k_{i}^{-\gamma}}e^{-\delta k}
 \end{equation*}
 
+
+## Best model selection with AIC
+
+After obtaining the best values for each of the different parameters, for the third part of the practice we want to check which is the model that gives the best results. In fact there are several techniques to find the best model, for instance the three that were taught in theory classes:
+\begin{itemize}
+  \item We can do it qualitatively (visually), that is \textit{looking for a transformation of the at least one of the variables in the functionm showing approximately a straight line (upon visual inspection) and obtain the dependency between the two original variables}. Some drawbacks of this option could be that the right transformation to show linearity might not be obvious, the amount of time that it may take to obtain a good guess to support the hypothesis, plots with outliers could be confusing, ...
+  \item Another approach could be taking into account the error of the model. We can do this using non-linear regression, in such a way that we have two variables $x$ and $y$ (being x the predictor) and try to find a functional dependency between them. Anon-linear model is formally defined as $y = f(x, \beta)$, where $\beta$ is a set of $K$ parameters for the function. An example of a non-linear model function could be $f(x,(a,b))=ax^b$, in this case $K=2$.
+  
+The main issue with this type of models is that it is unlikely to give a perfect fit because we are not completely confident that the value of the parameters does not contain any error. So, a common solution to tackle this problem is to use the conditional mean in such a way that we are calculating an expectation instead. So after taking into account the errors and the use of expectation we come up with a full model whose quality could be calculated by minimizing the residual sum of squares. Recalling we are using x and y as the variables for our model, we want to minimize the following formula to get an estimation of the parameters for the model:
+$$
+  RSS(\beta)=\sum_{i=1}^{n}(y_i-f(x, \beta))^2
+$$
+We can give more confidence to the results obtained by this model with respect to the qualitative analysis, but we still find the problem of the likelihood, because for this approach the likely and unlikely events are weighted equally.
+
+  \item Last but not least, we have the likelihood calculation, which is a probabilistic method of the quality of the fit that solves the above mentioned problems. This method tries to find the maximum likelihood between the results returned by using a set of **parameters** required by a given **model** and a sample of **data**. So the goal of this method basically consists in maximizing this likelihood to get an estimation of the best parameters.
+As the results of this likelihood are very small numbers, the best option is taking logarithms so in that way we will be referring to log-likelihood instead.
+\end{itemize}
+
+According to the previous classification of the techniques to calculate the quality of a model, for this lab session we will be using a concrete technique of the last group. In this case is called Akaike's Information Criterion (or AIC), a method that takes into account both the likelihood of the model and the number of parameters $AIC = -2\mathcal{L}+2K$. In this case we made a small correction to the formula for the sample size and the final formula we will be using is the following:
+
+$$
+AIC_c = -2\mathcal{L}+2K\frac{N}{N-K-1}
+$$
+As we have previously stated in the Introduction section, we know all the needed values to obtain this likelihood for each of the languages and for all the different distributions but one. The $-2\mathcal{L}$ can be obtained directly on R just by taking one of the parameters of the \textit{mle} results we have calculated in previous sections. The one we are looking for $m2logL$.
+
+Once we have calculated the AIC for every language and model we need to compare the results per language in order to decide which is the best model for each of them by computing the $\Delta AIC$. This calculation is trivial and basically consists in taking the best AIC per row (which is the one with the smallest value) and substracting it to any other value in the row, so it would be easier to check how much they differ from one to another.
+
+Before taking these calculations, we are required to insert a new probability distribution that is more likely to give a better fit than the best model so far. The recommendation of the guide is an Altmann function, which is a linguistic law according to which the increase of the size of a linguistic construct results in a decrease of the size of its constituents, and vice versa. The original function was added in the Introduction section, but to work with it, we need to transform it into a log-likelihood function so taking the summation of logarithms, we end up obtaining a solution as follows
+
+$$
+    p(k) = \gamma M' + \delta M - N \log\left(\frac{1}{\sum^{N}_{i=1}K^{-\gamma}e^{-\delta K}}\right)
+$$
+Once we have all the needed functions, we can calculate the AIC needed values and obtain the $\delta AIC$ requested by the exercise.
+
 ```{r, echo=FALSE}
 delta_AIC_df <- data.frame(do.call(rbind, lapply(AICs, function(x) sapply(x,
                         function(y) y - min(x)))), row.names=output_table_labels)
@@ -309,6 +344,10 @@ kable(delta_AIC_df,  col.names=models, booktabs=T, linesep='', align='c',
       digits=4, caption = "Delta AIC for each language") %>%
   kable_styling(latex_options = c("striped", "hold_position"), full_width=T)
 ```
+
+In the above table we can see that the results meet in most cases our expectations. Altmann function is expected to produce better results in 5 out of 10 languages, while the zeta distributions, both right-truncated and non-truncated, produce better results in 3/10 and 2/10 languages, respectively.
+
+If we could run the same experiment with a larger dataset of languages, we could see that the differences between the distributions would be higher, giving more value to the hypothesis that the Altmann function gives better predictions in average than the previously best fitting function, which in this case was the right-truncated zeta distribution, providing the best results for 8 out of 10 languages.
 
 #Discussion
 
