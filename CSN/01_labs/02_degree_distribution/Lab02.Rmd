@@ -285,6 +285,7 @@ We can see how the Altmann function is the better fit for all languages but the 
 
 \newpage
 We can now plot the best-fitting model against the original data to be able to visually inspect the quality of the fit:
+
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
 old.par <- par(mfrow=c(ceiling(length(in_degree_sequences)/3), 3))
 par(mar=c(4,4,2,2))
@@ -321,6 +322,8 @@ By observing the quality of the fit for the Altmann and Zeta functions as well a
 As we saw earlier, the Altmann distribution is the best fit in most cases, dominating over the other distributions in 8/10 cases. As we also saw before, this happens because the Altmann is a possible next nesting level of the right-truncated zeta function, a more general version of it. Because of this, in any situation in which the right-truncated zeta would be the best model automatically the Altmann function is at least as a good fit as it (because taking $\delta=0$ makes them identical), with the addition of having an extra parameter that allows for some fine-tuning (Notice that for Italian and Greek both AIC scores are tied). Inspecting the plots, we can see that most of the languages keep a somewhat regular slope for large values of $k$ despite the degradation of the linearity, so the Altmann function would be a pretty good fit for them as this linearity allows to roughly locate where the maximum degree value would be. For Hungarian and Turkish we can see how the slope diminishes at the end, having nodes further away than one intially would expect and making the Zeta function (which can be obtained from the truncated zeta by making $k_{max}$ go to infinity) a better fit than the truncated ones. Nevertheless, whenever the Zeta is the best fit the truncated versions follow quite closely in terms of $AIC_{diff}$ score.
 
 % - The extent to which languages resemble or differ.
+
+
 
 % - Conclusions
 
