@@ -263,8 +263,7 @@ for (i in seq(from=1, to=length(in_degree_sequences), by=1)) {
 
 As seen in the lectures, the fact that for all sequences the degree spectrum draws an almost straight line in a log-log plot gives us some good intuition that they might follow a power-law. This matches with the observation that the in-degree tends to be more power-law than the out-degree. Although most of the plots display some degree of curvature or hump, we can expect the Zeta and Altmann distributions to be a better fit than the Poisson and geometric ones.
 
-\newpage
-We can now generate the summary of the properties of the degree sequnces:
+We can now generate the summary of the properties of the degree sequences:
 
 ```{r, echo=FALSE}
 # Apply generate_language_summary to every entry in the list of language in-degrees to generate the summary for every language. Use do.call to pass each summary to rbind as a parameter, that way the vectors are concatenated vertically
@@ -282,7 +281,7 @@ First of all, we wanted to extract all the degree distribution related informati
 
 \begin{itemize}
 
-\item \textbf{N}, which is the number of nodes in the sequence. This values can be easily calculated by counting the number of rows in the document using \textit{nrow} function.
+\item \textbf{N}, which is the number of nodes in the sequence. This values can be easily calculated by counting the number of rows in the document using \textit{nrow} function. It is important to remark that there is a significant difference between the number of nodes between languages.
 \item \textbf{Max Degree}, the highest value among all the degrees contained in the sequence file for each language. Is obtained directly with the \textit{max} function.
 \item \textbf{M} or the total in-degree of the sequence, easy to calculate just taking the summation of all the values inside the document with the \textit{sum} function. $M = \sum_{i=1}^{N}k_i$
 \item \textbf{M'}, is the result of taking logarithms on the previous stat, i.e. $M' = log(M)$.
@@ -292,10 +291,7 @@ First of all, we wanted to extract all the degree distribution related informati
   \end{equation*}
 \end{itemize}
 
-
-There's a significant differene between the number of nodes between languages.
-
-Now let's fit
+Now let's fit:
 
 ```{r, echo=FALSE}
 parameters_df <- data.frame(do.call(rbind, lapply(coef_estimates, unlist)), row.names=output_table_labels)
@@ -346,16 +342,10 @@ for (i in seq(from=1, to=length(in_degree_sequences), by=1)) {
 
 \newpage
 \section{Discussion}
-Taking a look
 
-% Summary de los resultados y nuestra interpretación particular de los mismos. Principales temas a tratar:
+In fact, there is a significant difference between the fit using zeta models and the null ones. We just need to take into account the results shown in the table that details the $\Delta$AIC values for the intial data. There is a tendency among almost every language, such that the model that fitted the best was the right-truncated zeta before the inclusion of the Altmann function. For all languages zeta functions behavior was significantly better than the null models, specially for the right-truncated zeta which returned the $AIC_{best}$ in 8 out of 10 languages.
 
-% - If there is any significant difference between the fit of the distributions from null models and those of the zeta family.
-
-In fact, there is a significant difference between the fit using zeta models and the null ones. We just need to take into account the results shown in Table \ref{table:aic}, which details the $\Delta$AIC values for the intial data. There is a tendency among almost every language, such that the model that fits the best is the right-truncated zeta.
-
-
-% - If the distribution giving the best fit gives a reasonably good fit (e.g.). Remember that the best function of an ensemble is not necessarily the best in absolute terms.
+After adding the Altmann function, this result has changed drastically. We were able to check that this new function was the best taking into account the $AIC_{diff}$ value for 8 out 10 languages. The other 2 best results correspond to the zeta distribution. With these results it is demonstrated that Altmann is the best model even thinking of groups of distributions, for instance it is better in all the cases than the null models, and in most of them than the zeta functions. Also it is important to remark that even when it does not return the best fit, the result is still very close to the best one.
 
 % - The extent to which languages resemble or differ.
 
