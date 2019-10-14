@@ -7,8 +7,16 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+require(knitr)
+opts_chunk$set(echo = TRUE)
+# Set so that long lines in R will be wrapped:
+opts_chunk$set(tidy.opts=list(width.cutoff=80),tidy=TRUE)
 ```
+
+```{r set-options, include=FALSE}
+options(width=80)
+```
+
 
 ```{r cars, include=FALSE}
 # Load the igraph library and require the packages stats4 (mle) & VGAM (Riemman-zeta)
@@ -18,6 +26,35 @@ require('stats4')
 require('VGAM')
 require(kableExtra)
 ```
+
+#Introduction
+
+The goal of this lab session is to practice on information theoretic model selection for the degree distribution of global syntactic dependency networks. We are required to carry out a deep analysis over the \textit{in-degree-sequence} dataset. This analysis would be divided in four main phases:
+
+\begin{enumerate}
+
+\item \textbf{Study the basic properties than can be obtained from the given degree sequence.} We can obtain direct measurements from this dataset (as it is done in the file \textit{summary\_table.R}) as they may be the number of nodes \textbf{N} which is computed by taking the number of rows in the dataset, the sum of the degrees \textbf{M}, the mean degree \textbf{M/N}, ...
+
+\item \textbf{Estimation of the best parameters for different degree distributions using Maximum Likelihood Estimation (mle).} Once we have extracted the basic knowledge from the sequence, we want to analyze its behavior, i.e. find the degree distribution providing the best fit with respect to it. To do this, we need to maximize the log-likelihood function for each distribution (Poisson, geometric, zeta with gamma=2, zeta and right truncated zeta). Luckily for us, R provides a library named \textit{stats4} with some functions to ease this task of obtaining the best parameters. The most important one is the \textit{mle} function that performs a calculation of the maximum likelihood estimation getting as input a log-likelihood function from a given distribution, some initial parameters for that distribution and (in some cases) upper and/or lower bounds. The output of this function returns, among others, the value of the distribution parameters that would fit the best the model.
+
+\item \textbf{Selection of the best model according to Akaike Information Criterion (AIC).} After obtaining the best values for all the parameters using log likelihood, we have to decide which is the best model, i.e. the one that fits the best the original data. That is decided by calculating the AIC value for each of the distributions and each of the languages. Finally, we calculate the delta of the AICs for each of the languages so we can state which is the best in most of the cases. If we take into account Formula:
+
+\begin{equation}
+    AIC_c = -2\mathcal{L} + 2K\frac{N}{N-K-1}
+\end{equation}
+
+We already know all the needed values from previous steps but $-2\mathcal{L}$. Among all the different values that can be extracted from the \textit{mle} results, one of them is $-2\mathcal{L}$. The last step of this phase would consist in including a new probability distribution that is more likely to return better results than the other models. We are using the Menzerath-Altmann law formulation:
+
+\begin{equation}
+    p(k) = ck^{-\gamma}e^{-\delta k}
+\end{equation}
+
+\item \textbf{Test our implementation with samples from which we already know the distribution.} The problem we have with the initial dataset is that the distribution the sequence follows is unknown, so we cannot ensure the values we are obtaining are correct or not. To solve this problem, we are provided with a new dataset of samples from discrete distributions, such that each sample explains beforehand which is the distribution it is following and with which parameters. Once we know that, we should run the same experiments as before but with this new dataset and check whether the parameters we are obtaining using \textit{mle} match the ones used by the sample.
+\end{enumerate}
+
+#Results
+
+This section contains the different figures (tables and plots) we have generated during the implementation of our solution. For sake of clearness, we decided to avoid the code on this section and just show the resulting elements, but along with this report, find attached a R markdown notebook that holds all the code that is executed throughout the whole solution to obtain the results that are being shown.  
 
 ```{r, include=FALSE, echo=FALSE}
 # Define the minus log likelihood functions for the different probaiblity mass functions to be passed to the optimizer
@@ -31,19 +68,19 @@ c_f <- function(gamma, delta, k_max) { 1/sum(sapply(seq(from=1, to=k_max, by=1),
 pmfs <- c(
   # Displaced Poisson
   function(k, lambda) { ((lambda^k)*exp(-lambda))/(factorial(k)*(1-exp(-lambda))) },
-  
+
   # Displaced geometric
   function(k, q) { (1-q)^(k-1)*q },
-  
+
   # Zeta with gamma=2
   function(k) { (k^(-2))/zeta(2) },
-  
+
   # Zeta
   function(k, gamma) { (k^(-gamma))/zeta(gamma) },
-  
+
   # Right-truncated Zeta
   function(k, gamma, k_max) { (k^(-gamma))/H(gamma, k_max) },
-  
+
   # Altmann
   function(k, gamma, delta, k_max) { c_f(gamma, delta, k_max)*(k^(-gamma))*exp(-delta*k) }
 )
@@ -51,7 +88,9 @@ pmfs <- c(
 generate_minus_log_likelihoods <- function(stats) {
   c(
     # Displaced Poisson
-    function (lambda) { stats$N*(lambda + log(1 - exp(-lambda))) + stats$C - stats$M*log(lambda) },
+    function(lambda){
+      stats$N*(lambda + log(1 - exp(-lambda))) + stats$C - stats$M*log(lambda)
+    },
 
     # Displaced Geometric
     function (q) { (stats$N - stats$M)*log(1-q) - stats$N*log(q) },
@@ -63,7 +102,9 @@ generate_minus_log_likelihoods <- function(stats) {
     function(gamma) { stats$M_prime*gamma + stats$N*log(zeta(gamma))},
 
     # Right-truncated Zeta
-    function (gamma, k_max) { gamma*stats$M_prime + stats$N*log(H(gamma, k_max)) },
+    function(gamma, k_max){
+      gamma*stats$M_prime + stats$N*log(H(gamma, k_max))
+    },
 
     # Altmann function
     function(gamma, delta, k_max) { gamma*stats$M_prime + delta*stats$M - stats$N*log( c_f(gamma, delta, k_max ) ) }
@@ -111,6 +152,8 @@ calculate_likelihoods <- function(stats) {
     }})
 }
 
+# Function to calculate the AIC from an mle
+# calculated for some distribution
 calculate_AIC <- function(m2logL, K, N){
   m2logL + 2*K*N/(N-K-1)
 }
@@ -124,7 +167,7 @@ generate_tables <- function(in_degree_sequences) {
                 C=sum(sapply(seq(from=1, to=length(x), by=1), function(i) sum(sapply(seq(from=1, to=x[i], by=1), function(j) log(j)))))))
 
   coef_estimates <<- lapply(lang_stats, function(x) lapply(calculate_likelihoods(x), function(l) {attributes(summary(l))$coef[,1]}))
-  
+
   AICs <<- lapply(seq(from=1, to=length(lang_stats), by=1), function(l) {
     minus_log_likelihoods <- generate_minus_log_likelihoods(lang_stats[[l]])
     unlist(lapply(seq(from=1, to=length(models), by=1), function(i) {
@@ -139,36 +182,40 @@ run_test <- function() {
   test_geom_param_values <- c(0.05, 0.1, 0.2, 0.4, 0.8)
   test_zeta_param_values <- c(2, 2.5, 3, 3.5)
   test_param_values <- c(test_geom_param_values, test_zeta_param_values)
-  
-  test_names_geom <- sapply(test_geom_param_values, function(x) paste('Geometric [q = ', x,']', sep=''))
-  test_names_zeta <- sapply(test_zeta_param_values, function(x) paste('Zeta [gamma = ', x,']', sep=''))
+
+  test_names_geom <- sapply(test_geom_param_values, function(x)
+    paste('Geometric [q = ', x,']', sep=''))
+  test_names_zeta <- sapply(test_zeta_param_values, function(x)
+    paste('Zeta [gamma = ', x,']', sep=''))
   test_names <- c(test_names_geom, test_names_zeta)
-  
-  test_filenames_geom <- sapply(test_geom_param_values, function(x) paste('test/',test_prefix_geom, x, '.txt', sep=''))
-  test_filenames_zeta <- sapply(test_zeta_param_values, function(x) paste('test/',test_prefix_zeta, x, '.txt', sep=''))
+
+  test_filenames_geom <- sapply(test_geom_param_values,
+          function(x) paste('test/', test_prefix_geom, x, '.txt', sep=''))
+  test_filenames_zeta <- sapply(test_zeta_param_values,
+          function(x) paste('test/', test_prefix_zeta, x, '.txt', sep=''))
   test_filenames <- c(test_filenames_geom, test_filenames_zeta)
-  
+
   in_degree_sequences <<- sapply(test_filenames, function(x) read.table(x, header=FALSE))
   output_table_labels <<- test_names
-  
+
   generate_tables(in_degree_sequences)
-  
+
 }
 
 run_real <- function() {
   # Read the list of languages from file
   languages = read.table("list.txt",
-                header = TRUE,               # this is to indicate the first line of the file contains the names of the columns instead of the real data
-                as.is = c("language","file") # this is need to have the cells treated as real strings and not as categorial data.
+                header = TRUE,
+                as.is = c("language","file")
               )
-  
+
   # Read the language files from disk and store them in memory so we don't have to do so multiple times
   in_degree_sequences <<- sapply(languages$file, function(x) read.table(x, header = FALSE))
   output_table_labels <<- languages$language
-  
+
   generate_tables(in_degree_sequences)
 }
-``` 
+```
 
 \section{Introduction}
 
@@ -241,6 +288,26 @@ summary_df <- data.frame(do.call(rbind, lapply(lang_stats, function(x) c(x$N, x$
 kable(summary_df, col.names=c('N', 'Max Degree', 'M/N', 'N/M'), booktabs=T, linesep='', align='c', digits=4) %>%
   kable_styling(latex_options="striped", full_width=F)
 ```
+
+We will follow the steps explained in the Introduction section to illustrate all the work done and the results obtained.
+
+## Properties of degree sequence
+
+First of all, we wanted to extract all the degree distribution related information regarding the language sequences we were given as datasets. To do that, we took advantage of the scripts contained in the guide for this session, and start reading the in-degree values for each of the languages. Once we have read all this information, we needed to extract the valuable information from it and obtain five stats from it:
+
+\begin{itemize}
+
+\item \textbf{N}, which is the number of nodes in the sequence. This values can be easily calculated by counting the number of rows in the document using \textit{nrow} function.
+\item \textbf{Max Degree}, the highest value among all the degrees contained in the sequence file for each language. Is obtained directly with the \textit{max} function.
+\item \textbf{M} or the total in-degree of the sequence, easy to calculate just taking the summation of all the values inside the document with the \textit{sum} function. $M = \sum_{i=1}^{N}k_i$
+\item \textbf{M'}, is the result of taking logarithms on the previous stat, i.e. $M' = log(M)$.
+\item \textbf{C}, which is the sum of the logarithm of degree factorials and is calculated as follows:
+  \begin{equation*}
+    C = \sum_{i=1}^{N}log(k_{i}!) = \sum_{i=1}^{N}\sum_{j=2}^{k_i}log(j)
+  \end{equation*}
+\end{itemize}
+
+
 There's a significant differene between the number of nodes between languages.
 
 Now let's fit
@@ -275,12 +342,12 @@ for (i in seq(from=1, to=length(in_degree_sequences), by=1)) {
        xlab='k',
        ylab='n(k)/N',
        col='blue')
-  
+
   lines(x=as.numeric(spectrum$Var1),
        y=best_fit,
        type='o',
        col='red')
-  
+
   legend("topright", legend=c("Real data", models[best]),
        col=c('blue', 'red'), lty=1, pch=1, cex=1.8)
 }
@@ -330,5 +397,3 @@ Akaike Information Criterion for small samples:
 \begin{equation}\label{eq:aic}
     AIC_c = -2\mathcal{L} + 2K\frac{N}{N-K-1}
 \end{equation}
-
-
