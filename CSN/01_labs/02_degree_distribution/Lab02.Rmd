@@ -18,45 +18,14 @@ options(width=80)
 ```
 
 
-```{r cars, include=FALSE}
+```{r include=FALSE, echo=FALSE}
 # Load the igraph library and require the packages stats4 (mle) & VGAM (Riemman-zeta)
 require(igraph)
 require(knitr)
 require('stats4')
 require('VGAM')
 require(kableExtra)
-```
 
-#Introduction
-
-The goal of this lab session is to practice on information theoretic model selection for the degree distribution of global syntactic dependency networks. We are required to carry out a deep analysis over the \textit{in-degree-sequence} dataset. This analysis would be divided in four main phases:
-
-\begin{enumerate}
-
-\item \textbf{Study the basic properties than can be obtained from the given degree sequence.} We can obtain direct measurements from this dataset (as it is done in the file \textit{summary\_table.R}) as they may be the number of nodes \textbf{N} which is computed by taking the number of rows in the dataset, the sum of the degrees \textbf{M}, the mean degree \textbf{M/N}, ...
-
-\item \textbf{Estimation of the best parameters for different degree distributions using Maximum Likelihood Estimation (mle).} Once we have extracted the basic knowledge from the sequence, we want to analyze its behavior, i.e. find the degree distribution providing the best fit with respect to it. To do this, we need to maximize the log-likelihood function for each distribution (Poisson, geometric, zeta with gamma=2, zeta and right truncated zeta). Luckily for us, R provides a library named \textit{stats4} with some functions to ease this task of obtaining the best parameters. The most important one is the \textit{mle} function that performs a calculation of the maximum likelihood estimation getting as input a log-likelihood function from a given distribution, some initial parameters for that distribution and (in some cases) upper and/or lower bounds. The output of this function returns, among others, the value of the distribution parameters that would fit the best the model.
-
-\item \textbf{Selection of the best model according to Akaike Information Criterion (AIC).} After obtaining the best values for all the parameters using log likelihood, we have to decide which is the best model, i.e. the one that fits the best the original data. That is decided by calculating the AIC value for each of the distributions and each of the languages. Finally, we calculate the delta of the AICs for each of the languages so we can state which is the best in most of the cases. If we take into account Formula:
-
-\begin{equation}
-    AIC_c = -2\mathcal{L} + 2K\frac{N}{N-K-1}
-\end{equation}
-
-We already know all the needed values from previous steps but $-2\mathcal{L}$. Among all the different values that can be extracted from the \textit{mle} results, one of them is $-2\mathcal{L}$. The last step of this phase would consist in including a new probability distribution that is more likely to return better results than the other models. We are using the Menzerath-Altmann law formulation:
-
-\begin{equation}
-    p(k) = ck^{-\gamma}e^{-\delta k}
-\end{equation}
-
-\item \textbf{Test our implementation with samples from which we already know the distribution.} The problem we have with the initial dataset is that the distribution the sequence follows is unknown, so we cannot ensure the values we are obtaining are correct or not. To solve this problem, we are provided with a new dataset of samples from discrete distributions, such that each sample explains beforehand which is the distribution it is following and with which parameters. Once we know that, we should run the same experiments as before but with this new dataset and check whether the parameters we are obtaining using \textit{mle} match the ones used by the sample.
-\end{enumerate}
-
-#Results
-
-This section contains the different figures (tables and plots) we have generated during the implementation of our solution. For sake of clearness, we decided to avoid the code on this section and just show the resulting elements, but along with this report, find attached a R markdown notebook that holds all the code that is executed throughout the whole solution to obtain the results that are being shown.  
-
-```{r, include=FALSE, echo=FALSE}
 # Define the minus log likelihood functions for the different probaiblity mass functions to be passed to the optimizer
 models <- c('Poisson', 'Geometric', 'Zeta_2', 'Zeta', 'Right-truncated Zeta', 'Altmann')
 params <- c("lambda", 'q', 'gamma_1', 'gamma_2', 'k_max', 'gamma', 'delta', 'k_max_2')
@@ -217,15 +186,31 @@ run_real <- function() {
 }
 ```
 
-\section{Introduction}
+#Introduction
 
 The goal of this lab session is to practice on information theoretic model selection for the degree distribution of global syntactic dependency networks. We are required to carry out a deep analysis over the \textit{in-degree-sequence} dataset. This analysis would be divided in four main phases:
 
 \begin{enumerate}
-    \item \textbf{Study the basic properties than can be obtained from the given degree sequence.} We can obtain direct measurements from this dataset (as it is done in the file \textit{summary\_table.R}) as they may be the number of nodes \textbf{N} which is computed by taking the number of rows in the dataset, the sum of the degrees \textbf{M}, the mean degree \textbf{M/N}, ...
-    \item \textbf{Estimation of the best parameters for different degree distributions using Maximum Likelihood Estimation (mle).} Once we have extracted the basic knowledge from the sequence, we want to analyze its behavior, i.e. find the degree distribution providing the best fit with respect to it. To do this, we need to maximize the log-likelihood function for each distribution (Poisson, geometric, zeta with gamma=2, zeta and right truncated zeta). Luckily for us, R provides a library named \textit{stats4} with some functions to ease this task of obtaining the best parameters. The most important one is the \textit{mle} function that performs a calculation of the maximum likelihood estimation getting as input a log-likelihood function from a given distribution, some initial parameters for that distribution and (in some cases) upper and/or lower bounds. The output of this function returns, among others, the value of the distribution parameters that would fit the best the model.
-    \item \textbf{Selection of the best model according to Akaike Information Criterion (AIC).} After obtaining the best values for all the parameters using log likelihood, we have to decide which is the best model, i.e. the one that fits the best the original data. That is decided by calculating the AIC value for each of the distributions and each of the languages. Finally, we calculate the delta of the AICs for each of the languages so we can state which is the best in most of the cases. If we take into account Formula \ref{eq:aic}, we already know all the needed values from previous steps but $-2\mathcal{L}$. Among all the different values that can be extracted from the \textit{mle} results, one of them is $-2\mathcal{L}$. The last step of this phase would consist in including a new probability distribution that is more likely to return better results than the other models. We are using the Menzerath-Altmann law formulation (as stated in Formula \ref{eq:altmann}).
-    \item \textbf{Test our implementation with samples from which we already know the distribution.} The problem we have with the initial dataset is that the distribution the sequence follows is unknown, so we cannot ensure the values we are obtaining are correct or not. To solve this problem, we are provided with a new dataset of samples from discrete distributions, such that each sample explains beforehand which is the distribution it is following and with which parameters. Once we know that, we should run the same experiments as before but with this new dataset and check whether the parameters we are obtaining using \textit{mle} match the ones used by the sample.
+
+\item \textbf{Study the basic properties than can be obtained from the given degree sequence.}  
+As a first step we can directly extract key properties directly from the datasets like their size (\textbf{N}), maximum node degree or mean degree (as it is done in the file \textit{summary\_table.R}). These will be used in the model parameter estimation.
+
+\item \textbf{Estimation of the best parameters for different degree distributions using Maximum Likelihood Estimation (mle).}  
+Once we have extracted the basic properties from the sequence we would like to analyze its behavior, i.e. find in an ensemble of degree distribution the one which better fits the real data. To achieve this we make use of R's \textit{mle} method which performs maximum likelihood estimation of parmeters given a log-likelihood function and a set of starting and bound conditions. The parameter values obtained allow to select for each dataset and family of functions which one fits the data best.
+
+\item \textbf{Selection of the best model according to Akaike Information Criterion (AIC).} After obtaining the best values for all the parameters using log likelihood, we have to decide which is the best model, i.e. the one that fits the best the original data. That is decided by calculating the AIC value for each of the distributions and each of the languages. Finally, we calculate the delta of the AICs for each of the languages so we can state which is the best in most of the cases. If we take into account Formula:
+
+\begin{equation}
+    AIC_c = -2\mathcal{L} + 2K\frac{N}{N-K-1}
+\end{equation}
+
+We already know all the needed values from previous steps but $-2\mathcal{L}$. Among all the different values that can be extracted from the \textit{mle} results, one of them is $-2\mathcal{L}$. The last step of this phase would consist in including a new probability distribution that is more likely to return better results than the other models. We are using the Menzerath-Altmann law formulation:
+
+\begin{equation}
+    p(k) = ck^{-\gamma}e^{-\delta k}
+\end{equation}
+
+\item \textbf{Test our implementation with samples from which we already know the distribution.} The problem we have with the initial dataset is that the distribution the sequence follows is unknown, so we cannot ensure the values we are obtaining are correct or not. To solve this problem, we are provided with a new dataset of samples from discrete distributions, such that each sample explains beforehand which is the distribution it is following and with which parameters. Once we know that, we should run the same experiments as before but with this new dataset and check whether the parameters we are obtaining using \textit{mle} match the ones used by the sample.
 \end{enumerate}
 
 \section{Results}
@@ -253,7 +238,7 @@ kable(parameters_df, col.names=params, booktabs=T, linesep='', align='c', digits
 By checking the cells corresponding to the parameters of the selected models we can see that the estimation matches the real value quite closely. We can conclude then that the pipeline works properly.
 
 \newpage
-### Model selection on the in-degree data
+## Model selection on the in-degree data
 ```{r, echo=FALSE, include=FALSE}
 run_real()
 ```
