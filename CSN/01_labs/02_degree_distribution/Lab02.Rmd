@@ -235,7 +235,8 @@ delta_AIC_df <- data.frame(do.call(rbind, lapply(AICs, function(x) sapply(x, fun
 kable(delta_AIC_df,  col.names=models, booktabs=T, linesep='', align='c', digits=2) %>%
   kable_styling(latex_options="striped", full_width=F)
 ```
-We can see that our script correclty selects the distribution used to generate the dataset, choosing between the regular and right-truncated version of the Zeta function for the zeta-generated datasets depending on which one provides the best fit (%EXPLANATION HERE%).  
+We can see that our script correclty selects the distribution used to generate the dataset, having the geometric distribution the minimum value for most of the geometric-generated distributions (Although interestingly enough, as $q$ gets closer to 1 and therefore the maximum degree decreases significatively, the Altmann distribution seems to get so close in terms of quality of fit to the geometric that in this particular instance has a better AIC than the geometric distribution) and one of the power-laws the minimum AIC for the zeta-generated ones.  
+
 Now want to check if the parameters of the selected models were properly estimated:
 ```{r, echo=FALSE}
 parameters_df <- data.frame(do.call(rbind, lapply(coef_estimates, unlist)), row.names=output_table_labels)
@@ -243,7 +244,7 @@ parameters_df <- data.frame(do.call(rbind, lapply(coef_estimates, unlist)), row.
 kable(parameters_df, col.names=params, booktabs=T, linesep='', align='c', digits=3) %>%
   kable_styling(latex_options="striped", full_width=F)
 ```
-By checking the cells corresponding to the parameters of the selected models we can see that the estimation matches the real value quite closely. We can conclude then that the pipeline works properly.
+By checking the cells corresponding to the parameters of the selected models we can see that the estimation matches the real value quite closely (with less accuracy for larger values of gamma), so we can then conclude that our pipeline works correctly.
 
 \newpage
 ## Model selection on the in-degree data
@@ -251,7 +252,7 @@ By checking the cells corresponding to the parameters of the selected models we 
 run_real()
 ```
 
-Before starting with the model selection for the real data let's plot the normalized degree spectrum in log-log scalef or all degree sequences:
+Before starting with the model selection for the real data let's plot the normalized degree spectrum in log-log scale for all degree sequences:
 
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
 old.par <- par(mfrow=c(ceiling(length(in_degree_sequences)/3), 3))
@@ -282,7 +283,7 @@ kable(summary_df, col.names=c('N', 'Max Degree', 'M/N', 'N/M'), booktabs=T, line
   kable_styling(latex_options="striped", full_width=F)
 ```
 
-Although the plots are quite similar to one another, the values of the properties of the different in-degree sequences vary significantly, from the number of nodes to the mean or maximum degree.
+Although the plots are quite similar to one another, the values of the properties of the different in-degree sequences vary significantly, from the number of nodes to the mean or maximum degree. From this table we can already observe some similarities between languages, like the Hungarian and the Turkish or the Czech and English having similar max degrees despite having quite similar number of nodes ($N$).
 
 ## Model parameter estimation
 Using the previously calculated parameters and the log-likelihood functions of each model with R's \textit{mle} function we can obtain the parameters which give the best fit for each function and in-degree sequence:
@@ -290,10 +291,11 @@ Using the previously calculated parameters and the log-likelihood functions of e
 ```{r, echo=FALSE}
 parameters_df <- data.frame(do.call(rbind, lapply(coef_estimates, unlist)), row.names=output_table_labels)
 
-kable(parameters_df, col.names=params, booktabs=T, linesep='', align='c', digits=3) %>%
+kable(parameters_df, col.names=params, booktabs=T, linesep='', align='c', digits=3) %>% 
   kable_styling(latex_options="striped", full_width=F)
 ```
-It is worth noting that, for each degree sequence, the estimated values of $k_{max}$ both for the right-truncated zeta and Altmann distributions correspond to the maximum degree of the sequence. This behaviour is appropriate given the existing data, as the \textit{mle} finds out that the best value for the maximum degree is that of the maximum degree on the real data. The fact that it's the same for both distributions is also to be expected, as the Altmann distribution is a more general case of the right-truncated zeta (for $\delta=0$), that is, it is another nesting level of the zeta functions.
+It is worth noting that, for each degree sequence, the estimated values of $k_{max}$ both for the right-truncated zeta and Altmann distributions correspond to the maximum degree of the sequence. This is to be expected, as the maximum in-degree in the dataset when the distribution follows a power-law is a reasonable estimation of the actual maximum in-degree, specially when there is a large amount of points.
+We can also see that for the last four languages the value of $\delta$ is 0 and the rest of the parameters for the Altmann and right-truncated zeta distribution are identical. This happens because the Altmann distribution is a more general case of the right-truncated zeta, and if $\delta=0$ they become the same function (given that the Altmann distribution also has a $k_{max}$ parameter, which is the case in our implementation).
 
 \newpage
 ## Model Selection
@@ -304,7 +306,9 @@ delta_AIC_df <- data.frame(do.call(rbind, lapply(AICs, function(x) sapply(x, fun
 kable(delta_AIC_df,  col.names=models, booktabs=T, linesep='', align='c', digits=2) %>%
   kable_styling(latex_options="striped", full_width=F)
 ```
-We can see how the Altmann function is the better fit for all languages but the Hungarian and Turkish, which seem to be better fitted by a Zeta distribution. It is interesting to note that for Greek, Hungarian, Italian and Turkish the $AIC_{diff}$ values are the same for the Altmann and right-truncated zeta distribution. This happens because, as we mentioned before, the Altmann is a more general case of the right-truncated zeta. If we check the value of $\delta$ on the previous table we can see that for those datasets it equals 0, making the two distributions equal (as the rest of the distributions become identical if $\delta=0$, the estimator gives the same value to the rest of the parameters too).
+We can see how the Altmann function is the one that better models ($AIC_{diff} = 0$) many of the in-degree distributions. Interestingly enough, although the parameters of the right-truncated zeta and Altmann were identical in the last 4 languages, the latter is not the best fit for any of them (although it's close). This is due to the regularization on the number of parameter performed by the AIC, which punishes the extra parameter of the Altmann.
+
+We also find out that for Hungarian and Turkish the best fit is the Zeta distribution, something that does not happen in any of the other ones (the Basque being quite close though).
 
 \newpage
 We can now plot the best-fitting model against the original data to be able to visually inspect the quality of the fit:
@@ -335,16 +339,18 @@ for (i in seq(from=1, to=length(in_degree_sequences), by=1)) {
        col=c('blue', 'red'), lty=1, pch=1, cex=1.8)
 }
 ```
-The fit seems to be quite good for all functions, Italian and Greek are tied
+By simple visual inspection we can see that the selected models are a quite good fit of the real data, specially for lower degree values. At high in-degree counts it becomes less acuret, but seems to be in a good trend nevertheless
 
 \newpage
 \section{Discussion}
 
-By observing the quality of the fit for the Altmann and Zeta functions as well as the $AIC_{diff}$ values obtained we can conclude that the in-degree distribution of the languages studied is significantly more similar to a a power-law than to any of the null models (Poisson and geometric) considered (which are specially poor. which are not very good models of the data. One possible reason for this is the nature itself of null models, which are meant to match a given object in some of its features but are otherwise consiedered to be a random structure. Because language is not random its syntactic dependencies won't be either, and although the Null model might be able to capture some aspect of the in-degree distribution it may not be able to represent it with the same success as other, more structured models. 
+By observing the quality of the fit for the Altmann and Zeta functions as well as the $AIC_{diff}$ values obtained we can conclude that the in-degree distribution of the languages studied is significantly more similar to a power-law than to any of the null models considered (Poisson and geometric, which both present specially poor AIC scores). One possible reason for this could be the nature of null models themselves, which are meant to match a given object in some of its features but are otherwise consiedered to be a random structure. Because language is not random its syntactic dependencies won't be either, and although the Null model might be able to capture some aspect of the in-degree distribution it may not be able to represent it with the same success as other, more structured models. 
 
-As we saw earlier, the Altmann distribution is the best fit in most cases, dominating over the other distributions in 8/10 cases. As we also saw before, this happens because the Altmann is a possible next nesting level of the right-truncated zeta function, a more general version of it. Because of this, in any situation in which the right-truncated zeta would be the best model automatically the Altmann function is at least as a good fit as it (because taking $\delta=0$ makes them identical), with the addition of having an extra parameter that allows for some fine-tuning (Notice that for Italian and Greek both AIC scores are tied). Inspecting the plots, we can see that most of the languages keep a somewhat regular slope for large values of $k$ despite the degradation of the linearity, so the Altmann function would be a pretty good fit for them as this linearity allows to roughly locate where the maximum degree value would be. For Hungarian and Turkish we can see how the slope diminishes at the end, having nodes further away than one intially would expect and making the Zeta function (which can be obtained from the truncated zeta by making $k_{max}$ go to infinity) a better fit than the truncated ones. Nevertheless, whenever the Zeta is the best fit the truncated versions follow quite closely in terms of $AIC_{diff}$ score.
+Although it is not strictly better in every case, the Altmann function does quite a good job at fitting the function, being the best fit on 5 instances and getting remarkably low $AIC_{dif}$ scores in the rest. Recall also that for the last four languages it had exactly the same parameters as the right-truncated zeta, but was penalized by the AIC for its extra parameter.
 
-If we had to compare the different languages paying attention to the results obtained, there are several things to say, but nothing that shows a complete correlation among the languages. Also, there is not a big percentage of resembing or difference among all the languages, but we can find some comparison between couples of languages:
+Most languages got either Altmann or Right-truncated and present a somewhat uniform slope, but for Hungarian and Turkish we can see how the slope diminishes at the end, having nodes further away than one intially would expect and making the Zeta function (which can be obtained from the truncated zeta by making $k_{max}$ go to infinity) a better fit than the truncated ones. Nevertheless, whenever the Zeta is the best fit the truncated version and Altmann follow quite closely in terms of $AIC_{diff}$ score.
+
+If we had to compare the different languages paying attention to the results obtained, there are several things to say, but nothing that shows a complete correlation among the languages. Also, there is not a big percentage of resembing or difference among all the languages, but we can find some similarities between couples of languages:
 
 \begin{itemize}
 \item If we take a look to both the tables of the parameter estimation and the degree sequence statistical properties, we can see a direct relation between Chinese and Catalan languages. Their number of nodes (N) is almost the same as well as a mean degree (M/N). The influence of this properties has a direct implication in the parameters estimation where the results for every parameter, except for $k_{max}$, return very closer values.
@@ -366,12 +372,4 @@ for $1 \leq k \leq N$ and 0 otherwise, $c$ being:
 Its log-likelihood can be derived as follows:
 \[ \sum^N_{k=1} log(ck^{-\gamma}e^{-\delta k}) = \sum^N_{k=1} log(c) -\gamma \cdot log(k) -\delta \cdot k = N \cdot log(c) - \gamma \cdot M' -\delta \cdot M \]
 
-Regarding to the starting values and bounds for the mle we have tried to stick to the ones proposed in the statement as much as possible. As such, we selected for our starting values $\lambda=M/N$ (Poisson), $q=N/M$ (Geometric) and $\gamma=2$ (Zeta & Altmann distributions), with $\lambda > 1$, $0 < q < 1$ and $\gamma > 1$. For $k_{max}$ (both in the right-truncated zeta & Altmann) we gave it an inital value equal to the maximum degree in the list. In order for the optimizer to select that value we . This allows the optimizer to select the maximum degree value for $k_{max}$, which is the best estimation possible (the real value). Because the mle crashes without an upper bound for $k_{max}$, we set it to twice the maximum degree in order to provide some space for the optimizer to perform the search. Finally, for the Altmann function's $\delta$ we made it so $0 < \delta < 1$ and gave it an initial value of 0.5 after a fair amount of trial and error.
-
-\section*{Appendix}
-
-Akaike Information Criterion for small samples:
-
-\begin{equation}\label{eq:aic}
-    AIC_c = -2\mathcal{L} + 2K\frac{N}{N-K-1}
-\end{equation}
+Regarding to the starting values and bounds for the $mle$ we have tried to stick to the ones proposed in the statement as much as possible. As such, we selected for our starting values $\lambda=M/N$ (Poisson), $q=N/M$ (Geometric) and $\gamma=2$ (Zeta & Altmann distributions), with $\lambda > 1$, $0 < q < 1$ and $\gamma > 1$. For $k_{max}$ (both in the right-truncated zeta & Altmann) we gave it an inital value equal to the maximum degree in the list and a lower bound slightly below it so the optimizer can select the maximum in-degree as the value or $k_{max}$ (as we have seen that happens). Because the $mle$ crashes without an upper bound for $k_{max}$, we set it to twice the maximum degree in order to provide some space for the optimizer to perform the search. Finally, for the Altmann function's $\delta$ we made it so $0 < \delta < 1$ and gave it an initial value of 0.5 after a fair amount of trial and error.
