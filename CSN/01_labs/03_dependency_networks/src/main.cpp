@@ -10,13 +10,16 @@ int main() {
 
 
   const std::string DATA_DIR = "data/";
-  const std::string path = DATA_DIR + "Arabic_syntactic_dependency_network.txt";
+  const std::string path = DATA_DIR + "Turkish_syntactic_dependency_network.txt";
 
-  Graph g = Graph::from_file(path);
+  Graph g1 = Graph::from_file(path);
+  std::cout << g1.test() << std::endl;
+  /*
   int count = 0;
   for(int i=1; i <= 3934; ++i) {
     std::cout << i << " " << g.get_word_by_id(i) << std::endl;
   }
+  */
 
   // To load the graph, if we want to do Numeric:
   // 1. Read all words and sort them, that will be the indexpyth

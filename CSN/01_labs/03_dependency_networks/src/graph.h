@@ -10,9 +10,13 @@ public:
   ~Graph();
   Graph(const Graph &g);
 
+  int add_vertex(const std::string label);
+
   static Graph from_file(const std::string &path);
 
   int geodesic_distance(int ix_s, int ix_d);
+
+  Graph* test(){return this;}
 
 
   // Getters & Setters
