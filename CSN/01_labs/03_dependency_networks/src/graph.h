@@ -3,14 +3,16 @@
 
 class Graph {
 private:
-  std::vector<std::vector<int>> adj_list;
-  std::vector<std::string> word_index;
+  std::vector<std::vector<std::size_t>> adj_list;
+  std::vector<std::string> word_index;      // Allows to access word values by index
+  size_t n_edges;
 public:
   Graph(); // Default constructor
   ~Graph();
   Graph(const Graph &g);
 
-  int add_vertex(const std::string label);
+  size_t add_vertex(const std::string &label);
+  void add_edge(const std::size_t v1, const std::size_t v2);
 
   static Graph from_file(const std::string &path);
 
@@ -20,11 +22,11 @@ public:
 
 
   // Getters & Setters
-  const std::string get_word_by_id(int id);
-  const int get_num_vertices();
-  const int get_num_edges();
+  const std::size_t get_n_vertices();
+  const std::size_t get_n_edges();
+  const std::string get_word_by_id(const std::size_t id);
 
-  const std::vector<int>& get_neighbours(int id);
+  //const std::vector<int>& get_neighbours(int id);
 
 
 };

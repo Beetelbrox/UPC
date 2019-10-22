@@ -10,7 +10,8 @@ int main() {
 
 
   const std::string DATA_DIR = "data/";
-  const std::string path = DATA_DIR + "Turkish_syntactic_dependency_network.txt";
+  const std::string path = DATA_DIR + "Basque_syntactic_dependency_network.txt";
+  //const std::string path = DATA_DIR + "test.txt";
 
   Graph g1 = Graph::from_file(path);
   std::cout << g1.test() << std::endl;

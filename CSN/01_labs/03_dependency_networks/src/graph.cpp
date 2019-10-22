@@ -1,15 +1,16 @@
-#include <string.h> // For strtok
-#include "graph.h"
+
 #include <fstream>
 #include <iostream>
 #include <unordered_map>
+#include "graph.h"
 
-// https://stackoverflow.com/questions/2041517/random-simple-connected-graph-generation-with-given-sparseness
+// Use namespace std here so it is not included in the main code
+using namespace std;
 
-int find_or_add(const std::string &w,
-  std::unordered_map<std::string, int> &word_dict,
-  std::vector<std::string> &word_index,
-  std::vector<std::vector<int>> &adj_list);
+size_t find_vertex(const string &label, const unordered_map<string, size_t> &word_dict) {
+  if( word_dict.find(label) == word_dict.end() ) return 0;
+  else return word_dict.find(label) -> second;
+}
 
 /*
 * #################################################
@@ -18,31 +19,40 @@ int find_or_add(const std::string &w,
 */
 
 Graph::Graph() {
-    std::cout << "Constructor: " << this << std::endl;
+  n_edges=0;
 
 }
 
 Graph::Graph(const Graph &g) {
-  std::cout << "I am the copy constructor" << std::endl;
 }
 
 Graph::~Graph() {
-  std::cout << "I am being destroyed: " << this << std::endl;
 }
 
 // Adds a vertex to the graph indexed to the end of the list
 // Returns: index
-int Graph::add_vertex(const std::string label){
-  return 0;
+size_t Graph::add_vertex(const string &label){
+  word_index.push_back(label);
+  adj_list.push_back(vector<size_t>());
+  return word_index.size();
 }
 
-const std::string Graph::get_word_by_id(int id) {
+// This assumes that the edges exist and it references vertex ids directly
+// The graph is undirected so we need to add it in both directions
+void Graph::add_edge(const std::size_t v1, const std::size_t v2) {
+  adj_list[v1-1].push_back(v2);
+  adj_list[v2-1].push_back(v1);
+  ++n_edges;
+}
+
+const std::string Graph::get_word_by_id(const size_t id) {
   return ((unsigned int)id < adj_list.size() && id > 0) ? word_index[id-1] : "";
 }
 
-const int Graph::get_num_vertices(){ return adj_list.size(); }
+const size_t Graph::get_n_vertices(){ return adj_list.size(); }
+const size_t Graph::get_n_edges() { return n_edges; }
 
-const std::vector<int>& Graph::get_neighbours(int id) { return adj_list[id-1]; }
+//const std::vector<int>& Graph::get_neighbours(int id) { return adj_list[id-1]; }
 
 /*
 *
@@ -53,60 +63,50 @@ const std::vector<int>& Graph::get_neighbours(int id) { return adj_list[id-1]; }
 // This is slightly elaborated to address for weird stuff/inbalances in
 // the graph input data. Want to ensure correctness when reading.
 Graph Graph::from_file(const std::string &path) {
-  int count=0, num_nodes, num_edges, o_ix, d_ix;
-  std::string line, token, orig, dest;
-  std::unordered_map<std::string, int> word_dict;
-  Graph g;
+  size_t lines_read = 0, skipped=0, found, n_vertices, n_edges;
+  string line, t1, t2;
 
-  std::ifstream file(path);
+  Graph g;
+  ifstream f (path);
+  unordered_map<string, size_t> word_dict;  // Allows for very fast check of existence
 
   // Sanity check to avoid trying to read from a clsed file
   // Check
-  if ( file.is_open() ) {
-    // Regular operator don't consume the endline
-    std::getline(file, line);
-    std::cout << line.substr(0, line.find(" ")) << std::endl;
-    int ptr;
-    while(std::getline(file, line)) {
+  if ( f.is_open() ) {
+    // Read the first line and parse the (expected) number of vertices and edges
+    getline(f, line);
+    found = line.find(' ');
+    n_vertices = stoi(line.substr(0, found));
+    n_edges = stoi(line.substr(found+1));
 
+    while(getline(f, line)) {
+      ++lines_read;
+      found = line.find(' ');
+      t1 = line.substr(0, found);
+      t2 = line.substr(found+1);
+      if(!t1.size() || !t2.size() || !t1.compare(" ") || !t2.compare(" ")
+            || !t1.compare(" ") || !t2.compare(" ")) { // These last two are weird non-break spaces
+        cerr << "Line " << lines_read << ": Malformed input (" << line << "). Skipping line." << endl;
+        ++skipped;
+      } else if (!t1.compare(t2)){
+        cerr << "Line " << lines_read << ": Loop found (" << line << "). Skipping line." << endl;
+        ++skipped;
+      } else {
+        if(!find_vertex(t1, word_dict)) word_dict[t1] = g.add_vertex(t1);
+        if(!find_vertex(t2, word_dict)) word_dict[t2] = g.add_vertex(t2);
+        g.add_edge(find_vertex(t1, word_dict), find_vertex(t2, word_dict));
+      }
     }
-    //file >> num_nodes >> num_edges; // Read the number of nodes and edges.
-
-/*
-    file >> token;  // Read the first one so the to manage possible newlines at
-    // the end of the file
-    while(!file.eof()){
-      o_ix = find_or_add(token, word_dict, g.word_index, g.adj_list);
-      file >> token;
-      d_ix = find_or_add(token, word_dict, g.word_index, g.adj_list);
-      g.adj_list[o_ix-1].push_back(d_ix);
-      ++count;
-      file >> token;
-
-    }
-
   }
-  */
-  //std::cout << num_edges << " " << count << std::endl;
+  cout << "Skipped lines: " << skipped << endl;
+  cout << "Num verices expected: " << n_vertices << endl;
+  cout << "Num verices read: " << g.get_n_vertices() << endl;
+  cout << "Num edges expected: " << n_edges << endl;
+  cout << "Num edges read: " << g.get_n_edges() << endl;
   return g;
-} }
-
-int Graph::geodesic_distance(int ix_s, int ix_d){
-  return 0;
 }
 
 
-// Helper Private methods
-int find_or_add(const std::string &w,
-                std::unordered_map<std::string, int> &word_dict,
-                std::vector<std::string> &word_index,
-                std::vector<std::vector<int>> &adj_list) {
-  int w_ix = word_dict[w];
-  if (!w_ix) {
-    word_index.push_back(w);
-    adj_list.push_back(std::vector<int>());
-    word_dict[w] = word_index.size();
-    w_ix = word_index.size();
-  }
-  return w_ix;
+int Graph::geodesic_distance(int ix_s, int ix_d){
+  return 0;
 }
