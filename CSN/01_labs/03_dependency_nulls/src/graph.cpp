@@ -9,6 +9,7 @@ using namespace std;
 // Main constructor takes 
 Graph::Graph(int NoE, int NoV) {
   cout << "Building Graph" << endl;
+  nNodes = NoV;
   clock_t begin = clock();
   GenerateGraph(NoE, NoV);
   clock_t end = clock();
@@ -38,25 +39,30 @@ const int Graph::get_num_edges() {
   return sum_edges/2;
 }
 
-const int Graph::BFS(int source, int dest, int n, int pred[], int dist[]){
+const int Graph::BFS(int source, int dest){
   // a queue to maintain queue of vertices whose 
   // adjacency list is to be scanned as per normal 
   // DFS algorithm 
+  if (adj_list[source].size() == 0) {
+    return 0;
+  }
   list<int> queue;
+  //int pred[nNodes];
+  int dist[nNodes];
 
   // boolean array visited[] which stores the 
   // information whether ith vertex is reached 
   // at least once in the Breadth first search  
-  bool visited[n];
+  bool visited[nNodes];
 
   // initially all vertices are unvisited 
   // so v[i] for all i is false 
   // and as no path is yet constructed 
   // dist[i] for all i set to infinity  
-  for (int i = 0; i < n; i++) { 
+  for (int i = 0; i < nNodes; i++) { 
     visited[i] = false; 
     dist[i] = INT_MAX; 
-    pred[i] = -1; 
+    //pred[i] = -1; 
   }
 
   // now source is first to be visited and 
@@ -74,7 +80,7 @@ const int Graph::BFS(int source, int dest, int n, int pred[], int dist[]){
       if (visited[adj_list[u].at(i)] == false) { 
           visited[adj_list[u].at(i)] = true; 
           dist[adj_list[u].at(i)] = dist[u] + 1; 
-          pred[adj_list[u].at(i)] = u; 
+          //pred[adj_list[u].at(i)] = u; 
           queue.push_back(adj_list[u].at(i)); 
 
           // We stop BFS when we find 
@@ -85,20 +91,40 @@ const int Graph::BFS(int source, int dest, int n, int pred[], int dist[]){
     } 
   } 
 
-  return -1;
-
-}
-
-int Graph::geodesic_distance(int ix_s, int ix_d){
   return 0;
 }
 
+void Graph::closeness_centrality(int s){
+  cout << "Calculating Closeness Centrality..." << endl;
+  clock_t begin = clock();
+  int j;
+  double sum_shortest_paths = 0;
+  for(j = 0; j < nNodes; j++){
+    if (s != j){
+      double current_geo = geodesic_distance(s,j) * 1.0;
+      if (current_geo > 0){
+        cout << j << " is " << current_geo << endl;
+        sum_shortest_paths += 1/current_geo;
+      }        
+    }
+  }
+  clock_t end = clock();
+  double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+  cout << "C_i finished in " << elapsed_secs << " seconds." << endl;
+  double result = (1/(nNodes*1.0-1)) * sum_shortest_paths;
+  cout << "Closeness Centrality of " << s << " is " << result << endl;
+}
+
+int Graph::geodesic_distance(int ix_s, int ix_d){
+  return BFS(ix_s, ix_d);
+}
+
 void Graph::GenerateGraph(int NoE, int NoV){  
-  int i, j, edge[NoE][2];
-  i = 0;
+  int i, j, edge[NoE][2];  
   for(i = 0; i < NoV; i++){
     adj_list.push_back(vector<int>());
   }
+  
 
   i = 0;
 
