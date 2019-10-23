@@ -35,10 +35,10 @@ const int Graph::get_num_edges() {
     //   cout << "\t" << adj_list[i].at(j);
     // cout << endl;
   }
-  return sum_edges;
+  return sum_edges/2;
 }
 
-const bool Graph::BFS(int source, int dest, int n, int pred[], int dist[]){
+const int Graph::BFS(int source, int dest, int n, int pred[], int dist[]){
   // a queue to maintain queue of vertices whose 
   // adjacency list is to be scanned as per normal 
   // DFS algorithm 
@@ -69,22 +69,23 @@ const bool Graph::BFS(int source, int dest, int n, int pred[], int dist[]){
   while (!queue.empty()) { 
     int u = queue.front(); 
     queue.pop_front(); 
-    for (int i = 0; i < adj[u].size(); i++) { 
-      if (visited[adj[u][i]] == false) { 
-          visited[adj[u][i]] = true; 
-          dist[adj[u][i]] = dist[u] + 1; 
-          pred[adj[u][i]] = u; 
-          queue.push_back(adj[u][i]); 
+    int current_length = adj_list[u].size(); 
+    for (int i = 0; i < current_length; i++) { 
+      if (visited[adj_list[u].at(i)] == false) { 
+          visited[adj_list[u].at(i)] = true; 
+          dist[adj_list[u].at(i)] = dist[u] + 1; 
+          pred[adj_list[u].at(i)] = u; 
+          queue.push_back(adj_list[u].at(i)); 
 
           // We stop BFS when we find 
           // destination. 
-          if (adj[u][i] == dest) 
-              return true; 
+          if (adj_list[u].at(i) == dest) 
+              return dist[dest]; 
       } 
     } 
   } 
 
-  return false;
+  return -1;
 
 }
 
@@ -124,6 +125,7 @@ void Graph::GenerateGraph(int NoE, int NoV){
 	}
   for(i = 0; i < NoE; i++){   
     adj_list[edge[i][0]].push_back(edge[i][1]);
+    adj_list[edge[i][1]].push_back(edge[i][0]);
   }
 }
 

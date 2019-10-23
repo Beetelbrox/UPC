@@ -15,6 +15,6 @@ class Graph {
     const int get_num_vertices();
     const int get_num_edges();
     void GenerateGraph(int NoE, int NoV);
-    const bool BFS(int source, int dest, int n);
+    const int BFS(int source, int dest, int n, int pred[], int dist[]);
 
 };
