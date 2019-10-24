@@ -152,3 +152,7 @@ void Graph::print_adj_table() {
 int Graph::geodesic_distance(int ix_s, int ix_d){
   return 0;
 }
+
+Graph& read_graph_from_file(std::string path) {
+  
+}

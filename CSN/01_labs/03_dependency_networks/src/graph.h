@@ -1,3 +1,6 @@
+#ifndef GRAPH_H
+#define GRAPH_H
+
 #include <string>
 #include <vector>
 
@@ -32,3 +35,8 @@ public:
 
 
 };
+
+// Reads a sequence of pairs of vertices and returns the corresponding Graph
+Graph& read_graph_from_file(std::string path);
+
+#endif
