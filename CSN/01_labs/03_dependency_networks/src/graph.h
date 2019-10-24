@@ -3,6 +3,8 @@
 
 class Graph {
 private:
+  // The adjacency list cointains edges in both directions to allow
+  // for fast indexing. Could be done with two lists. Faster?
   std::vector<std::vector<std::size_t>> adj_list;
   std::vector<std::string> word_index;      // Allows to access word values by index
   size_t n_edges;
@@ -16,15 +18,15 @@ public:
 
   static Graph from_file(const std::string &path);
 
+  unsigned int calculate_c_i(std::size_t id);
+
   int geodesic_distance(int ix_s, int ix_d);
-
-  Graph* test(){return this;}
-
 
   // Getters & Setters
   const std::size_t get_n_vertices();
   const std::size_t get_n_edges();
-  const std::string get_word_by_id(const std::size_t id);
+
+  void print_adj_table();
 
   //const std::vector<int>& get_neighbours(int id);
 

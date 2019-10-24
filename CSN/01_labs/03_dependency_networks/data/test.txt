@@ -1,7 +1,8 @@
 4 5
-ba na
-na ra
-ma ola
-ke  
-cuentame kease
-rayo rayo
+a b
+a c
+a d
+b d
+b e
+c d
+d e
