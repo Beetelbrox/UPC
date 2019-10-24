@@ -14,22 +14,14 @@ private:
 public:
   Graph(); // Default constructor
   ~Graph();
-  Graph(const Graph &g);
+  Graph(const Graph &g);  // Copy constructor
 
   size_t add_vertex(const std::string &label);
   void add_edge(const std::size_t v1, const std::size_t v2);
 
-  static Graph from_file(const std::string &path);
-
-  unsigned int calculate_c_i(std::size_t id);
-
-  int geodesic_distance(int ix_s, int ix_d);
-
   // Getters & Setters
   const std::size_t get_n_vertices();
   const std::size_t get_n_edges();
-
-  void print_adj_table();
 
   //const std::vector<int>& get_neighbours(int id);
 
@@ -37,6 +29,6 @@ public:
 };
 
 // Reads a sequence of pairs of vertices and returns the corresponding Graph
-Graph& read_graph_from_file(std::string path);
+int read_graph_from_file(const std::string &path, Graph &g);
 
 #endif

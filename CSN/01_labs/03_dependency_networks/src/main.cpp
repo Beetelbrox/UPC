@@ -10,22 +10,11 @@ int main() {
 
 
   const std::string DATA_DIR = "data/";
-  const std::string path = DATA_DIR + "Basque_syntactic_dependency_network.txt";
+  const std::string path = DATA_DIR + "English_syntactic_dependency_network.txt";
   //const std::string path = DATA_DIR + "test.txt";
 
-  Graph g = Graph::from_file(path);
-  //g.print_adj_table();
-  for(std::size_t i=1; i <= g.get_n_vertices(); ++i) {
-    //g.calculate_c_i(i);
-  }
-  g.calculate_c_i(1);
-
-  /*
-  int count = 0;
-  for(int i=1; i <= 3934; ++i) {
-    std::cout << i << " " << g.get_word_by_id(i) << std::endl;
-  }
-  */
+  Graph g;
+  std::cout << read_graph_from_file(path, g) << std::endl;
 
   // To load the graph, if we want to do Numeric:
   // 1. Read all words and sort them, that will be the indexpyth
