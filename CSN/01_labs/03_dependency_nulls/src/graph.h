@@ -9,6 +9,7 @@ class Graph {
     // int geodesic_distance(int ix_s, int ix_d);
   public:
     Graph(int NoE, int NoV); // Default constructor
+    Graph(std::string path);
     ~Graph();
     Graph(const Graph &g);
 
@@ -17,5 +18,5 @@ class Graph {
     const int get_num_edges();
     void GenerateGraph(int NoE, int NoV);
     void global_closeness_centrality();
-
+    void read_graph_from_file(std::string path);    
 };

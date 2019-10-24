@@ -3,8 +3,15 @@
 #include <stdlib.h>
 #include <ctime>
 #include <bits/stdc++.h> 
+#include <algorithm>
 
 using namespace std;
+
+// struct greatert
+// {
+//     template<class T>
+//     bool operator()(T const &a, T const &b) const { return a > b; }
+// };
 
 // Main constructor takes 
 Graph::Graph(int NoE, int NoV) {
@@ -15,6 +22,19 @@ Graph::Graph(int NoE, int NoV) {
   clock_t end = clock();
   double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
   cout << "Constructor " << this << " finished in " << elapsed_secs << " seconds." << endl;
+}
+
+Graph::Graph(string path) {
+  read_graph_from_file(path);
+  cout << "Num Vertex: " << get_num_vertices() << endl;
+  cout << "Num Edges: " << get_num_edges() << endl;
+  cout << "Degree sequence: " << endl;
+  // I don't think it is necessary to sort the degree sequence before showing it
+  // Although it might not be appropriate to call it sequence then
+  for(int i = 0; i < get_num_vertices(); i++){
+    cout << adj_list[i].size() << ", ";
+  }
+  cout << endl;  
 }
 
 Graph::Graph(const Graph &g) {
@@ -119,10 +139,6 @@ void Graph::global_closeness_centrality(){
   cout << "Global Closeness Centrality of is " << result << endl;
 }
 
-// int Graph::geodesic_distance(int ix_s, int ix_d){
-//   return BFS(ix_s, ix_d);
-// }
-
 void Graph::GenerateGraph(int NoE, int NoV){  
   int i, j, edge[NoE][2];  
   for(i = 0; i < NoV; i++){
@@ -157,5 +173,86 @@ void Graph::GenerateGraph(int NoE, int NoV){
     adj_list[edge[i][0]].push_back(edge[i][1]);
     adj_list[edge[i][1]].push_back(edge[i][0]);
   }
+}
+
+// Auxiliary function to tokenize a string to facilitate parsing.
+// WARNING: Replaces all contents inside the vector 'tokens'
+size_t tokenize_line(const string &line, vector<size_t> &token_pos, const string &sep=" ") {
+  token_pos.clear(); // Clear the vector before pushing in the new tokens
+  size_t tail = 0, head = line.find(sep);
+  while ( tail < line.size() ) {
+    if (head > tail) {
+      token_pos.push_back(tail);
+      token_pos.push_back(head-tail);
+    }
+    tail = head + 1;
+    head = line.find(sep, tail);
+    if (head > line.size()) head = line.size();
+  }
+  return token_pos.size()/2;
+}
+
+int index_word(const string &word, unordered_map <string, int> &word_dict) {
+  int id = word_dict[word];
+  if (!id) {
+    id = word_dict.size();
+    word_dict[word] = id;
+  }
+  return id;
+}
+
+// This assumes that the first line in the file indicates the number of vertices
+// and edges in the graph described by the file. Those numbers are used as a
+// reference and not actually included in the graph.
+void Graph::read_graph_from_file(string path) {
+  int lines_read = 1, exp_v, exp_e, v1, v2;
+  string line, w;
+  vector<size_t> token_pos;
+  ifstream f (path); // Create a file stream for the specified path
+  unordered_map <string, int> word_dict;  // Allows for very fast check of existence
+  if (!f.is_open()) {
+    cerr << "Error: Unable to open file '" << path << "'" << endl;
+    return;
+  }
+  cerr << "Reading graph from file '" << path << "'..." << endl << endl;
+  getline(f, line);
+  if ( tokenize_line(line, token_pos) != 2 ) {
+    cerr << "Error: Malformed first row" << endl;
+    return;
+  }
+  cerr << "Reading header..." << endl;
+  // Parse the numbers to integers and store them to check later
+  exp_v = stoi( line.substr(token_pos[0], token_pos[1]) );
+  exp_e = stoi( line.substr(token_pos[2], token_pos[3]) );
+
+  for(int i = 0; i < exp_v; i++){
+    adj_list.push_back(vector<int>());
+  }
+
+  cerr << "-----------------------------------------------" << endl;
+  cerr << "Expected number of vertices: " << exp_v << endl;
+  cerr << "Expected number of edges: " << exp_e << endl;
+  cerr << "-----------------------------------------------" << endl << endl;
+  cerr << "Reading edges..." << endl;
+  cerr << "-----------------------------------------------" << endl;
+
+  while(getline(f, line)) {
+    ++lines_read;
+    if ( tokenize_line(line, token_pos) != 2 ) {
+      cerr << " - Malformed edge at file row " << lines_read << endl;
+    } else if (!line.compare(token_pos[0], token_pos[1], line,
+                token_pos[2], token_pos[3])) {
+      cerr << " - Loop found at file row " << lines_read << endl;
+    } else if (!line.compare(token_pos[0], token_pos[1], " ") ||
+                !line.compare(token_pos[2], token_pos[3], " ")) {
+      cerr << " - Malformed edge at file row " << lines_read << endl;
+    } else {
+      v1 = index_word(line.substr(token_pos[0], token_pos[1]), word_dict);
+      v2 = index_word(line.substr(token_pos[2], token_pos[3]), word_dict);
+      adj_list[v1].push_back(v2);
+      adj_list[v2].push_back(v1);
+    }
+  }
+
 }
 
