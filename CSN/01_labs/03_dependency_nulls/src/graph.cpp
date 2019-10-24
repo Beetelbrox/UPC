@@ -39,7 +39,7 @@ const int Graph::get_num_edges() {
   return sum_edges/2;
 }
 
-const int Graph::BFS(int source, int dest){
+const double Graph::closeness_centrality_single(int source){
   // a queue to maintain queue of vertices whose 
   // adjacency list is to be scanned as per normal 
   // DFS algorithm 
@@ -83,41 +83,45 @@ const int Graph::BFS(int source, int dest){
           //pred[adj_list[u].at(i)] = u; 
           queue.push_back(adj_list[u].at(i)); 
 
-          // We stop BFS when we find 
+          // We don't stop BFS when we find 
           // destination. 
-          if (adj_list[u].at(i) == dest) 
-              return dist[dest]; 
+          // Let it run to fill dist[]
+          // if (adj_list[u].at(i) == dest) 
+          //     return dist[dest]; 
       } 
     } 
   } 
 
-  return 0;
+  // For all distances
+  double accumulator = 0;
+  for (int i = 0; i < nNodes; i++){
+    if (dist[i] > 0 && dist[i] < INT_MAX){
+      //cout << " Distance i " << 1/(dist[i]*1.0) << endl;
+      accumulator += 1/(dist[i]*1.0);
+    }    
+  }
+  //cout << "Global thing: " << accumulator << endl;
+  return accumulator/(nNodes*1.0 - 1.0);
 }
 
-void Graph::closeness_centrality(int s){
+void Graph::global_closeness_centrality(){
   cout << "Calculating Closeness Centrality..." << endl;
   clock_t begin = clock();
-  int j;
-  double sum_shortest_paths = 0;
-  for(j = 0; j < nNodes; j++){
-    if (s != j){
-      double current_geo = geodesic_distance(s,j) * 1.0;
-      if (current_geo > 0){
-        cout << j << " is " << current_geo << endl;
-        sum_shortest_paths += 1/current_geo;
-      }        
-    }
+  int i;
+  double sum_c_i = 0;
+  for(i = 0; i < nNodes; i++){
+    sum_c_i += closeness_centrality_single(i);
   }
   clock_t end = clock();
   double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
-  cout << "C_i finished in " << elapsed_secs << " seconds." << endl;
-  double result = (1/(nNodes*1.0-1)) * sum_shortest_paths;
-  cout << "Closeness Centrality of " << s << " is " << result << endl;
+  cout << "Global Calculation finished in " << elapsed_secs << " seconds." << endl;
+  double result = sum_c_i/(nNodes*1.0);
+  cout << "Global Closeness Centrality of is " << result << endl;
 }
 
-int Graph::geodesic_distance(int ix_s, int ix_d){
-  return BFS(ix_s, ix_d);
-}
+// int Graph::geodesic_distance(int ix_s, int ix_d){
+//   return BFS(ix_s, ix_d);
+// }
 
 void Graph::GenerateGraph(int NoE, int NoV){  
   int i, j, edge[NoE][2];  

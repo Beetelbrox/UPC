@@ -1,0 +1,90 @@
+## Building Arabic ##
+Building Graph
+Constructor 0x7ffec92fe5b0 finished in 5.54323 seconds.
+Number of vertex: 21532
+Number of edges: 68767
+Calculating Closeness Centrality...
+Global Calculation finished in 104.72 seconds.
+Global Closeness Centrality of is 0.183305
+I am being destroyed: 0x7ffec92fe5b0
+## Building Basque ##
+Building Graph
+Constructor 0x7ffec92fe5b0 finished in 0.781007 seconds.
+Number of vertex: 12207
+Number of edges: 25558
+Calculating Closeness Centrality...
+Global Calculation finished in 29.0628 seconds.
+Global Closeness Centrality of is 0.149842
+I am being destroyed: 0x7ffec92fe5b0
+## Building Catalan ##
+Building Graph
+Constructor 0x7ffec92fe5b0 finished in 45.861 seconds.
+Number of vertex: 36865
+Number of edges: 197318
+Calculating Closeness Centrality...
+Global Calculation finished in 396.058 seconds.
+Global Closeness Centrality of is 0.21776
+I am being destroyed: 0x7ffec92fe5b0
+## Building Chinese ##
+Building Graph
+Constructor 0x7ffec92fe5b0 finished in 38.9903 seconds.
+Number of vertex: 40298
+Number of edges: 181081
+Calculating Closeness Centrality...
+Global Calculation finished in 431.174 seconds.
+Global Closeness Centrality of is 0.201572
+I am being destroyed: 0x7ffec92fe5b0
+## Building Czech ##
+Building Graph
+Constructor 0x7ffec92fe5b0 finished in 77.4381 seconds.
+Number of vertex: 69303
+Number of edges: 257295
+Calculating Closeness Centrality...
+Global Calculation finished in 1375.75 seconds.
+Global Closeness Centrality of is 0.176224
+I am being destroyed: 0x7ffec92fe5b0
+## Building English ##
+Building Graph
+Constructor 0x7ffec92fe5b0 finished in 43.6996 seconds.
+Number of vertex: 29634
+Number of edges: 193186
+Calculating Closeness Centrality...
+Global Calculation finished in 275.75 seconds.
+Global Closeness Centrality of is 0.238745
+I am being destroyed: 0x7ffec92fe5b0
+## Building Greek ##
+Building Graph
+Constructor 0x7ffec92fe5b0 finished in 2.27679 seconds.
+Number of vertex: 13283
+Number of edges: 43974
+Calculating Closeness Centrality...
+Global Calculation finished in 39.7568 seconds.
+Global Closeness Centrality of is 0.196402
+I am being destroyed: 0x7ffec92fe5b0
+## Building Hungarian ##
+Building Graph
+Constructor 0x7ffec92fe5b0 finished in 13.3462 seconds.
+Number of vertex: 36126
+Number of edges: 106716
+Calculating Closeness Centrality...
+Global Calculation finished in 313.053 seconds.
+Global Closeness Centrality of is 0.167063
+I am being destroyed: 0x7ffec92fe5b0
+## Building Italian ##
+Building Graph
+Constructor 0x7ffec92fe5b0 finished in 3.78928 seconds.
+Number of vertex: 14726
+Number of edges: 56042
+Calculating Closeness Centrality...
+Global Calculation finished in 53.4453 seconds.
+Global Closeness Centrality of is 0.207503
+I am being destroyed: 0x7ffec92fe5b0
+## Building Turkish ##
+Building Graph
+Constructor 0x7ffec92fe5b0 finished in 2.57575 seconds.
+Number of vertex: 20409
+Number of edges: 45642
+Calculating Closeness Centrality...
+Global Calculation finished in 88.4796 seconds.
+Global Closeness Centrality of is 0.148712
+I am being destroyed: 0x7ffec92fe5b0
