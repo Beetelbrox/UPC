@@ -1,20 +1,26 @@
 #include <iostream>
 #include <fstream>
-#include <string>
-#include <vector>
-#include <unordered_map>
 #include "graph.h"
 
 
 int main() {
 
+  std::string languages[] = {"Arabic", "Basque", "Catalan", "Chinese",
+              "Czech", "English", "Greek", "Hungarian", "Italian", "Turkish"};
+
 
   const std::string DATA_DIR = "data/";
-  const std::string path = DATA_DIR + "English_syntactic_dependency_network.txt";
+  std::string path = "";
   //const std::string path = DATA_DIR + "test.txt";
 
-  Graph g;
-  std::cout << read_graph_from_file(path, g) << std::endl;
+  for(std::string language : languages) {
+    path = DATA_DIR + language + "_syntactic_dependency_network.txt";
+    Graph g;
+    std::cout << read_graph_from_file(path, g) << std::endl;
+    std::cout << language <<" closeness centrality: " << calculate_cc(g) << std::endl;
+  }
+
+
 
   // To load the graph, if we want to do Numeric:
   // 1. Read all words and sort them, that will be the indexpyth
