@@ -5,6 +5,7 @@
 #include <queue>
 #include <algorithm>
 #include <chrono>
+#include <utility>
 
 // Use namespace std here so it is not included in the main code
 using namespace std;
@@ -51,15 +52,31 @@ int Graph::add_edge(int v1, int v2) {
 
 size_t Graph::get_n_vertices() const { return adj_list.size(); }
 size_t Graph::get_n_edges() const { return n_edges; }
-
-const std::vector<int>& Graph::get_neighbours(int id) const {
-  return adj_list[id-1];
-}
+const std::vector<int>& Graph::get_neighbours(int id) const { return adj_list[id-1]; }
+int Graph::get_degree(int id) const { return adj_list[id-1].size(); }
 
 bool Graph::is_neighbour(int v1, int v2) {
   for (int vx : adj_list[v1-1])
     if (vx == v2) return true;
   return false;
+}
+
+// This returns a 0-based index
+int Graph::find_neighbour_ix(int id, int n_id) {
+  for (size_t i=0; i < adj_list[id-1].size(); ++i)
+    if(adj_list[id-1][i] == n_id) return i;
+  return -1;
+}
+
+void Graph::switch_edges(int id_s1, int n_ix_1, int id_s2, int n_ix_2) {
+  int id_d1, id_d2;
+  vector<int>::iterator it = find(adj_list[chosen_v].begin(), adj_list[chosen_v].end(), chosen_u);
+  id_d1 = adj_list[id_s1-1][n_ix_1];
+  id_d2 = adj_list[id_s2-1][n_ix_2];
+  adj_list[id_s1-1][n_ix_1] = id_d2;
+  adj_list[id_s2-1][n_ix_2] = id_d1;
+  adj_list[id_d1-1][find_neighbour_ix(id_d1, id_s1)] = id_s2;
+  adj_list[id_d2-1][find_neighbour_ix(id_d2, id_s2)] = id_s1;
 }
 
 double calculate_c_i(int id, const Graph &g);
@@ -128,6 +145,22 @@ void generate_ER_graph(int N, int E, Graph &g, mt19937 &eng) {
   cerr << "ER graph generated." << endl;
   cerr << "Elapsed generation time: " << time_span.count() << " s" << endl;
   cerr << "-----------------------------------------------" << endl;
+}
+
+void choose_edge_uar(const Graph &g, pair<int, int> &e, std::mt19937 &eng) {
+  uniform_int_distribution<int> dist_vx(1, g.get_n_vertices()), dist_neighbours;
+  e.first = dist_vx(eng);
+  dist_neighbours = uniform_int_distribution<int>(0,g.get_degree(e.first)-1);
+  e.second = dist_neighbours(eng);
+}
+
+void generate_switching_graph(double Q, const Graph &base, Graph &g, std::mt19937 &eng){
+  pair<int, int> e1, e2;
+  g = base;
+  choose_edge_uar(g, e1, eng);
+  choose_edge_uar(g, e2, eng);
+  g.switch_edges(e1.first, e1.second, e2.first, e2.second);
+
 }
 
 double calculate_cc(const Graph &g) {

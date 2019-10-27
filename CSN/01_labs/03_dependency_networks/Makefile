@@ -3,7 +3,13 @@ CFLAGS = -Wall
 
 GRAPH = graph
 SUMMARY = generate_summary
-MAIN = generate_summary
+NOOPT = hypothesis_no_optimization
+
+$(NOOPT): $(NOOPT).o $(GRAPH).o
+	$(CCC) $(CFLAGS) -o bin/$(NOOPT) $(NOOPT).o $(GRAPH).o
+
+${NOOPT}.o: src/$(NOOPT).cpp src/$(GRAPH).h
+	$(CCC) $(CFLAGS) -c src/$(NOOPT).cpp
 
 $(SUMMARY): $(SUMMARY).o $(GRAPH).o
 	$(CCC) $(CFLAGS) -o bin/$(SUMMARY) $(SUMMARY).o $(GRAPH).o
