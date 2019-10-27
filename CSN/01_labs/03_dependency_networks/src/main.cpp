@@ -1,9 +1,15 @@
 #include <iostream>
 #include <fstream>
+#include <random>
 #include "graph.h"
+
+#define DEBUG true
 
 
 int main() {
+
+  std::random_device rd; // obtain a random number from hardware
+  std::mt19937 eng(rd()); // seed the generator
 
   std::string languages[] = {"Arabic", "Basque", "Catalan", "Chinese",
               "Czech", "English", "Greek", "Hungarian", "Italian", "Turkish"};
@@ -13,12 +19,22 @@ int main() {
   std::string path = "";
   //const std::string path = DATA_DIR + "test.txt";
 
+  for (int i=0; i < 5; ++i) {
+    Graph g(DEBUG);
+    generate_ER_graph(12207, 25558, g, eng);
+    calculate_cc(g);
+  }
+  //generate_clique(1000, g);
+
+
+/*
   for(std::string language : languages) {
     path = DATA_DIR + language + "_syntactic_dependency_network.txt";
     Graph g;
     std::cout << read_graph_from_file(path, g) << std::endl;
     std::cout << language <<" closeness centrality: " << calculate_cc(g) << std::endl;
   }
+  */
 
 
 
