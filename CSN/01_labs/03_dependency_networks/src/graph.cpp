@@ -5,7 +5,6 @@
 #include <queue>
 #include <algorithm>
 #include <chrono>
-#include <utility>
 
 // Use namespace std here so it is not included in the main code
 using namespace std;
@@ -68,15 +67,20 @@ int Graph::find_neighbour_ix(int id, int n_id) {
   return -1;
 }
 
-void Graph::switch_edges(int id_s1, int n_ix_1, int id_s2, int n_ix_2) {
-  int id_d1, id_d2;
-  vector<int>::iterator it = find(adj_list[chosen_v].begin(), adj_list[chosen_v].end(), chosen_u);
-  id_d1 = adj_list[id_s1-1][n_ix_1];
-  id_d2 = adj_list[id_s2-1][n_ix_2];
-  adj_list[id_s1-1][n_ix_1] = id_d2;
-  adj_list[id_s2-1][n_ix_2] = id_d1;
-  adj_list[id_d1-1][find_neighbour_ix(id_d1, id_s1)] = id_s2;
-  adj_list[id_d2-1][find_neighbour_ix(id_d2, id_s2)] = id_s1;
+void Graph::switch_edges(pair<int,int> e1, pair<int,int> e2) {
+  // Save the intial values stored in the adjacency lists
+  int n1 = adj_list[e1.first-1][e1.second];
+  int n2 = adj_list[e2.first-1][e2.second];
+  // Swap the values in the first direction
+  iter_swap(adj_list[e1.first-1].begin()+e1.second, adj_list[e2.first-1].begin()+e2.second);
+  // Swap the values in the second direction by finding their positions in the adjacency list
+  iter_swap(find(adj_list[n1-1].begin(), adj_list[n1-1].end(), e1.first), find(adj_list[n2-1].begin(), adj_list[n2-1].end(), e2.first) );
+}
+
+void Graph::get_degree_seq(vector<int> &deg_seq) {
+  deg_seq.clear();
+  for(vector<int> v : adj_list)
+    deg_seq.push_back(v.size());
 }
 
 double calculate_c_i(int id, const Graph &g);
@@ -147,20 +151,50 @@ void generate_ER_graph(int N, int E, Graph &g, mt19937 &eng) {
   cerr << "-----------------------------------------------" << endl;
 }
 
-void choose_edge_uar(const Graph &g, pair<int, int> &e, std::mt19937 &eng) {
+int choose_edge_uar(const Graph &g, pair<int, int> &e, std::mt19937 &eng) {
   uniform_int_distribution<int> dist_vx(1, g.get_n_vertices()), dist_neighbours;
   e.first = dist_vx(eng);
+  if (!g.get_degree(e.first)) return -1;
   dist_neighbours = uniform_int_distribution<int>(0,g.get_degree(e.first)-1);
-  e.second = dist_neighbours(eng);
+  e.second = dist_neighbours(eng); // Second value of the pair is the index on the neighbour list
+  return 0;
 }
 
 void generate_switching_graph(double Q, const Graph &base, Graph &g, std::mt19937 &eng){
+  int n1, n2, cont=0;
   pair<int, int> e1, e2;
-  g = base;
-  choose_edge_uar(g, e1, eng);
-  choose_edge_uar(g, e2, eng);
-  g.switch_edges(e1.first, e1.second, e2.first, e2.second);
 
+  cerr << "-----------------------------------------------" << endl;
+  cerr << "Generating switching graph of size " << base.get_n_vertices() << endl;
+  cerr << "Number of edges: " << base.get_n_edges() << endl;
+  cerr << "Number of planned switches: " << Q*base.get_n_edges() << endl;
+  cerr << "-----------------------------------------------" << endl;
+  chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
+
+  g = base;
+  for(int i=0; i < base.get_n_edges()*Q; ++i) {
+    // Choose two edges uniformly at random. Discard if some of the vertices chosen is inconnected
+    if (!choose_edge_uar(g, e1, eng) && !choose_edge_uar(g, e2, eng)) {
+      // Obtain the indices for the destination vertices
+      n1 = g.get_neighbours(e1.first)[e1.second];
+      n2 = g.get_neighbours(e2.first)[e2.second];
+      // Check if it is a valid swap
+      if (!(g.is_neighbour(e1.first, n2) || g.is_neighbour(e2.first, n1) || // multiedges
+        e1.first == n2 || e2.first == n1 || // Loops
+        e1.first == e2.first || n1 == n2 )){ // Trivial swaps
+          g.switch_edges(e1, e2);
+          ++cont;
+        }
+    }
+  }
+  chrono::high_resolution_clock::time_point t2 = chrono::high_resolution_clock::now();
+  chrono::duration<double> time_span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
+  cerr << "Switching graph generated." << endl;
+  cerr << "Switches performed: " << cont << endl;
+  cerr << "Collisions found: " << Q*base.get_n_edges()-cont << endl;
+  cerr << "Switch failure rate: " << (Q*base.get_n_edges()-cont)/float(Q*base.get_n_edges())*100 << "%" <<endl;
+  cerr << "Elapsed generation time: " << time_span.count() << " s" << endl;
+  cerr << "-----------------------------------------------" << endl;
 }
 
 double calculate_cc(const Graph &g) {

@@ -5,6 +5,7 @@
 #include <vector>
 #include <unordered_map>
 #include <random>
+#include <utility>
 
 class Graph {
 private:
@@ -27,13 +28,16 @@ public:
   int add_vertex(const std::string &label);
   int add_edge(int v1, int v2);
   bool is_neighbour(int v1, int v2);
+  void switch_edges(std::pair<int,int> e1, std::pair<int,int> e2);
 
   // Getters & Setters
   std::size_t get_n_vertices() const;
   std::size_t get_n_edges() const;
   const std::vector<int>& get_neighbours(int id) const;
   int get_degree(int id) const;
-  void switch_edges(int id_s1, int n_ix_1, int id_s2, int n_ix_2);
+  void get_degree_seq(std::vector<int> &deg_seq);
+
+
 };
 
 // Reads a sequence of pairs of vertices and returns the corresponding Graph

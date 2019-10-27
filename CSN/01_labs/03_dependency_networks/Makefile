@@ -3,7 +3,7 @@ CFLAGS = -Wall
 
 GRAPH = graph
 SUMMARY = generate_summary
-NOOPT = hypothesis_no_optimization
+NOOPT = montecarlo_no_optimization
 
 $(NOOPT): $(NOOPT).o $(GRAPH).o
 	$(CCC) $(CFLAGS) -o bin/$(NOOPT) $(NOOPT).o $(GRAPH).o
