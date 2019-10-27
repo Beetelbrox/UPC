@@ -105,7 +105,7 @@ void Graph::apply_switching(int Q_value){
     }
     // Test if same, then trivial
     if (chosen_u == chosen_s){
-      cout << "Trivial?" << endl;
+      //cout << "Trivial?" << endl;
       notvalid_count++;
       i++;
       continue;
@@ -114,7 +114,7 @@ void Graph::apply_switching(int Q_value){
     chosen_t = adj_list[chosen_s].at(index_t);
     // A self reference (loop) will happen
     if (chosen_t == chosen_u){
-      cout << "Loop avoided {" << chosen_u << "," << chosen_v << "},{" << chosen_s << "," << chosen_t << "}" << endl;
+      //cout << "Loop avoided {" << chosen_u << "," << chosen_v << "},{" << chosen_s << "," << chosen_t << "}" << endl;
       notallowed_count++;
       // Not increasing i
       continue;
@@ -186,6 +186,20 @@ const double Graph::closeness_centrality_single(int source){
   if (adj_list[source].size() == 0) {
     return 0;
   }
+  if (adj_list[source].size() == 1) {
+    //cout << "Found k = 1" << endl;
+    int v_dest = adj_list[source].at(0);
+    if (distances[v_dest].size() > 0){
+      double accumulator = 0;
+      //distances[source] = distances[v_dest];
+      for(int k = 0; k < distances[v_dest].size(); k++){
+        distances[source].push_back(distances[v_dest].at(k) + 1);
+        accumulator += 1/((distances[v_dest].at(k) + 1)*1.0);
+      }
+      return accumulator/(nNodes*1.0 - 1.0);
+    }
+  }
+
   list<int> queue;
   //int pred[nNodes];
   int dist[nNodes];
@@ -236,10 +250,12 @@ const double Graph::closeness_centrality_single(int source){
   double accumulator = 0;
   for (int i = 0; i < nNodes; i++){
     if (dist[i] > 0 && dist[i] < INT_MAX){
+      distances[source].push_back(dist[i]);
       //cout << " Distance i " << 1/(dist[i]*1.0) << endl;
       accumulator += 1/(dist[i]*1.0);
     }    
   }
+  //distances.push_back(dist);
   //cout << "Global thing: " << accumulator << endl;
   return accumulator/(nNodes*1.0 - 1.0);
 }
@@ -263,6 +279,7 @@ void Graph::GenerateGraph(int NoE, int NoV){
   int i, j, edge[NoE][2];  
   for(i = 0; i < NoV; i++){
     adj_list.push_back(vector<int>());
+    distances.push_back(vector<int>());
   }
   
 
@@ -347,6 +364,7 @@ void Graph::read_graph_from_file(string path) {
 
   for(int i = 0; i < exp_v; i++){
     adj_list.push_back(vector<int>());
+    distances.push_back(vector<int>());
   }
 
   cerr << "-----------------------------------------------" << endl;

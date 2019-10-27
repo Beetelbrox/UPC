@@ -4,6 +4,7 @@
 class Graph {
   private:
     std::vector<std::vector<int>> adj_list;
+    std::vector<std::vector<int>> distances;
     int nNodes;
     const double closeness_centrality_single(int source);
     void print_adj(int value);

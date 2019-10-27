@@ -23,6 +23,14 @@ int main() {
       g1.global_closeness_centrality();
     }
   }
+
+  std::cout << "## Building " << "Basque" << " ##" << std::endl;
+  Graph g1 = Graph(25558, 12207);
+  std::cout << "Number of vertex: " << g1.get_num_vertices() << std::endl;
+  std::cout << "Number of edges: " << g1.get_num_edges() << std::endl;
+  g1.global_closeness_centrality();
+
+
   // Switching model
   std::cout << "## Building " << "Basque" << " ##" << std::endl;
   Graph g2 = Graph(path);
