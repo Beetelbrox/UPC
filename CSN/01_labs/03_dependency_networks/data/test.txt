@@ -1,9 +1,0 @@
-4 5
-a b
-a c
-a d
-b d
-b e
-c d
-d e
-d f

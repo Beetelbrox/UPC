@@ -1,18 +1,19 @@
 CCC = g++
 CFLAGS = -Wall
 
-TARGET = graph
-MAIN = main
+GRAPH = graph
+SUMMARY = generate_summary
+MAIN = generate_summary
 
-$(MAIN): $(MAIN).o $(TARGET).o
-	$(CCC) $(CFLAGS) -o $(MAIN) $(MAIN).o $(TARGET).o
+$(SUMMARY): $(SUMMARY).o $(GRAPH).o
+	$(CCC) $(CFLAGS) -o bin/$(SUMMARY) $(SUMMARY).o $(GRAPH).o
 
-${MAIN}.o: src/$(MAIN).cpp src/$(TARGET).h
-	$(CCC) $(CFLAGS)  -c src/$(MAIN).cpp
+${SUMMARY}.o: src/$(SUMMARY).cpp src/$(GRAPH).h
+	$(CCC) $(CFLAGS) -c src/$(SUMMARY).cpp
 
 
-${TARGET}.o: src/$(TARGET).cpp src/$(TARGET).h
-	$(CCC) $(CFLAGS) $(INC) -c src/$(TARGET).cpp
+${GRAPH}.o: src/$(GRAPH).cpp src/$(GRAPH).h
+	$(CCC) $(CFLAGS) $(INC) -c src/$(GRAPH).cpp
 
 clean:
-	rm --force *.o $(MAIN)
+	rm --force *.o

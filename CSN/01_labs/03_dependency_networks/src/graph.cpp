@@ -15,12 +15,14 @@ using namespace std;
 *
 ################################################# */
 
-Graph::Graph(bool DEBUG=false): n_edges{0}, DEBUG{DEBUG}{}
+Graph::Graph(): n_edges{0}, DEBUG{false}{}
+Graph::Graph(bool DEBUG): n_edges{0}, DEBUG{DEBUG}{}
 
-Graph::Graph(const Graph &g) {
-}
-
-Graph::~Graph() {
+// Add unlabeled vertex to the graph.
+// DO NOT MIX LABELED AND UNLABELED VERTICES, NOT CURRENTLY MANAGED
+int Graph::add_vertex(){
+    adj_list.push_back(vector<int>());
+    return adj_list.size();
 }
 
 // Adds a vertex to the graph indexed to the end of the list
@@ -35,13 +37,6 @@ int Graph::add_vertex(const string &label){
   } else if (DEBUG)
     cerr << "Vertex with label '" << label << "' already exists with id " << id << endl;
   return id;
-}
-
-// Add unlabeled vertex to the graph.
-// DO NOT MIX LABELED AND UNLABELED VERTICES, NOT CURRENTLY MANAGED
-int Graph::add_vertex(){
-    adj_list.push_back(vector<int>());
-    return adj_list.size();
 }
 
 // This assumes that the target vertices exist and it references vertex ids directly
@@ -68,7 +63,6 @@ bool Graph::is_neighbour(int v1, int v2) {
 }
 
 double calculate_c_i(int id, const Graph &g);
-void generate_clique(int N, Graph &g);
 
 // Generate a clique (complete (sub)graph) of size N for testing purposes.
 void generate_clique(int N, Graph &g) {
@@ -86,6 +80,21 @@ void generate_clique(int N, Graph &g) {
   chrono::high_resolution_clock::time_point t2 = chrono::high_resolution_clock::now();
   chrono::duration<double> time_span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
   cerr << "Complete graph generated." << endl;
+  cerr << "Elapsed generation time: " <<
+            time_span.count() << " s" << endl;
+  cerr << "-----------------------------------------------" << endl;
+}
+
+void generate_disconnected_graph(int N, Graph &g) {
+  cerr << "-----------------------------------------------" << endl;
+  cerr << "Generating disconnected graph of size " << N << endl;
+  cerr << "-----------------------------------------------" << endl;
+  chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
+  for(int i=1; i <= N; ++i)
+    g.add_vertex();
+  chrono::high_resolution_clock::time_point t2 = chrono::high_resolution_clock::now();
+  chrono::duration<double> time_span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
+  cerr << "Disconnected graph generated." << endl;
   cerr << "Elapsed generation time: " <<
             time_span.count() << " s" << endl;
   cerr << "-----------------------------------------------" << endl;
@@ -184,7 +193,7 @@ size_t tokenize_line(const string &line, vector<size_t> &token_pos, const string
 // and edges in the graph described by the file. Those numbers are used as a
 // reference and not actually included in the graph.
 int read_graph_from_file(const string &path, Graph &g) {
-  int lines_read = 1, vx_read, exp_v, exp_e, vx[2];
+  int lines_read = 1, vx_read, exp_v, exp_e, vx[2], loops=0, multiedges=0;
   string line, w;
   vector<size_t> token_pos;
   ifstream f (path); // Create a file stream for the specified path
@@ -192,23 +201,20 @@ int read_graph_from_file(const string &path, Graph &g) {
     cerr << "Error: Unable to open file '" << path << "'" << endl;
     return -1;
   }
-  cerr << "Reading graph from file '" << path << "'..." << endl << endl;
+  cerr << "***********************************************" << endl;
+  cerr << "Reading graph from file '" << path << "'..." << endl;
   getline(f, line);
   if ( tokenize_line(line, token_pos) != 2 ) {
     cerr << "Error: Malformed first row. Aborting parse" << endl;
     return -1;
   }
-  cerr << "Reading header..." << endl;
   // Parse the numbers to integers and store them to check later
   exp_v = stoi( line.substr(token_pos[0], token_pos[1]) );
   exp_e = stoi( line.substr(token_pos[2], token_pos[3]) );
 
   cerr << "-----------------------------------------------" << endl;
-  cerr << "Expected number of vertices: " << exp_v << endl;
-  cerr << "Expected number of edges: " << exp_e << endl;
-  cerr << "-----------------------------------------------" << endl << endl;
-  cerr << "Reading edges..." << endl;
-  cerr << "-----------------------------------------------" << endl;
+  cerr << " - Expected number of vertices: " << exp_v << endl;
+  cerr << " - Expected number of edges: " << exp_e << endl;
 
   while(getline(f, line)) {
     ++lines_read;
@@ -226,39 +232,25 @@ int read_graph_from_file(const string &path, Graph &g) {
     if ( vx_read != 2 ) {
       cerr << " - Malformed edge representation at file row " << lines_read << endl;
     } else if (vx[0] == vx[1]) {
-      cerr << " - Loop found at file row " << lines_read << endl;
-    } else
-      g.add_edge(vx[0], vx[1]);
+      ++loops;
+    } else if (g.add_edge(vx[0], vx[1]))
+      ++multiedges;
   }
-
-  int cont = 0;
-  for(size_t i=1; i <= g.get_n_vertices(); ++i) {
-    cont += g.get_neighbours(i).size();
-  }
-
-  cout << cont/float(g.get_n_vertices()) << endl;
-
-  return 0;
-}
- /*
-
-void Graph::print_adj_table() {
-  cout << word_index[0] << endl;
-  for(size_t i=0; i < 1; ++i) {
-    cout << i+1 <<": ";
-    for(size_t ix : adj_list[i]) {
-      cout << ix << " ";
-    }
-    cout << endl;
-  }
-}
-
-
-int Graph::geodesic_distance(int ix_s, int ix_d){
+  cerr << "-----------------------------------------------" << endl;
+  cerr << "Graph succesfully read!" << endl;
+  cerr << " - Vertices succesfully read: " << g.get_n_vertices() << endl;
+  cerr << " - Edges succesfully read: " << g.get_n_edges() << endl;
+  cerr << " - Loops ommited: " << loops << endl;
+  cerr << " - Duplicate edges ommited: " << multiedges << endl;
+  cerr << "***********************************************" << endl << endl;
   return 0;
 }
 
-Graph& read_graph_from_file(std::string path) {
-
+void print_summary(const Graph &g) {
+  int N = g.get_n_vertices(), E = g.get_n_edges();
+  cout << N << ","
+       << E << ","
+       << 2*E /float(N) << ","
+       << 2*E/float(N*(N-1))
+       << endl;
 }
-*/
