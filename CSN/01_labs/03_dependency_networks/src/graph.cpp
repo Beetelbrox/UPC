@@ -9,6 +9,9 @@
 // Use namespace std here so it is not included in the main code
 using namespace std;
 
+#define UPPER_BOUND (double c_m, int N, int M) ( 1 + (c_m)/double(N) - (M)/float(N) )
+#define LOWER_BOUND (double c_m, int N) ((c_m)/float(N)
+
 /* #################################################
 *
 * MEMBER METHODS
@@ -197,9 +200,11 @@ void generate_switching_graph(double Q, const Graph &base, Graph &g, std::mt1993
   cerr << "-----------------------------------------------" << endl;
 }
 
+
+
 double calculate_cc(const Graph &g) {
   double cc=0;
-  // Build an index of visited nodes
+
   cerr << "Calculating Mean Closeness Centrality...";
   chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
   for(size_t i=1; i <= g.get_n_vertices(); ++i)
@@ -214,29 +219,90 @@ double calculate_cc(const Graph &g) {
   return cc/double(g.get_n_vertices());
 }
 
-double calculate_c_i(int id, const Graph &g) {
-  // Array will store the distances. Initialized to -1 so we can check
-  // if a vertex has been already visited.
-  int current_vx, distances[g.get_n_vertices()];
-  fill_n(distances, g.get_n_vertices(), -1);
-  double c_i = 0;
+// Tests whether the metric value of the real network (x) is greater than the
+// metric value for graph g
+bool test_hypothesis_with_bounds (const Graph &g, double x) {
+  double c_m = 0.0, lb, ub;
+  cerr << "Testing hypothesis with bounds...";
+  chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
+  for(size_t i=1; i <= g.get_n_vertices(); ++i) {
+    c_m += calculate_c_i(i, g);
+    lb = lower_bound(c_m, g.get_n_vertices());
+    if (lb >= x) {
+      cerr << i << endl;
+      cerr << "Null model lower bound (" << lb << ") greater than network metric value (" << x << ")." << endl;
+      chrono::high_resolution_clock::time_point t2 = chrono::high_resolution_clock::now();
+      chrono::duration<double> time_span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
+      cerr << "Elapsed calculation time: " << time_span.count() << " s" << endl;
+      cerr << "-----------------------------------------------" << endl;
+      return false;
+    }
+    ub = upper_bound(c_m, g.get_n_vertices(), i);
+    if (ub < x) {
+      cerr << i << endl;
+      cerr << "Null model upper bound (" << ub << ") smaller than network metric value (" << x << ")." << endl;
+      chrono::high_resolution_clock::time_point t2 = chrono::high_resolution_clock::now();
+      chrono::duration<double> time_span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
+      cerr << "Elapsed calculation time: " << time_span.count() << " s" << endl;
+      cerr << "-----------------------------------------------" << endl;
+      return true;
+    }
+  }
+    return false; // It should never reach this point
+}
+
+double Graph::closeness_centrality(optimize=false, double x=-1.0) {
+  int distances[adj_list.size()], visited[adj_list.size()], M=0;
+  fill_n(visited, adj_list.size(), 0);
+  double cummulator = 0.0, cumm_c_i;
+  vector<int> degree_oners;
+  cerr << "Calculating Mean Closeness Centrality...";
+  chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
+  for(size_t i=1; i <= adj_list.size(); ++i) {
+    if (!visited[i-1]) {
+      ++M;
+      cummulator += c_i(i, distances, optimize, degree_oners);
+      if (optimize && degree_oners.size() > 0) {
+        cumm_c_i=0;
+        for (size_t j=0; j < adj_list.size(); ++j)
+          if(distances[j] > 0) cumm_c_i += 1/float(distances[j]+1)
+        for(int j : degree_oners)
+          visited[j-1] = 1;
+        cummulator += degree_oners.size()*cumm_c_i/double(adj_list.size()-1);
+        M += degree_oners.size();
+      }
+
+      visited[i-1] = 1;
+
+    }
+
+
+  }
+
+}
+
+double Graph::c_i(int id, int* distances, bool optimize=false, vector<int> &degree_oners) {
+  fill_n(distances, adj_list.size(), -1);   // Tight coupling: Requires the array to be of the right size
+  degree_oners.clear();                     // Clear the degree-oners vector
+  int cur_vx;
+  double cummulator = 0.0;
   queue<int> frontier_vx;
 
-  frontier_vx.push(id);
-  distances[id-1] = 0;
+  frontier_vx.push(id);   // Push the starting node into the queue
+  distances[id-1] = 0;    // Set the initial distance to 0
   while(!frontier_vx.empty()) {
-    current_vx = frontier_vx.front(); // Save the id of the next node
-    frontier_vx.pop(); // Remove the node from the queue
-
-    for (int vx : g.get_neighbours(current_vx)) {
-      if (distances[vx-1] < 0){
+    cur_vx = frontier_vx.front();   // Get the first element in the queue
+    frontier_vx.pop();                  // Pop it
+    if (optimize && adj_list[current_vx-1].size() == 1) degree_oners.push_back(cur_vx);
+    for (int vx : adj_list[current_vx-1]) {
+      if(distances[vx-1] < 0) {
         frontier_vx.push(vx);
         distances[vx-1] = distances[current_vx-1]+1;
-        c_i += 1/double(distances[vx-1]);
+        cummulator += 1/double(distances[vx-1]);
       }
     }
   }
-  return c_i/double(g.get_n_vertices()-1);
+  return c_i/double(adj_list.size()-1);
 }
 
 // Auxiliary function to tokenize a string to facilitate parsing.

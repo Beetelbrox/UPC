@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <array>
 #include <unordered_map>
 #include <random>
 #include <utility>
@@ -19,6 +20,7 @@ private:
   bool DEBUG;
 
   int find_neighbour_ix(int id, int n_id);
+  double c_i(int id, int* distances, bool optimize, vector<int> &degree_oners);
 public:
   Graph(); // Default constructor
   Graph( bool DEBUG ); // Debug options constructor
@@ -29,6 +31,7 @@ public:
   int add_edge(int v1, int v2);
   bool is_neighbour(int v1, int v2);
   void switch_edges(std::pair<int,int> e1, std::pair<int,int> e2);
+  double closeness_centrality(optimize, x);
 
   // Getters & Setters
   std::size_t get_n_vertices() const;
@@ -48,5 +51,6 @@ void generate_ER_graph(int N, int E, Graph &g, std::mt19937 &eng);
 void generate_switching_graph(double Q, const Graph &base, Graph &g, std::mt19937 &eng);
 double calculate_cc(const Graph &g);
 void print_summary(const Graph &g);
+bool test_hypothesis_with_bounds (const Graph &g, double x);
 
 #endif
