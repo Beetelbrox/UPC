@@ -7,11 +7,11 @@
 
 using namespace std;
 
-// struct greatert
-// {
-//     template<class T>
-//     bool operator()(T const &a, T const &b) const { return a > b; }
-// };
+struct greatert
+{
+    template<class T>
+    bool operator()(T const &a, T const &b) const { return a > b; }
+};
 
 // Main constructor takes 
 Graph::Graph(int NoE, int NoV) {
@@ -25,16 +25,136 @@ Graph::Graph(int NoE, int NoV) {
 }
 
 Graph::Graph(string path) {
+  
   read_graph_from_file(path);
-  cout << "Num Vertex: " << get_num_vertices() << endl;
+  cout << "Building Graph" << endl;
+  nNodes = get_num_vertices();
+  cout << "Num Vertex: " << nNodes << endl;
   cout << "Num Edges: " << get_num_edges() << endl;
-  cout << "Degree sequence: " << endl;
-  // I don't think it is necessary to sort the degree sequence before showing it
-  // Although it might not be appropriate to call it sequence then
-  for(int i = 0; i < get_num_vertices(); i++){
-    cout << adj_list[i].size() << ", ";
+ 
+  vector<int> sequence_pre;
+  vector<int> sequence_post;
+
+  for(int i = 0; i < nNodes; i++){
+    sequence_pre.push_back(adj_list[i].size());
   }
-  cout << endl;  
+  
+  apply_switching(10);
+
+  for(int i = 0; i < nNodes; i++){
+    sequence_post.push_back(adj_list[i].size());
+  }
+  sort(sequence_pre.begin(), sequence_pre.end());
+  sort(sequence_post.begin(), sequence_post.end());
+  
+  
+  for(int i = 0; i < nNodes; i++){
+    if (sequence_pre[i] != sequence_post[i]){
+      cout << "Not same sequence!" << endl;
+      return;
+    }
+  }
+
+}
+
+void Graph::print_adj(int value){
+  cout << value << " -> {";
+  for (int j = 0; j < adj_list[value].size(); j++){
+     cout << " " << adj_list[value].at(j);
+  }
+  cout << " }" << endl;
+}
+
+void Graph::apply_switching(int Q_value){
+  int nEdges = get_num_edges();
+  int nVertex = get_num_vertices();
+  int notvalid_count = 0;
+  int notallowed_count = 0;
+  int chosen_u = 0;
+  int chosen_v = 0;
+  int chosen_s = 0;
+  int chosen_t = 0;
+  int index_u = 0;
+  int index_v = 0; 
+  int index_s = 0; 
+  int index_t = 0;
+  cout << "Q Value : " << Q_value << endl;  
+  int number_switches = Q_value * nEdges;
+  //number_switches = 10;
+  cout << "Number of switches " << number_switches << endl;
+  int i = 0;
+  while (i < number_switches){
+    
+    // First pair
+    chosen_u = rand()%nVertex;     
+    // Test Isolated   
+    if (adj_list[chosen_u].size() == 0) {
+      notvalid_count++;
+      i++;
+      continue;
+    }
+    index_v = rand()%adj_list[chosen_u].size();
+    chosen_v = adj_list[chosen_u].at(index_v);
+    // Second pair
+    chosen_s = rand()%nVertex;
+    // Test Isolated
+    if (adj_list[chosen_s].size() == 0) {
+      notvalid_count++;
+      i++;
+      continue;
+    }
+    // Test if same, then trivial
+    if (chosen_u == chosen_s){
+      cout << "Trivial?" << endl;
+      notvalid_count++;
+      i++;
+      continue;
+    }
+    index_t = rand()%adj_list[chosen_s].size();
+    chosen_t = adj_list[chosen_s].at(index_t);
+    // A self reference (loop) will happen
+    if (chosen_t == chosen_u){
+      cout << "Loop avoided {" << chosen_u << "," << chosen_v << "},{" << chosen_s << "," << chosen_t << "}" << endl;
+      notallowed_count++;
+      // Not increasing i
+      continue;
+    }
+    // A self reference (loop) will happen
+    if (chosen_v == chosen_s){
+      cout << "Loop avoided {" << chosen_u << "," << chosen_v << "},{" << chosen_s << "," << chosen_t << "}" << endl;
+      notallowed_count++;
+      // Not increasing i
+      continue;
+    }
+
+
+    vector<int>::iterator it = find(adj_list[chosen_v].begin(), adj_list[chosen_v].end(), chosen_u);
+    index_u = distance(adj_list[chosen_v].begin(), it);
+
+    vector<int>::iterator it2 = find(adj_list[chosen_t].begin(), adj_list[chosen_t].end(), chosen_s);
+    index_s = distance(adj_list[chosen_t].begin(), it2);
+
+    // cout << "\nExperiment " << i << endl;
+    // cout << chosen_u << " - " << chosen_v << endl;
+    // cout << chosen_s << " - " << chosen_t << endl;
+    // print_adj(chosen_u);
+    // print_adj(chosen_v);
+    // print_adj(chosen_s);
+    // print_adj(chosen_t);
+  
+    // cout << "###### Perform swap ######" << endl;
+    swap(adj_list[chosen_s].at(index_t), adj_list[chosen_u].at(index_v));
+    swap(adj_list[chosen_t].at(index_s), adj_list[chosen_v].at(index_u));
+
+    // print_adj(chosen_u);
+    // print_adj(chosen_v);
+    // print_adj(chosen_s);
+    // print_adj(chosen_t);
+
+    i++;
+  }
+  cout << "Number of not allowed but counted: " << notvalid_count << endl;
+  cout << "Number of not valid and not counted: " << notallowed_count << endl;
 }
 
 Graph::Graph(const Graph &g) {

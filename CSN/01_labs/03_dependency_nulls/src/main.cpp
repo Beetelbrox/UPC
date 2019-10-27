@@ -24,7 +24,11 @@ int main() {
     }
   }
   // Switching model
+  std::cout << "## Building " << "Basque" << " ##" << std::endl;
   Graph g2 = Graph(path);
+  std::cout << "Number of vertex: " << g2.get_num_vertices() << std::endl;
+  std::cout << "Number of edges: " << g2.get_num_edges() << std::endl;
+  g2.global_closeness_centrality();
   
   //std::cout << "Geodesic distance 1 -> 10000: " << g1.geodesic_distance(1,10000) << std::endl;
 }
