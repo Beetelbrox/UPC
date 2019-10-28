@@ -31,7 +31,7 @@ public:
   int add_edge(int v1, int v2);
   bool is_neighbour(int v1, int v2);
   void switch_edges(std::pair<int,int> e1, std::pair<int,int> e2);
-  double closeness_centrality(bool pruning=false, bool sorting=false, double x=-1.0);
+  double closeness_centrality(bool pruning=false, bool sorting=false, bool montecarlo=false, int M=0, double x=-1.0);
 
   // Getters & Setters
   std::size_t get_n_vertices() const;

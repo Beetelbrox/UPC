@@ -6,10 +6,6 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-```{r setup, include=FALSE}
 require(knitr)
 opts_chunk$set(echo = TRUE)
 # Set so that long lines in R will be wrapped:
@@ -22,6 +18,8 @@ t1_header=c('Language', 'N', 'E', 'Mean Deg', 'delta')
 read.csv('results/lang_summary.csv', col.names=t1_header, header=FALSE)
 ```
 
+
+
 ```{r include=FALSE, echo=FALSE}
 # Load the igraph library and require the packages stats4 (mle) & VGAM (Riemman-zeta)
 require(igraph)
@@ -29,191 +27,17 @@ require(knitr)      # This is needed for PDF making
 require('stats4')
 require('VGAM')
 require(kableExtra) # This is needed for nice tables from R
-
-#########################################################################################################
-# OPTIMIZER INPUTS DEFINITION
-# All inputs for a given distribution are aligned by index over the different structures
-#########################################################################################################
-
-# Define the arrays containing the names of the models, the parameter names and the amount of parameters of each function
-models <- c('Poisson', 'Geometric', 'Zeta_2', 'Zeta', 'Right-truncated Zeta', 'Altmann')
-params <- c("lambda", 'q', 'gamma_1', 'gamma_2', 'k_max', 'gamma', 'delta', 'k_max_2')
-num_params <- c(1, 1, 0, 1, 2, 3)
-
-# Function to calculate the Harmonic number and the c value
-H <- function(gamma, k_max) { sum(sapply(seq(from=1, to=k_max, by=1), function(k) k^(-gamma))) }
-c_f <- function(gamma, delta, k_max) { 1/sum(sapply(seq(from=1, to=k_max, by=1), function(k) (k^(-gamma))*exp(-delta*k))) }
-
-# List of probabiliy mass functions
-pmfs <- c(
-  # Displaced Poisson
-  function(k, lambda) { ((lambda^k)*exp(-lambda))/(factorial(k)*(1-exp(-lambda))) },
-
-  # Displaced geometric
-  function(k, q) { (1-q)^(k-1)*q },
-
-  # Zeta with gamma=2
-  function(k) { (k^(-2))/zeta(2) },
-
-  # Zeta
-  function(k, gamma) { (k^(-gamma))/zeta(gamma) },
-
-  # Right-truncated Zeta
-  function(k, gamma, k_max) { (k^(-gamma))/H(gamma, k_max) },
-
-  # Altmann
-  function(k, gamma, delta, k_max) { c_f(gamma, delta, k_max)*(k^(-gamma))*exp(-delta*k) }
-)
-
-# Function to generate a list of maximum likelihood given a set of sequence statistics
-generate_minus_log_likelihoods <- function(stats) {
-  c(
-    # Displaced Poisson
-    function(lambda){ stats$N*(lambda + log(1 - exp(-lambda))) + stats$C - stats$M*log(lambda) },
-
-    # Displaced Geometric
-    function (q) { (stats$N - stats$M)*log(1-q) - stats$N*log(q) },
-
-    # Zeta with gamma=2
-    function() { 2*stats$M_prime + stats$N*log((pi^2)/6) },
-
-    # Zeta
-    function(gamma) { stats$M_prime*gamma + stats$N*log(zeta(gamma)) },
-
-    # Right-truncated Zeta
-    function(gamma, k_max){ gamma*stats$M_prime + stats$N*log(H(gamma, k_max)) },
-
-    # Altmann function
-    function(gamma, delta, k_max) { gamma*stats$M_prime + delta*stats$M - stats$N*log( c_f(gamma, delta, k_max ) ) }
-  )
-}
-
-# List of functions to generate the starting values given a set of stats
-start_parameters <- c(
-  function(stats) { list( lambda=stats$M/stats$N ) },                  # Displaced Poisson
-  function(stats) { list( q=stats$N/stats$M ) },                       # Displaced Geometric
-  NA,                                                                  # Zeta w/ gamma=2
-  function(stats) { list( gamma=2 )},                                  # Zeta
-  function(stats) { list( gamma=2, k_max=stats$max )},                 # Right-truncated Zeta
-  function(stats) { list(gamma=2, delta=0.0000001, k_max=stats$max )}  # Altmann
-)
-
-# List of functions to generate the lower bound values given a set of stats
-lower_bounds <- c(
-  function(stats) { c(1.0000001) },
-  function(stats) { c(0.0000001) },
-  NA,
-  function(stats) { c(gamma=1.0000001) },
-  function(stats) { c(gamma=1.0000001, k_max=stats$max-0.0000001) }, # Substratc 1e-6 to get rid of the 'NaNs produced' issue
-  function(stats) { c(gamma=1.0000001, delta=0.0000001, k_max=stats$max-0.0000001) }
-)
-
-# List of functions to generate the upper bound values given a set of stats
-upper_bounds <- c(
-  function(stats) { NA },
-  function(stats) { c(0.9999999) },
-  NA,
-  function(stats) { NA },
-  function(stats) { c(NA, k_max=2*stats$max) }, # 2*max is a reasonably low bound
-  function(stats) { c(NA, 0.5, k_max=stats$max*2) }  # 0.5 makes the mle not crash
-)
-
-# Function to calculate the likelihoods given a set of statistics - This is functional and iterates over the set of distribution, so every input has
-# to be passed as a function depending on stats
-calculate_likelihoods <- function(stats) {
-  minus_log_likelihoods <- generate_minus_log_likelihoods(stats)
-  lapply(seq(from=1, to=length(models), by=1), function(i) {
-    if(num_params[i] > 0) {
-          mle(minus_log_likelihoods[[i]],
-              start = start_parameters[[i]](stats),
-              method = "L-BFGS-B",
-              lower = lower_bounds[[i]](stats),
-              upper = upper_bounds[[i]](stats)
-          )
-    }})
-}
-
-#########################################################################################################
-# FUNCTIONS
-#########################################################################################################
-
-# Function to calculate the AIC from an mle
-# calculated for some distribution
-calculate_AIC <- function(m2logL, K, N){
-  m2logL + 2*K*N/(N-K-1)
-}
-
-# Generate all the data structures that will go into the global scope and will be used to generate the tables and the plots
-generate_tables <- function(in_degree_sequences) {
-  # Iterates over the sequence distributions and generates the statistics for all of them
-  lang_stats <<- lapply(in_degree_sequences, function(x) list(
-                N=length(x),
-                M=sum(x),
-                max=max(x),
-                M_prime=sum(log(x)),
-                C=sum(sapply(seq(from=1, to=length(x), by=1), function(i) sum(sapply(seq(from=1, to=x[i], by=1), function(j) log(j)))))))
-
-  # Iterates over the sequence distributions and models and estimates the best parameters for all of them using the language statistics
-  # Returns: List of lists
-  coef_estimates <<- lapply(lang_stats, function(x) lapply(calculate_likelihoods(x), function(l) {attributes(summary(l))$coef[,1]}))
-
-  # Iterates over the sequence distributions and calculates the AICs from the minus log-likelihoods. It calculates them from scratch rather than pulling them
-  # out from the mle output to have an uniform interface and be able to use the function for the zeta with fixed gamma
-  AICs <<- lapply(seq(from=1, to=length(lang_stats), by=1), function(l) {
-    minus_log_likelihoods <- generate_minus_log_likelihoods(lang_stats[[l]])
-    unlist(lapply(seq(from=1, to=length(models), by=1), function(i) {
-      calculate_AIC(2*do.call(minus_log_likelihoods[[i]], as.list(coef_estimates[[l]][[i]])), num_params[i], lang_stats[[l]]$N)
-    }))
-  })
-}
-
-# Function to read the test data and run it throuh the pipeline
-run_test <- function() {
-  # Generate the file names
-  test_prefix_geom <- 'sample_of_geometric_with_parameter_'
-  test_prefix_zeta <- 'sample_of_zeta_with_parameter_'
-  test_geom_param_values <- c(0.05, 0.1, 0.2, 0.4, 0.8)
-  test_zeta_param_values <- c(2, 2.5, 3, 3.5) # Gamma 1.5 omitted as it is makes the mle crash
-  test_param_values <- c(test_geom_param_values, test_zeta_param_values)
-
-  # Generate arrays with distribution names to use them in tables
-  test_names_geom <- sapply(test_geom_param_values, function(x)
-    paste('Geometric [q = ', x,']', sep=''))
-  test_names_zeta <- sapply(test_zeta_param_values, function(x)
-    paste('Zeta [gamma = ', x,']', sep=''))
-  test_names <- c(test_names_geom, test_names_zeta)
-
-  test_filenames_geom <- sapply(test_geom_param_values,
-          function(x) paste('test/', test_prefix_geom, x, '.txt', sep=''))
-  test_filenames_zeta <- sapply(test_zeta_param_values,
-          function(x) paste('test/', test_prefix_zeta, x, '.txt', sep=''))
-  test_filenames <- c(test_filenames_geom, test_filenames_zeta)
-
-  # Push the in-degree sequences and theh list of entries to the global scope
-  in_degree_sequences <<- sapply(test_filenames, function(x) read.table(x, header=FALSE))
-  output_table_labels <<- test_names
-
-  generate_tables(in_degree_sequences)
-
-}
-
-# Function to read the real data and feed it to the pipeline
-run_real <- function() {
-  # Read the list of languages from file
-  languages = read.table("list.txt",
-                header = TRUE,
-                as.is = c("language","file")
-              )
-
-  # Push the in-degree sequences and theh list of entries to the global scope
-  in_degree_sequences <<- sapply(languages$file, function(x) read.table(x, header = FALSE))
-  output_table_labels <<- languages$language
-
-  generate_tables(in_degree_sequences)
-}
 ```
+# Introduction
+In this lab session we study the process of determining the significance of network metrics. For this purpose we use a series of collections of global syntactic dependency trees from different languages, where vertices are words and edges indicate a syntactic dependence between two words (Based on occurrences of said dependencies in a syntactic dependency treebank). Our metric of study will be the __Closeness Centrality__ of the network's vertices, a measure of how central or how _close_ a vertex is to the other vertices in the network. The closeness centrality for a given vertex $i$ is defined as:
+\[
+  C_i = \frac{1}{N-1} \sum_{j=1,(i\neq j)}^N \frac{1}{d_{ij}}
+\]
+Where $d_{ij}$ is the geodesic distance between vertices $i$ and $j$. As we want to be able to characterize get a metric on the whole network rather than on the individual vertices, we will calculate the __Mean Closeness Centrality__, defined as:
+\[
+  C = \frac{1}{N} \sum_{i=1}^N C_i
+\]
 
-#Introduction
 
 \end{enumerate}
 
@@ -223,4 +47,36 @@ run_real <- function() {
 \newpage
 \section{Discussion}
 
-\section{Methods}
+# Methods
+## Programming language choice
+Due to the large amount of computations required to calculate the mean closeness centrality we have chosen to write our code in _C++_. The need to be able to define abstract data structures for the graph and to access and manipulate it efficiently led us to use this language, which allows object-oriented programming and a great performance at the cost of veing more difficult to write and debug than other, higher level languages (amongst other issues outside of the scope of this document). This report was written in RMarkdown, reading the results of the c++ programs and using them to generate the required tables.
+
+## Data Structures
+We implemented an adjacency list-based graph data structure to store and perform operations on the graphs. Each entry in the adjacency list corresponds to a vertex $v \in V$ and it contains a list of $v$'s neighbours' indexes to enable easy neighbourhood check. Because the graph is sparse the average node degree is quite low (less than 10) so we can check neighbourhood efficiently with a list scan.  
+As the graphs are undirected, in order to enable fast neighbourhood checks we add the relation in both directions (vertex $u$ has $v$ in his neighbourhood list and vertex $v$ has $u$ in theirs). This effectively doubles the number of entries in the neighourhood lists, but greatly simplifies and speeds the traversal of the graph (which is the main operation we perform in this lab).  
+We have also abstracted the label from the adjacency list, as it is way easier to work with integers rather than full strings. For that purpose the Graph class includes a label index, a list of size $N$ with the label at position $i$  (1-indexed) correponds to the node of id $i$. Although not strictly necessary, to allow for fast membership check we have also included a dictionary (or map) which map each word to its corresponding index.
+
+## Data Preparation
+The syntactic dependency graphs are stored as a series of \textit{.txt} files, with the (expected) number of nodes and edges in the first row and one edge per subsequent row, described as a pair of two words. The edges are only listed in one direction and in alphabetical order. To avoid intermediate storage the edges are added to the graph one at a time, adding vertices when necessary. As the graph contain loops, any loop found is not added to the graph. Malformed edges in the file are omitted too (although the vertices are added). A special mention (shootout to Amalia for finding about it) is the existence of nodes in the Arabic graph labeled with a \textit{non-breaking space}, a special kind of whitespace that was not properly parsed out when building the dependence bank. We took those into account and removed them when found.
+
+## Null model graphs generation
+In order to generate the null graphs used as null hypothesis to test the significance against we implemented the follwing procedure:
+### Erdös-Rényi graph of constant N and E
+For the ER graph we started from a fully disconnected graph of size E and selected pairs of vertices UAR from it. If the edge they would form  did not exist and it was well-formed (loops, multiedges...) it was added to the graph, repeating this process until the graph had E edges. In case of any ill-formed or already selected edge the values were simply discarded and two new ones were chosen. As the vertices are chosen independently from the status of the graph this re-pick does not incur in any bias.
+
+### Switching model graph
+The switching model graph is a randomized graph with the same degree sequence as the original graph. This is achieved by performing a series of switches between edges, a switch consisting in interchanging the ends of two edegs (eg the pair of edges u -> v and s -> t would result in edges u -> t and s -> v after the switching). The amount of switches to be performed is determined by $Q \cdot E$, $E$ being the number of edges and $Q$ a scale parameter to try to ensure that all edges have been selected for a switch at least once. In order to choose $Q$ we use the coupon collector's problem, which poses the question of what is the expected number of coupons from a collection of $N$ coupons a collector should buy to ensure that he has collected them all, given that every time she buys a coupon she get one of the of the possible $N$ coupons at random. The mathematical analysis of this problem reveals that this number is $\Theta(n log (n))$, and therefore we choose $Q = log(n)$.  
+In our implementation we initially choose valid edges by first selecting a vertex at random and then selecting a second vertex from its neighbours list. If an isolated vertex is chosen the switch is marked as failed and not performed, as it would alter the degree sequence. Failed switched are still counted for the total $Q \cdot E$. There are two other main situations in which a switch can fail without changing the degree sequence:
+ - __Edges with the form u -> v, s -> u are chosen__: A loop in vertex $u$ is generated after the switch.
+ - __Given two edges u -> v and s -> t, there is an edge u -> t__: A multiedge would be formed between $u$ and $t$ after the switch.
+Any edges of this kind found are marked as invalid and counted towards the overall edge count.  
+There are several instances for which the switching is trivial (the edges stay as before), mainly when the same edge is chosen twice or the vertex at a given end in both edges is the same. When this happens it does not incur into an invalid switch, but it can be skipped to avoid unnecesary computation.
+
+## $C_i$ computation
+
+## Exact optimizations
+
+## Approximate optimizations
+
+
+

@@ -155,7 +155,7 @@ void generate_ER_graph(int N, int E, Graph &g, mt19937 &eng) {
 int choose_edge_uar(const Graph &g, pair<int, int> &e, std::mt19937 &eng) {
   uniform_int_distribution<int> dist_vx(1, g.get_n_vertices()), dist_neighbours;
   e.first = dist_vx(eng);
-  if (!g.get_degree(e.first)) return -1;
+  if (!g.get_degree(e.first)) return -1; // Discard isolated nodes
   dist_neighbours = uniform_int_distribution<int>(0,g.get_degree(e.first)-1);
   e.second = dist_neighbours(eng); // Second value of the pair is the index on the neighbour list
   return 0;
@@ -201,27 +201,31 @@ void generate_switching_graph(double Q, const Graph &base, Graph &g, std::mt1993
 inline double upper_bound (double c_m, int N, int M) { return 1 + c_m/double(N) - M/float(N); }
 inline double lower_bound (double c_m, int N) { return c_m/float(N); }
 
-double Graph::closeness_centrality(bool pruning, bool sorting, double x) {
-  int visited[adj_list.size()], degree_oners, cur_vx, M=0, hit_bound=0;
-  fill_n(visited, adj_list.size(), 0);
+double Graph::closeness_centrality(bool pruning, bool sorting, bool montecarlo, int M, double x) {
+  int visited[adj_list.size()], degree_oners, cur_vx, iter_counter=0, hit_bound=0, max_vertices = montecarlo ? M : adj_list.size();
+  fill_n(visited, adj_list.size(), -1);
   double cummulator = 0.0, c_i_plus_1, lb, ub;
   vector<pair<int, int>> ordering;
 
   cerr << "Calculating Mean Closeness Centrality..." << endl;
-  if (pruning) cerr << "Neighbour optimization enabled" << endl;
+  if (pruning) cerr << "Degree 1 neighbour pruning enabled" << endl;
   if (sorting) cerr << "Vertex sorting enabled" << endl;
+  if (x >= 0 ) cerr << "Bound checking enabled" << endl;
+  if (montecarlo) cerr << "Using Montecarlo estimation" << endl;
   chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
 
-  if (sorting) {
-    for (size_t i=1; i <= adj_list.size(); ++i) ordering.push_back(make_pair(adj_list[i-1].size(), i));
-    sort(ordering.begin(), ordering.end(), greater<>());
-  }
-  for(size_t i=1; i <= adj_list.size() && !hit_bound; ++i) {
-    cur_vx = sorting ? ordering[i-1].second : i;
+  // Create a list of <degree, id> pairs to be used by the optimizations
+  for (size_t i=1; i <= adj_list.size(); ++i) ordering.push_back(make_pair(adj_list[i-1].size(), i));
+  if (montecarlo) random_shuffle(ordering.begin(), ordering.end());
+  if (sorting) sort(ordering.begin(), ordering.begin()+max_vertices, greater<>());
+  for (int i=0; i < max_vertices; ++i) visited[ordering[i].second-1] = 0;
+
+  for(int i=1; i <= max_vertices && !hit_bound; ++i) {
+    cur_vx = ordering[i-1].second;
     if (!visited[cur_vx-1]) {
       visited[cur_vx-1] = 1;
       cummulator += c_i(cur_vx, pruning, &c_i_plus_1);
-      ++M;
+      ++iter_counter;
       if (pruning) {
         degree_oners=0;
         for (int nbr : adj_list[cur_vx-1]) {
@@ -231,11 +235,11 @@ double Graph::closeness_centrality(bool pruning, bool sorting, double x) {
           }
         }
         cummulator += degree_oners*c_i_plus_1;
-        M += degree_oners;
+        iter_counter += degree_oners;
       }
     }
     if (x >= 0) {
-      ub = upper_bound(cummulator, adj_list.size(), M);
+      ub = upper_bound(cummulator, adj_list.size(), iter_counter);
       lb = lower_bound(cummulator, adj_list.size());
       if (ub < x) {
         cerr << "Upper bound " << ub << " smaller than x=" << x <<endl;
@@ -249,10 +253,10 @@ double Graph::closeness_centrality(bool pruning, bool sorting, double x) {
   chrono::high_resolution_clock::time_point t2 = chrono::high_resolution_clock::now();
   chrono::duration<double> time_span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
   cerr << "Done." << endl;
-  cerr << "Closeness Centrality: " << cummulator/double(adj_list.size()) << endl;
+  cerr << "Closeness Centrality: " << cummulator/double(max_vertices) << endl;
   cerr << "Elapsed calculation time: " << time_span.count() << " s" << endl;
   cerr << "-----------------------------------------------" << endl;
-  return cummulator/double(adj_list.size());
+  return cummulator/double(max_vertices);
 }
 
 double Graph::c_i(int id, bool pruning, double* cumm_c_i_1) {
