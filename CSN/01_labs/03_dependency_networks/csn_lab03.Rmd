@@ -11,15 +11,6 @@ opts_chunk$set(echo = TRUE)
 # Set so that long lines in R will be wrapped:
 opts_chunk$set(tidy.opts=list(width.cutoff=80),tidy=TRUE)
 ```
-
-```{r}
-languages = read.csv('data/language_list.txt', header=FALSE)$V1
-t1_header=c('Language', 'N', 'E', 'Mean Deg', 'delta')
-read.csv('results/lang_summary.csv', col.names=t1_header, header=FALSE)
-```
-
-
-
 ```{r include=FALSE, echo=FALSE}
 # Load the igraph library and require the packages stats4 (mle) & VGAM (Riemman-zeta)
 require(igraph)
@@ -27,6 +18,9 @@ require(knitr)      # This is needed for PDF making
 require('stats4')
 require('VGAM')
 require(kableExtra) # This is needed for nice tables from R
+```
+```{r echo=FALSE}
+languages = read.csv('data/language_list.txt', header=FALSE)$V1
 ```
 # Introduction
 In this lab session we study the process of determining the significance of network metrics. For this purpose we use a series of collections of global syntactic dependency trees from different languages, where vertices are words and edges indicate a syntactic dependence between two words (Based on occurrences of said dependencies in a syntactic dependency treebank). Our metric of study will be the __Closeness Centrality__ of the network's vertices, a measure of how central or how _close_ a vertex is to the other vertices in the network. The closeness centrality for a given vertex $i$ is defined as:
@@ -38,12 +32,26 @@ Where $d_{ij}$ is the geodesic distance between vertices $i$ and $j$. As we want
   C = \frac{1}{N} \sum_{i=1}^N C_i
 \]
 
-
-\end{enumerate}
-
 \newpage
 \section{Results}
+After ingesting the graphs we obtained the following summary table:
+```{r  echo=FALSE}
+t1_header=c('N', 'E', 'Mean Deg', 'delta')
 
+summary_df <- data.frame(read.csv('results/lang_summary.csv', row.names=as.vector(languages), header=FALSE))
+kable(summary_df, col.names=t1_header, booktabs=T, linesep='', align='c', digits=5) %>%
+  kable_styling(latex_options="striped", full_width=F)
+```
+We can observe vy the very low network edge densities how all graphs are quite sparse. They also differ significantly in size from one another, from the Basque with roughly 12k nodes and 25k edges to the Czech, with almost 70k nodes and over 250k edges. It is worth noting also that despite the Czech having the bigger size and density of edges (almost twice as the second highest), it does not have a specially high mean degree. We could conclude that its edges are quite spread over the nodes.
+
+After running our Montecarlo method to calculate the p-values for each language we obtained the following table (to se the specifics of the experiments see the _Methods_ section):
+```{r echo=FALSE}
+t2_header=c('metric', 'p-value (binomial)', 'p-value(switching)')
+results_df <- data.frame(read.table('results/montecarlo.txt', row.names=as.vector(languages), col.names=t2_header, header=FALSE))
+kable(results_df, col.names=t2_header, booktabs=T, linesep='', align='c', digits=3) %>%
+  kable_styling(latex_options="striped", full_width=F)
+```
+The first thing we realize is that the p-value for the ER graph is 0 for all languages. From this we can reach to the somewhat common sense conclusion of the closeness centrality of an actual language being significantly larger than the one from a completely random graph. Then, we can also see that the p-value for the switching model is in all cases greater than our significance level $\alpha=0.05$, so we cannot conclude that the real langues studied have a closeness centrality significantyl larger than the one from a random graph with the same degree sequence.
 \newpage
 \section{Discussion}
 
