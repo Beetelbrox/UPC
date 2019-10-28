@@ -20,7 +20,7 @@ private:
   bool DEBUG;
 
   int find_neighbour_ix(int id, int n_id);
-  double c_i(int id, bool pruning, double* cumm_c_i);
+  double c_i(int id, bool pruning, double* cumm_c_i, int sample_number = 0);
 public:
   Graph(); // Default constructor
   Graph( bool DEBUG ); // Debug options constructor
@@ -31,7 +31,7 @@ public:
   int add_edge(int v1, int v2);
   bool is_neighbour(int v1, int v2);
   void switch_edges(std::pair<int,int> e1, std::pair<int,int> e2);
-  double closeness_centrality(bool pruning=false, bool sorting=false, double x=-1.0);
+  double closeness_centrality(bool pruning=false, bool sorting=false, double x=-1.0, int sample_number=-1);
 
   // Getters & Setters
   std::size_t get_n_vertices() const;

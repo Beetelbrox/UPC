@@ -5,6 +5,7 @@
 #include <queue>
 #include <algorithm>
 #include <chrono>
+#include <set>
 
 // Use namespace std here so it is not included in the main code
 using namespace std;
@@ -201,7 +202,8 @@ void generate_switching_graph(double Q, const Graph &base, Graph &g, std::mt1993
 inline double upper_bound (double c_m, int N, int M) { return 1 + c_m/double(N) - M/float(N); }
 inline double lower_bound (double c_m, int N) { return c_m/float(N); }
 
-double Graph::closeness_centrality(bool pruning, bool sorting, double x) {
+
+double Graph::closeness_centrality(bool pruning, bool sorting, double x, int sample_number) {
   int visited[adj_list.size()], degree_oners, cur_vx, M=0, hit_bound=0;
   fill_n(visited, adj_list.size(), 0);
   double cummulator = 0.0, c_i_plus_1, lb, ub;
@@ -216,46 +218,61 @@ double Graph::closeness_centrality(bool pruning, bool sorting, double x) {
     for (size_t i=1; i <= adj_list.size(); ++i) ordering.push_back(make_pair(adj_list[i-1].size(), i));
     sort(ordering.begin(), ordering.end(), greater<>());
   }
-  for(size_t i=1; i <= adj_list.size() && !hit_bound; ++i) {
+
+  // Calculating sample
+  vector<int> distribution;
+  vector<int> sample_source;
+  if (sample_number > 0){
+    for(int m = 0; m < adj_list.size(); m++) distribution.push_back(m);
+    random_shuffle(distribution.begin(), distribution.end());
+    for(int k = 0; k < sample_number; k++) sample_source.push_back(distribution[k]);
+  }
+ 
+  
+
+  for(size_t i=1; i <= adj_list.size() && !hit_bound; ++i) {    
     cur_vx = sorting ? ordering[i-1].second : i;
-    if (!visited[cur_vx-1]) {
-      visited[cur_vx-1] = 1;
-      cummulator += c_i(cur_vx, pruning, &c_i_plus_1);
-      ++M;
-      if (pruning) {
-        degree_oners=0;
-        for (int nbr : adj_list[cur_vx-1]) {
-          if (adj_list[nbr-1].size() == 1 && !visited[nbr-1]) {
-            ++degree_oners;
-            visited[nbr-1] = 1;
+    if (sample_number > 0)
+      if (find(sample_source.begin(), sample_source.end(), cur_vx) != sample_source.end()){
+        if (!visited[cur_vx-1]) {
+          visited[cur_vx-1] = 1;
+          cummulator += c_i(cur_vx, pruning, &c_i_plus_1, sample_number);
+          ++M;
+          if (pruning) {
+            degree_oners=0;
+            for (int nbr : adj_list[cur_vx-1]) {
+              if (adj_list[nbr-1].size() == 1 && !visited[nbr-1]) {
+                ++degree_oners;
+                visited[nbr-1] = 1;
+              }
+            }
+            cummulator += degree_oners*c_i_plus_1;
+            M += degree_oners;
           }
         }
-        cummulator += degree_oners*c_i_plus_1;
-        M += degree_oners;
-      }
-    }
-    if (x >= 0) {
-      ub = upper_bound(cummulator, adj_list.size(), M);
-      lb = lower_bound(cummulator, adj_list.size());
-      if (ub < x) {
-        cerr << "Upper bound " << ub << " smaller than x=" << x <<endl;
-        hit_bound = 1;
-      } else if (lb >= x) {
-        cerr << "Lower bound " << ub << " greater or equal than x=" << x <<endl;
-        hit_bound = -1;
-      }
-    }
+        if (x >= 0) {
+          ub = upper_bound(cummulator, adj_list.size(), M);
+          lb = lower_bound(cummulator, adj_list.size());
+          if (ub < x) {
+            cerr << "Upper bound " << ub << " smaller than x=" << x <<endl;
+            hit_bound = 1;
+          } else if (lb >= x) {
+            cerr << "Lower bound " << ub << " greater or equal than x=" << x <<endl;
+            hit_bound = -1;
+          }
+        }
+      } 
   }
   chrono::high_resolution_clock::time_point t2 = chrono::high_resolution_clock::now();
   chrono::duration<double> time_span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
   cerr << "Done." << endl;
-  cerr << "Closeness Centrality: " << cummulator/double(adj_list.size()) << endl;
+  cerr << "Closeness Centrality: " << cummulator/(double(adj_list.size())) << endl;
   cerr << "Elapsed calculation time: " << time_span.count() << " s" << endl;
   cerr << "-----------------------------------------------" << endl;
-  return cummulator/double(adj_list.size());
+  return cummulator/(double(adj_list.size()));
 }
 
-double Graph::c_i(int id, bool pruning, double* cumm_c_i_1) {
+double Graph::c_i(int id, bool pruning, double* cumm_c_i_1, int sample_number) {
   int cur_vx, distances[adj_list.size()];
   fill_n(distances, adj_list.size(), -1);
   double cummulator = 0.0;
@@ -277,8 +294,8 @@ double Graph::c_i(int id, bool pruning, double* cumm_c_i_1) {
     }
   }
   // Add 1 to account for the distance to vertex i and substract 0.5 for the neighbour
-  if (pruning) *cumm_c_i_1 = (*cumm_c_i_1 + 0.5)/double(adj_list.size()-1);
-  return cummulator/double(adj_list.size()-1);
+  if (pruning) *cumm_c_i_1 = (*cumm_c_i_1 + 0.5)/(double(adj_list.size()-1));
+  return cummulator/(sample_number > 0 ? double(sample_number-1) : double(adj_list.size()-1));
 }
 
 // Auxiliary function to tokenize a string to facilitate parsing.
@@ -321,9 +338,9 @@ int read_graph_from_file(const string &path, Graph &g) {
   exp_v = stoi( line.substr(token_pos[0], token_pos[1]) );
   exp_e = stoi( line.substr(token_pos[2], token_pos[3]) );
 
-  cerr << "-----------------------------------------------" << endl;
-  cerr << " - Expected number of vertices: " << exp_v << endl;
-  cerr << " - Expected number of edges: " << exp_e << endl;
+  // cerr << "-----------------------------------------------" << endl;
+  // cerr << " - Expected number of vertices: " << exp_v << endl;
+  // cerr << " - Expected number of edges: " << exp_e << endl;
 
   while(getline(f, line)) {
     ++lines_read;
@@ -345,13 +362,13 @@ int read_graph_from_file(const string &path, Graph &g) {
     } else if (g.add_edge(vx[0], vx[1]))
       ++multiedges;
   }
-  cerr << "-----------------------------------------------" << endl;
-  cerr << "Graph succesfully read!" << endl;
-  cerr << " - Vertices succesfully read: " << g.get_n_vertices() << endl;
-  cerr << " - Edges succesfully read: " << g.get_n_edges() << endl;
-  cerr << " - Loops omitted: " << loops << endl;
-  cerr << " - Duplicate edges omitted: " << multiedges << endl;
-  cerr << "***********************************************" << endl << endl;
+  // cerr << "-----------------------------------------------" << endl;
+  // cerr << "Graph succesfully read!" << endl;
+  // cerr << " - Vertices succesfully read: " << g.get_n_vertices() << endl;
+  // cerr << " - Edges succesfully read: " << g.get_n_edges() << endl;
+  // cerr << " - Loops omitted: " << loops << endl;
+  // cerr << " - Duplicate edges omitted: " << multiedges << endl;
+  // cerr << "***********************************************" << endl << endl;
   return 0;
 }
 
