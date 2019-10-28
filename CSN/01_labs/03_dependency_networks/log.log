@@ -1,0 +1,180 @@
+***********************************************
+Reading graph from file 'data/Arabic_syntactic_dependency_network.txt'...
+-----------------------------------------------
+ - Expected number of vertices: 21532
+ - Expected number of edges: 68767
+ - Bad word token found at file row 3833
+ - Malformed edge representation at file row 3833
+-----------------------------------------------
+Graph succesfully read!
+ - Vertices succesfully read: 21531
+ - Edges succesfully read: 68742
+ - Loops omitted: 24
+ - Duplicate edges omitted: 0
+***********************************************
+
+Calculating Mean Closeness Centrality...
+Neighbour optimization enabled
+Vertex sorting enabled
+Done.
+Closeness Centrality: 0.32646
+Elapsed calculation time: 69.7883 s
+-----------------------------------------------
+-----------------------------------------------
+Generating Erdos Renyi graph of size 21531
+Number of generated edges: 68742
+-----------------------------------------------
+ER graph generated.
+Elapsed generation time: 0.0733203 s
+-----------------------------------------------
+Calculating Mean Closeness Centrality...
+Neighbour optimization enabled
+Vertex sorting enabled
+Upper bound 0.326432 smaller than x=0.32646
+Done.
+Closeness Centrality: 0.153937
+Elapsed calculation time: 73.3078 s
+-----------------------------------------------
+-----------------------------------------------
+Generating switching graph of size 21531
+Number of edges: 68742
+Number of planned switches: 1.16861e+06
+-----------------------------------------------
+Switching graph generated.
+Switches performed: 1079491
+Collisions found: 89123
+Switch failure rate: 7.62638%
+Elapsed generation time: 5.60435 s
+-----------------------------------------------
+Calculating Mean Closeness Centrality...
+Neighbour optimization enabled
+Vertex sorting enabled
+Lower bound 0.339337 greater or equal than x=0.32646
+Done.
+Closeness Centrality: 0.326472
+Elapsed calculation time: 62.8179 s
+-----------------------------------------------
+***********************************************
+Reading graph from file 'data/Basque_syntactic_dependency_network.txt'...
+-----------------------------------------------
+ - Expected number of vertices: 12207
+ - Expected number of edges: 25558
+-----------------------------------------------
+Graph succesfully read!
+ - Vertices succesfully read: 12207
+ - Edges succesfully read: 25541
+ - Loops omitted: 17
+ - Duplicate edges omitted: 0
+***********************************************
+
+Calculating Mean Closeness Centrality...
+Neighbour optimization enabled
+Vertex sorting enabled
+Done.
+Closeness Centrality: 0.269719
+Elapsed calculation time: 11.4325 s
+-----------------------------------------------
+-----------------------------------------------
+Generating Erdos Renyi graph of size 12207
+Number of generated edges: 25541
+-----------------------------------------------
+ER graph generated.
+Elapsed generation time: 0.0147537 s
+-----------------------------------------------
+Calculating Mean Closeness Centrality...
+Neighbour optimization enabled
+Vertex sorting enabled
+Upper bound 0.269654 smaller than x=0.269719
+Done.
+Closeness Centrality: 0.132765
+Elapsed calculation time: 17.7281 s
+-----------------------------------------------
+-----------------------------------------------
+Generating switching graph of size 12207
+Number of edges: 25541
+Number of planned switches: 383115
+-----------------------------------------------
+Switching graph generated.
+Switches performed: 371201
+Collisions found: 11914
+Switch failure rate: 3.10977%
+Elapsed generation time: 0.843824 s
+-----------------------------------------------
+Calculating Mean Closeness Centrality...
+Neighbour optimization enabled
+Vertex sorting enabled
+Upper bound 0.269684 smaller than x=0.269719
+Done.
+Closeness Centrality: 0.253628
+Elapsed calculation time: 13.683 s
+-----------------------------------------------
+***********************************************
+Reading graph from file 'data/Catalan_syntactic_dependency_network.txt'...
+-----------------------------------------------
+ - Expected number of vertices: 36865
+ - Expected number of edges: 197318
+-----------------------------------------------
+Graph succesfully read!
+ - Vertices succesfully read: 36865
+ - Edges succesfully read: 197075
+ - Loops omitted: 243
+ - Duplicate edges omitted: 0
+***********************************************
+
+Calculating Mean Closeness Centrality...
+Neighbour optimization enabled
+Vertex sorting enabled
+Done.
+Closeness Centrality: 0.34101
+Elapsed calculation time: 246.382 s
+-----------------------------------------------
+-----------------------------------------------
+Generating Erdos Renyi graph of size 36865
+Number of generated edges: 197075
+-----------------------------------------------
+ER graph generated.
+Elapsed generation time: 0.0939294 s
+-----------------------------------------------
+Calculating Mean Closeness Centrality...
+Neighbour optimization enabled
+Vertex sorting enabled
+Upper bound 0.341009 smaller than x=0.34101
+Done.
+Closeness Centrality: 0.185387
+Elapsed calculation time: 243.326 s
+-----------------------------------------------
+-----------------------------------------------
+Generating switching graph of size 36865
+Number of edges: 197075
+Number of planned switches: 3.54735e+06
+-----------------------------------------------
+Switching graph generated.
+Switches performed: 3270433
+Collisions found: 276917
+Switch failure rate: 7.80631%
+Elapsed generation time: 24.3507 s
+-----------------------------------------------
+Calculating Mean Closeness Centrality...
+Neighbour optimization enabled
+Vertex sorting enabled
+Lower bound 0.347691 greater or equal than x=0.34101
+Done.
+Closeness Centrality: 0.341018
+Elapsed calculation time: 186.704 s
+-----------------------------------------------
+***********************************************
+Reading graph from file 'data/Chinese_syntactic_dependency_network.txt'...
+-----------------------------------------------
+ - Expected number of vertices: 40298
+ - Expected number of edges: 181081
+-----------------------------------------------
+Graph succesfully read!
+ - Vertices succesfully read: 40298
+ - Edges succesfully read: 180925
+ - Loops omitted: 156
+ - Duplicate edges omitted: 0
+***********************************************
+
+Calculating Mean Closeness Centrality...
+Neighbour optimization enabled
+Vertex sorting enabled

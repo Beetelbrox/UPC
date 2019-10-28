@@ -86,8 +86,6 @@ void Graph::get_degree_seq(vector<int> &deg_seq) {
     deg_seq.push_back(v.size());
 }
 
-double calculate_c_i(int id, const Graph &g);
-
 // Generate a clique (complete (sub)graph) of size N for testing purposes.
 void generate_clique(int N, Graph &g) {
   cerr << "-----------------------------------------------" << endl;
@@ -200,109 +198,87 @@ void generate_switching_graph(double Q, const Graph &base, Graph &g, std::mt1993
   cerr << "-----------------------------------------------" << endl;
 }
 
+inline double upper_bound (double c_m, int N, int M) { return 1 + c_m/double(N) - M/float(N); }
+inline double lower_bound (double c_m, int N) { return c_m/float(N); }
 
+double Graph::closeness_centrality(bool pruning, bool sorting, double x) {
+  int visited[adj_list.size()], degree_oners, cur_vx, M=0, hit_bound=0;
+  fill_n(visited, adj_list.size(), 0);
+  double cummulator = 0.0, c_i_plus_1, lb, ub;
+  vector<pair<int, int>> ordering;
 
-double calculate_cc(const Graph &g) {
-  double cc=0;
-
-  cerr << "Calculating Mean Closeness Centrality...";
+  cerr << "Calculating Mean Closeness Centrality..." << endl;
+  if (pruning) cerr << "Neighbour optimization enabled" << endl;
+  if (sorting) cerr << "Vertex sorting enabled" << endl;
   chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
-  for(size_t i=1; i <= g.get_n_vertices(); ++i)
-    cc += calculate_c_i(i, g);
-  // Return the normalized value
+
+  if (sorting) {
+    for (size_t i=1; i <= adj_list.size(); ++i) ordering.push_back(make_pair(adj_list[i-1].size(), i));
+    sort(ordering.begin(), ordering.end(), greater<>());
+  }
+  for(size_t i=1; i <= adj_list.size() && !hit_bound; ++i) {
+    cur_vx = sorting ? ordering[i-1].second : i;
+    if (!visited[cur_vx-1]) {
+      visited[cur_vx-1] = 1;
+      cummulator += c_i(cur_vx, pruning, &c_i_plus_1);
+      ++M;
+      if (pruning) {
+        degree_oners=0;
+        for (int nbr : adj_list[cur_vx-1]) {
+          if (adj_list[nbr-1].size() == 1 && !visited[nbr-1]) {
+            ++degree_oners;
+            visited[nbr-1] = 1;
+          }
+        }
+        cummulator += degree_oners*c_i_plus_1;
+        M += degree_oners;
+      }
+    }
+    if (x >= 0) {
+      ub = upper_bound(cummulator, adj_list.size(), M);
+      lb = lower_bound(cummulator, adj_list.size());
+      if (ub < x) {
+        cerr << "Upper bound " << ub << " smaller than x=" << x <<endl;
+        hit_bound = 1;
+      } else if (lb >= x) {
+        cerr << "Lower bound " << ub << " greater or equal than x=" << x <<endl;
+        hit_bound = -1;
+      }
+    }
+  }
   chrono::high_resolution_clock::time_point t2 = chrono::high_resolution_clock::now();
   chrono::duration<double> time_span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
   cerr << "Done." << endl;
-  cerr << "Closeness Centrality: " << cc/double(g.get_n_vertices()) << endl;
+  cerr << "Closeness Centrality: " << cummulator/double(adj_list.size()) << endl;
   cerr << "Elapsed calculation time: " << time_span.count() << " s" << endl;
   cerr << "-----------------------------------------------" << endl;
-  return cc/double(g.get_n_vertices());
+  return cummulator/double(adj_list.size());
 }
 
-// Tests whether the metric value of the real network (x) is greater than the
-// metric value for graph g
-bool test_hypothesis_with_bounds (const Graph &g, double x) {
-  double c_m = 0.0, lb, ub;
-  cerr << "Testing hypothesis with bounds...";
-  chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
-  for(size_t i=1; i <= g.get_n_vertices(); ++i) {
-    c_m += calculate_c_i(i, g);
-    lb = lower_bound(c_m, g.get_n_vertices());
-    if (lb >= x) {
-      cerr << i << endl;
-      cerr << "Null model lower bound (" << lb << ") greater than network metric value (" << x << ")." << endl;
-      chrono::high_resolution_clock::time_point t2 = chrono::high_resolution_clock::now();
-      chrono::duration<double> time_span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
-      cerr << "Elapsed calculation time: " << time_span.count() << " s" << endl;
-      cerr << "-----------------------------------------------" << endl;
-      return false;
-    }
-    ub = upper_bound(c_m, g.get_n_vertices(), i);
-    if (ub < x) {
-      cerr << i << endl;
-      cerr << "Null model upper bound (" << ub << ") smaller than network metric value (" << x << ")." << endl;
-      chrono::high_resolution_clock::time_point t2 = chrono::high_resolution_clock::now();
-      chrono::duration<double> time_span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
-      cerr << "Elapsed calculation time: " << time_span.count() << " s" << endl;
-      cerr << "-----------------------------------------------" << endl;
-      return true;
-    }
-  }
-    return false; // It should never reach this point
-}
-
-double Graph::closeness_centrality(optimize=false, double x=-1.0) {
-  int distances[adj_list.size()], visited[adj_list.size()], M=0;
-  fill_n(visited, adj_list.size(), 0);
-  double cummulator = 0.0, cumm_c_i;
-  vector<int> degree_oners;
-  cerr << "Calculating Mean Closeness Centrality...";
-  chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
-  for(size_t i=1; i <= adj_list.size(); ++i) {
-    if (!visited[i-1]) {
-      ++M;
-      cummulator += c_i(i, distances, optimize, degree_oners);
-      if (optimize && degree_oners.size() > 0) {
-        cumm_c_i=0;
-        for (size_t j=0; j < adj_list.size(); ++j)
-          if(distances[j] > 0) cumm_c_i += 1/float(distances[j]+1)
-        for(int j : degree_oners)
-          visited[j-1] = 1;
-        cummulator += degree_oners.size()*cumm_c_i/double(adj_list.size()-1);
-        M += degree_oners.size();
-      }
-
-      visited[i-1] = 1;
-
-    }
-
-
-  }
-
-}
-
-double Graph::c_i(int id, int* distances, bool optimize=false, vector<int> &degree_oners) {
-  fill_n(distances, adj_list.size(), -1);   // Tight coupling: Requires the array to be of the right size
-  degree_oners.clear();                     // Clear the degree-oners vector
-  int cur_vx;
+double Graph::c_i(int id, bool pruning, double* cumm_c_i_1) {
+  int cur_vx, distances[adj_list.size()];
+  fill_n(distances, adj_list.size(), -1);
   double cummulator = 0.0;
   queue<int> frontier_vx;
 
   frontier_vx.push(id);   // Push the starting node into the queue
   distances[id-1] = 0;    // Set the initial distance to 0
+  *cumm_c_i_1 = 0;        // Initialize the +1 dist cummulator to 0
   while(!frontier_vx.empty()) {
     cur_vx = frontier_vx.front();   // Get the first element in the queue
     frontier_vx.pop();                  // Pop it
-    if (optimize && adj_list[current_vx-1].size() == 1) degree_oners.push_back(cur_vx);
-    for (int vx : adj_list[current_vx-1]) {
+    for (int vx : adj_list[cur_vx-1]) {
       if(distances[vx-1] < 0) {
         frontier_vx.push(vx);
-        distances[vx-1] = distances[current_vx-1]+1;
+        distances[vx-1] = distances[cur_vx-1]+1;
         cummulator += 1/double(distances[vx-1]);
+        if (pruning) *cumm_c_i_1 += 1/double(distances[vx-1] + 1);
       }
     }
   }
-  return c_i/double(adj_list.size()-1);
+  // Add 1 to account for the distance to vertex i and substract 0.5 for the neighbour
+  if (pruning) *cumm_c_i_1 = (*cumm_c_i_1 + 0.5)/double(adj_list.size()-1);
+  return cummulator/double(adj_list.size()-1);
 }
 
 // Auxiliary function to tokenize a string to facilitate parsing.
@@ -373,8 +349,8 @@ int read_graph_from_file(const string &path, Graph &g) {
   cerr << "Graph succesfully read!" << endl;
   cerr << " - Vertices succesfully read: " << g.get_n_vertices() << endl;
   cerr << " - Edges succesfully read: " << g.get_n_edges() << endl;
-  cerr << " - Loops ommited: " << loops << endl;
-  cerr << " - Duplicate edges ommited: " << multiedges << endl;
+  cerr << " - Loops omitted: " << loops << endl;
+  cerr << " - Duplicate edges omitted: " << multiedges << endl;
   cerr << "***********************************************" << endl << endl;
   return 0;
 }
