@@ -9,22 +9,95 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+% Possible solutions for heteroscedasticity: work on smoothed versions of the data: eg. average all points for a value x and work on that
+
+% plot everything to be plotted
+% Check soundness by generating perfect synthetic data and checking the fit against it. R doesnt like perfect function, some error must be added to the actual data
+
+% replace d with a z score transformation of d
+% This transform could help to reduce noise in te data
+
 ## R Markdown
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
-summary(cars)
+```{r include=FALSE, echo=FALSE}
+# Load the igraph library and require the packages stats4 (mle) & VGAM (Riemman-zeta)
+require(igraph)
+require(knitr)      # This is needed for PDF making
+require('stats4')
+require('VGAM')
+require(kableExtra) # This is needed for nice tables from R
 ```
 
-## Including Plots
+```{r echo=FALSE}
+  # Read the list of languages from file
+filename_suffix <- "_dependency_tree_metrics.txt"
+language_list <- as.vector(read.table("data/language_list.txt", header = FALSE)$V1)
 
-You can also embed plots, for example:
+# Push the in-degree sequences and theh list of entries to the global scope
+dep_tree_cols <- c('n', 'k^2', 'd')
+dep_tree_metric_seqs <- lapply(language_list, function(x) data.frame(read.table(paste("data/", x, filename_suffix, sep=''), header = FALSE, col.names=dep_tree_cols)))
+```
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r, echo=FALSE}
+valid_k.2 <- lapply(dep_tree_metric_seqs, function(x) (4-(6/x$n) <= x$k.2) & (x$k.2 <= x$n-1))
+valid_d <- lapply(dep_tree_metric_seqs, function(x) (x$k.2*x$n/(8*(x$n-1)) + 1/2 <= x$d) & (x$d <= x$n-1))
+```
+
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+old.par <- par(mfrow=c(ceiling(length(dep_tree_metric_seqs)/3), 3))
+par(mar=c(4,4,2,2))
+for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
+  plot(x=dep_tree_metric_seqs[[i]]$n,
+       y=dep_tree_metric_seqs[[i]]$d,
+       main=language_list[[i]],
+       #log='xy',
+       xlab='# vertices',
+       ylab='mean dependency length',
+       col='blue')
+}
+```
+
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
+  plot(x=log(dep_tree_metric_seqs[[i]]$n),
+       y=log(dep_tree_metric_seqs[[i]]$d),
+       main=language_list[[i]],
+       #log='xy',
+       xlab='log(# vertices)',
+       ylab='log(mean dependency length)',
+       col='blue')
+}
+```
+
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
+  plot(x=log(dep_tree_metric_seqs[[i]]$n),
+       y=log(dep_tree_metric_seqs[[i]]$d),
+       main=language_list[[i]],
+       #log='xy',
+       xlab='log(# vertices)',
+       ylab='log(mean dependency length)',
+       col='blue')
+}
+```
+```
+
+```{r, echo=FALSE}
+summary_cols <- c('N', 'mean_n', 'sd_n', 'mean_d', 'sd_d')
+metric_stats <- lapply(dep_tree_metric_seqs, function(x) list(
+                    N=length(x),
+                    mean_n=mean(x$n),
+                    sd_n=sd(x$n),
+                    mean_d=mean(x$d),
+                    sd_d=sd(x$d)))
+
+summary_df <- data.frame(do.call(rbind, lapply(metric_stats, function(x) c(x$N, x$mean_n, x$sd_n, x$mean_d, x$sd_d))), row.names=language_list)
+kable(summary_df, 'latex', col.names=summary_cols, booktabs=T, linesep='', align='c', digits=4) %>%
+  kable_styling(latex_options="striped", full_width=F)
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

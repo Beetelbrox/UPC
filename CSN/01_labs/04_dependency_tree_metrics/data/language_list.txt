@@ -1,0 +1,10 @@
+Arabic
+English
+Basque
+Greek
+Catalan
+Hungarian
+Chinese
+Italian
+Czech
+Turkish
