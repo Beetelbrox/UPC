@@ -4,10 +4,27 @@ author: "Francisco Javier Jurado, Roger Pujol Torramorell"
 date: "October 29, 2019"
 output: pdf_document
 ---
+```{r, echo=FALSE}
+# Load and install necessary packages
+requiredPackages <- c("knitr", "rstudioapi", "kableExtra", "stats")
+
+for (pac in requiredPackages) {
+    if(!require(pac,  character.only=TRUE)){
+        install.packages(pac, repos="http://cran.rstudio.com")
+        library(pac,  character.only=TRUE)
+    } 
+}
+rm(pac)
+rm(requiredPackages)
+
+# set pwd to current directory, must load rstudioapi before.
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+```
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
 
 % Possible solutions for heteroscedasticity: work on smoothed versions of the data: eg. average all points for a value x and work on that
 
@@ -84,7 +101,6 @@ for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
        col='blue')
 }
 ```
-```
 
 ```{r, echo=FALSE}
 summary_cols <- c('N', 'mean_n', 'sd_n', 'mean_d', 'sd_d')
@@ -100,4 +116,44 @@ kable(summary_df, 'latex', col.names=summary_cols, booktabs=T, linesep='', align
   kable_styling(latex_options="striped", full_width=F)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r, echo=FALSE}
+model_ensemble <- function(hp) {
+  c(
+    # Model 1
+    function(n){ (n/2)^hp$b },
+
+    # Model 2
+    function (q) { (stats$N - stats$M)*log(1-q) - stats$N*log(q) },
+
+    # Zeta with gamma=2
+    function(lambda){ (n/2)^hp$b },
+
+    # Zeta
+    function(gamma) { stats$M_prime*gamma + stats$N*log(zeta(gamma)) },
+
+    # Right-truncated Zeta
+    function(gamma, k_max){ gamma*stats$M_prime + stats$N*log(H(gamma, k_max)) },
+
+    # Altmann function
+    function(gamma, delta, k_max) { gamma*stats$M_prime + delta*stats$M - stats$N*log( c_f(gamma, delta, k_max ) ) }
+  )
+}
+```
+```{r}
+dep_tree_metric_seqs[[1]]
+```
+```{r}
+lin_model  <- (lm(log(d)~log(n), dep_tree_metric_seqs[[3]]))
+coef(lin_model)
+```
+
+```{R}
+a_initial = 4
+b_initial = 4
+nonlinear_model <- nls(
+  d~a*n^b,
+  data=dep_tree_metric_seqs[[3]],
+  start=list(a=a_initial, b=b_initial),
+  trace=TRUE
+)
+```
