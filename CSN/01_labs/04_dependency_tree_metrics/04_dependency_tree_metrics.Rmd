@@ -30,6 +30,188 @@ require(knitr)      # This is needed for PDF making
 require('stats4')
 require('VGAM')
 require(kableExtra) # This is needed for nice tables from R
+
+#########################################################################################################
+# OPTIMIZER INPUTS DEFINITION
+# All inputs for a given distribution are aligned by index over the different structures
+#########################################################################################################
+
+# Define the arrays containing the names of the models, the parameter names and the amount of parameters of each function
+models <- c('Poisson', 'Geometric', 'Zeta_2', 'Zeta', 'Right-truncated Zeta', 'Altmann')
+params <- c("lambda", 'q', 'gamma_1', 'gamma_2', 'k_max', 'gamma', 'delta', 'k_max_2')
+num_params <- c(1, 1, 0, 1, 2, 3)
+
+# Function to calculate the Harmonic number and the c value
+H <- function(gamma, k_max) { sum(sapply(seq(from=1, to=k_max, by=1), function(k) k^(-gamma))) }
+c_f <- function(gamma, delta, k_max) { 1/sum(sapply(seq(from=1, to=k_max, by=1), function(k) (k^(-gamma))*exp(-delta*k))) }
+
+# List of probabiliy mass functions
+pmfs <- c(
+  # Displaced Poisson
+  function(k, lambda) { ((lambda^k)*exp(-lambda))/(factorial(k)*(1-exp(-lambda))) },
+
+  # Displaced geometric
+  function(k, q) { (1-q)^(k-1)*q },
+
+  # Zeta with gamma=2
+  function(k) { (k^(-2))/zeta(2) },
+
+  # Zeta
+  function(k, gamma) { (k^(-gamma))/zeta(gamma) },
+
+  # Right-truncated Zeta
+  function(k, gamma, k_max) { (k^(-gamma))/H(gamma, k_max) },
+
+  # Altmann
+  function(k, gamma, delta, k_max) { c_f(gamma, delta, k_max)*(k^(-gamma))*exp(-delta*k) }
+)
+
+# Function to generate a list of maximum likelihood given a set of sequence statistics
+generate_minus_log_likelihoods <- function(stats) {
+  c(
+    # Displaced Poisson
+    function(lambda){ stats$N*(lambda + log(1 - exp(-lambda))) + stats$C - stats$M*log(lambda) },
+
+    # Displaced Geometric
+    function (q) { (stats$N - stats$M)*log(1-q) - stats$N*log(q) },
+
+    # Zeta with gamma=2
+    function() { 2*stats$M_prime + stats$N*log((pi^2)/6) },
+
+    # Zeta
+    function(gamma) { stats$M_prime*gamma + stats$N*log(zeta(gamma)) },
+
+    # Right-truncated Zeta
+    function(gamma, k_max){ gamma*stats$M_prime + stats$N*log(H(gamma, k_max)) },
+
+    # Altmann function
+    function(gamma, delta, k_max) { gamma*stats$M_prime + delta*stats$M - stats$N*log( c_f(gamma, delta, k_max ) ) }
+  )
+}
+
+# List of functions to generate the starting values given a set of stats
+start_parameters <- c(
+  function(stats) { list( lambda=stats$M/stats$N ) },                  # Displaced Poisson
+  function(stats) { list( q=stats$N/stats$M ) },                       # Displaced Geometric
+  NA,                                                                  # Zeta w/ gamma=2
+  function(stats) { list( gamma=2 )},                                  # Zeta
+  function(stats) { list( gamma=2, k_max=stats$max )},                 # Right-truncated Zeta
+  function(stats) { list(gamma=2, delta=0.0000001, k_max=stats$max )}  # Altmann
+)
+
+# List of functions to generate the lower bound values given a set of stats
+lower_bounds <- c(
+  function(stats) { c(1.0000001) },
+  function(stats) { c(0.0000001) },
+  NA,
+  function(stats) { c(gamma=1.0000001) },
+  function(stats) { c(gamma=1.0000001, k_max=stats$max-0.0000001) }, # Substratc 1e-6 to get rid of the 'NaNs produced' issue
+  function(stats) { c(gamma=1.0000001, delta=0.0000001, k_max=stats$max-0.0000001) }
+)
+
+# List of functions to generate the upper bound values given a set of stats
+upper_bounds <- c(
+  function(stats) { NA },
+  function(stats) { c(0.9999999) },
+  NA,
+  function(stats) { NA },
+  function(stats) { c(NA, k_max=2*stats$max) }, # 2*max is a reasonably low bound
+  function(stats) { c(NA, 0.5, k_max=stats$max*2) }  # 0.5 makes the mle not crash
+)
+
+# Function to calculate the likelihoods given a set of statistics - This is functional and iterates over the set of distribution, so every input has
+# to be passed as a function depending on stats
+calculate_likelihoods <- function(stats) {
+  minus_log_likelihoods <- generate_minus_log_likelihoods(stats)
+  lapply(seq(from=1, to=length(models), by=1), function(i) {
+    if(num_params[i] > 0) {
+          mle(minus_log_likelihoods[[i]],
+              start = start_parameters[[i]](stats),
+              method = "L-BFGS-B",
+              lower = lower_bounds[[i]](stats),
+              upper = upper_bounds[[i]](stats)
+          )
+    }})
+}
+
+#########################################################################################################
+# FUNCTIONS
+#########################################################################################################
+
+# Function to calculate the AIC from an mle
+# calculated for some distribution
+calculate_AIC <- function(m2logL, K, N){
+  m2logL + 2*K*N/(N-K-1)
+}
+
+# Generate all the data structures that will go into the global scope and will be used to generate the tables and the plots
+generate_tables <- function(in_degree_sequences) {
+  # Iterates over the sequence distributions and generates the statistics for all of them
+  lang_stats <<- lapply(in_degree_sequences, function(x) list(
+                N=length(x),
+                M=sum(x),
+                max=max(x),
+                M_prime=sum(log(x)),
+                C=sum(sapply(seq(from=1, to=length(x), by=1), function(i) sum(sapply(seq(from=1, to=x[i], by=1), function(j) log(j)))))))
+
+  # Iterates over the sequence distributions and models and estimates the best parameters for all of them using the language statistics
+  # Returns: List of lists
+  coef_estimates <<- lapply(lang_stats, function(x) lapply(calculate_likelihoods(x), function(l) {attributes(summary(l))$coef[,1]}))
+
+  # Iterates over the sequence distributions and calculates the AICs from the minus log-likelihoods. It calculates them from scratch rather than pulling them
+  # out from the mle output to have an uniform interface and be able to use the function for the zeta with fixed gamma
+  AICs <<- lapply(seq(from=1, to=length(lang_stats), by=1), function(l) {
+    minus_log_likelihoods <- generate_minus_log_likelihoods(lang_stats[[l]])
+    unlist(lapply(seq(from=1, to=length(models), by=1), function(i) {
+      calculate_AIC(2*do.call(minus_log_likelihoods[[i]], as.list(coef_estimates[[l]][[i]])), num_params[i], lang_stats[[l]]$N)
+    }))
+  })
+}
+
+# Function to read the test data and run it throuh the pipeline
+run_test <- function() {
+  # Generate the file names
+  test_prefix_geom <- 'sample_of_geometric_with_parameter_'
+  test_prefix_zeta <- 'sample_of_zeta_with_parameter_'
+  test_geom_param_values <- c(0.05, 0.1, 0.2, 0.4, 0.8)
+  test_zeta_param_values <- c(2, 2.5, 3, 3.5) # Gamma 1.5 omitted as it is makes the mle crash
+  test_param_values <- c(test_geom_param_values, test_zeta_param_values)
+
+  # Generate arrays with distribution names to use them in tables
+  test_names_geom <- sapply(test_geom_param_values, function(x)
+    paste('Geometric [q = ', x,']', sep=''))
+  test_names_zeta <- sapply(test_zeta_param_values, function(x)
+    paste('Zeta [gamma = ', x,']', sep=''))
+  test_names <- c(test_names_geom, test_names_zeta)
+
+  test_filenames_geom <- sapply(test_geom_param_values,
+          function(x) paste('test/', test_prefix_geom, x, '.txt', sep=''))
+  test_filenames_zeta <- sapply(test_zeta_param_values,
+          function(x) paste('test/', test_prefix_zeta, x, '.txt', sep=''))
+  test_filenames <- c(test_filenames_geom, test_filenames_zeta)
+
+  # Push the in-degree sequences and theh list of entries to the global scope
+  in_degree_sequences <<- sapply(test_filenames, function(x) read.table(x, header=FALSE))
+  output_table_labels <<- test_names
+
+  generate_tables(in_degree_sequences)
+
+}
+
+# Function to read the real data and feed it to the pipeline
+run_real <- function() {
+  # Read the list of languages from file
+  languages = read.table("list.txt",
+                header = TRUE,
+                as.is = c("language","file")
+              )
+
+  # Push the in-degree sequences and theh list of entries to the global scope
+  in_degree_sequences <<- sapply(languages$file, function(x) read.table(x, header = FALSE))
+  output_table_labels <<- languages$language
+
+  generate_tables(in_degree_sequences)
+}
 ```
 
 ```{r echo=FALSE}
@@ -40,6 +222,20 @@ language_list <- as.vector(read.table("data/language_list.txt", header = FALSE)$
 # Push the in-degree sequences and theh list of entries to the global scope
 dep_tree_cols <- c('n', 'k^2', 'd')
 dep_tree_metric_seqs <- lapply(language_list, function(x) data.frame(read.table(paste("data/", x, filename_suffix, sep=''), header = FALSE, col.names=dep_tree_cols)))
+```
+
+```{r, echo=FALSE}
+summary_cols <- c('N', 'mean_n', 'sd_n', 'mean_d', 'sd_d')
+metric_stats <- lapply(dep_tree_metric_seqs, function(x) list(
+                    N=length(x),
+                    mean_n=mean(x$n),
+                    sd_n=sd(x$n),
+                    mean_d=mean(x$d),
+                    sd_d=sd(x$d)))
+
+summary_df <- data.frame(do.call(rbind, lapply(metric_stats, function(x) c(x$N, x$mean_n, x$sd_n, x$mean_d, x$sd_d))), row.names=language_list)
+kable(summary_df, 'latex', col.names=summary_cols, booktabs=T, linesep='', align='c', digits=4) %>%
+  kable_styling(latex_options="striped", full_width=F)
 ```
 
 ```{r, echo=FALSE}
@@ -75,8 +271,8 @@ for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
 
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
 for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
-  plot(x=log(dep_tree_metric_seqs[[i]]$n),
-       y=log(dep_tree_metric_seqs[[i]]$d),
+  plot(x=dep_tree_metric_seqs[[i]]$n,
+       y=dep_tree_metric_seqs[[i]]$d,
        main=language_list[[i]],
        #log='xy',
        xlab='log(# vertices)',
@@ -84,20 +280,58 @@ for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
        col='blue')
 }
 ```
-```
 
 ```{r, echo=FALSE}
-summary_cols <- c('N', 'mean_n', 'sd_n', 'mean_d', 'sd_d')
-metric_stats <- lapply(dep_tree_metric_seqs, function(x) list(
-                    N=length(x),
-                    mean_n=mean(x$n),
-                    sd_n=sd(x$n),
-                    mean_d=mean(x$d),
-                    sd_d=sd(x$d)))
+mean_seqs <- lapply(dep_tree_metric_seqs, function(x) aggregate(x, list(x$n), mean))
+```
 
-summary_df <- data.frame(do.call(rbind, lapply(metric_stats, function(x) c(x$N, x$mean_n, x$sd_n, x$mean_d, x$sd_d))), row.names=language_list)
-kable(summary_df, 'latex', col.names=summary_cols, booktabs=T, linesep='', align='c', digits=4) %>%
-  kable_styling(latex_options="striped", full_width=F)
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+old.par <- par(mfrow=c(ceiling(length(mean_seqs)/3), 3))
+par(mar=c(4,4,2,2))
+for (i in seq(from=1, to=length(mean_seqs), by=1)) {
+  plot(x=mean_seqs[[i]]$n,
+       y=mean_seqs[[i]]$d,
+       main=language_list[[i]],
+       #log='xy',
+       xlab='# vertices',
+       ylab='mean (d)',
+       col='blue')
+}
+```
+
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+old.par <- par(mfrow=c(ceiling(length(mean_seqs)/3), 3))
+par(mar=c(4,4,2,2))
+for (i in seq(from=1, to=length(mean_seqs), by=1)) {
+  plot(x=mean_seqs[[i]]$n,
+       y=mean_seqs[[i]]$d,
+       main=language_list[[i]],
+       log='xy',
+       xlab='# vertices',
+       ylab='mean (d)',
+       col='blue')
+}
+```
+
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+old.par <- par(mfrow=c(ceiling(length(dep_tree_metric_seqs)/3), 3))
+par(mar=c(4,4,2,2))
+for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
+  plot(x=dep_tree_metric_seqs[[i]]$n,
+       y=dep_tree_metric_seqs[[i]]$d,
+       main=language_list[[i]],
+       log='xy',
+       xlab='# vertices',
+       ylab='mean dependency length',
+       col='blue')
+  
+  lines(x=mean_seqs[[i]]$n,
+        y=mean_seqs[[i]]$d,
+        col="green")
+  lines(x=mean_seqs[[i]]$n,
+        y=(mean_seqs[[i]]$d+1)/3,
+        col="red")
+}
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
