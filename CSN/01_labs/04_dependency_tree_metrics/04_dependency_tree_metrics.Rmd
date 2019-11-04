@@ -4,6 +4,11 @@ author: "Francisco Javier Jurado, Roger Pujol Torramorell"
 date: "October 29, 2019"
 output: pdf_document
 ---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
 ```{r, echo=FALSE}
 # Load and install necessary packages
 requiredPackages <- c("knitr", "rstudioapi", "kableExtra", "stats")
@@ -21,11 +26,6 @@ rm(requiredPackages)
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 ```
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-
 % Possible solutions for heteroscedasticity: work on smoothed versions of the data: eg. average all points for a value x and work on that
 
 % plot everything to be plotted
@@ -39,15 +39,6 @@ knitr::opts_chunk$set(echo = TRUE)
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r include=FALSE, echo=FALSE}
-# Load the igraph library and require the packages stats4 (mle) & VGAM (Riemman-zeta)
-require(igraph)
-require(knitr)      # This is needed for PDF making
-require('stats4')
-require('VGAM')
-require(kableExtra) # This is needed for nice tables from R
-```
 
 ```{r echo=FALSE}
   # Read the list of languages from file
@@ -79,6 +70,8 @@ for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
 ```
 
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
+old.par <- par(mfrow=c(ceiling(length(dep_tree_metric_seqs)/3), 3))
+par(mar=c(4,4,2,2))
 for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
   plot(x=log(dep_tree_metric_seqs[[i]]$n),
        y=log(dep_tree_metric_seqs[[i]]$d),
@@ -91,6 +84,8 @@ for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
 ```
 
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
+old.par <- par(mfrow=c(ceiling(length(dep_tree_metric_seqs)/3), 3))
+par(mar=c(4,4,2,2))
 for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
   plot(x=log(dep_tree_metric_seqs[[i]]$n),
        y=log(dep_tree_metric_seqs[[i]]$d),
@@ -117,10 +112,78 @@ kable(summary_df, 'latex', col.names=summary_cols, booktabs=T, linesep='', align
 ```
 
 ```{r, echo=FALSE}
-model_ensemble <- function(hp) {
+
+# Model parameters list
+params_ensemble <- list(
+  c('b'),       # Model 1
+  c('a', 'b'),  # Model 2
+  c('a','c'),   # Model 3
+  c('a')        # Model 4
+)
+
+# Model formulas list
+formula_ensemble <- c(
+  d~(n/2)^b,     # Model 1
+  d~a*n^b,       # Model 2
+  d~a*exp(c*n),  # Model 3
+  d~a*log(n)     # Model 4
+)
+
+# Log transform of the model formulas list
+log_formulas <- c (
+  log(d)~log(n/2) + 0, # Model 1
+  log(d)~log(n),   # Model 2
+  log(d)~n,        # Model 3
+  log(d)~1*log(log(n)) # Model 4
+)
+```
+
+```{r}
+lapply(mapply(list, log_formulas, params_ensemble, SIMPLIFY = FALSE)[[1]]
+```
+
+```{r, echo=FALSE}
+# Outer loop to iterate over the sequences
+lapply(dep_tree_metric_seqs, function(seq) {
+  # Inner loop 1 to iterate over the formulas
+  coefficients <- lapply (seq(from=1, to=length(log_formulas), by=1), function(i)
+    # Inner loop 2 to operate over the parameters
+    lapply (seq(from=1, to=length(params_ensemble[[i]]), by=1), function(j) 
+    lapply(structure(coef(lm(log_formulas[[i]], seq)),function(x)
+              names=params_ensemble[[i]]))
+  initial_values <- sapply(coefficients, function (coef) 1, USE.NAMES=TRUE, simplify=FALSE)
+  #initial_values <- lapply(seq(from=1, to=length(log_formulas), by=1), function (i) 
+  #  structure(coef(lm(log_formulas[[i]], seq)), names=params_ensemble[[i]])
+  #)
+  #lapply(initial_values, function(x) x["a"] = exp(x["a"]))
+})
+
+```
+
+```{r, echo=FALSE}
+
+
+gen_nlm <- function (frm, ds, initial_values) { nls(
+  formula=d~frm,
+  data=ds,
+  start=initial_values,
+  trace=TRUE
+)}
+
+gen_initial_values_lm <- function(frm, ds) { lm(
+  log(d)
+)}
+
+model_ensemble <- function(ds) {
   c(
     # Model 1
-    function(n){ (n/2)^hp$b },
+    generate_nlm (ds, )
+    function(ds, initial_values){ nls(
+                  formula=d~a*n^b,
+                  data=ds,
+                  start=initial_values,
+                  trace=TRUE
+                  )},
 
     # Model 2
     function (q) { (stats$N - stats$M)*log(1-q) - stats$N*log(q) },
@@ -143,8 +206,9 @@ model_ensemble <- function(hp) {
 dep_tree_metric_seqs[[1]]
 ```
 ```{r}
-lin_model  <- (lm(log(d)~log(n), dep_tree_metric_seqs[[3]]))
-coef(lin_model)
+lin_model  <- (lm(log(d)~ 0+ log(n/2), dep_tree_metric_seqs[[3]]))
+coef(lin_model)[[1]]
+coef(nls(d~(n/2)^b, data=dep_tree_metric_seqs[[3]], start=list(b=coef(lin_model)[[1]]), trace=TRUE))[[1]]
 ```
 
 ```{R}
