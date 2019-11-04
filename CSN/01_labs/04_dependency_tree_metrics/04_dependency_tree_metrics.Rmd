@@ -164,8 +164,6 @@ for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
         col="red")
 }
 ```
-=======
->>>>>>> 2f5a7f0fc75a40bafb097dd0fd8f5c1aead6dc73
 
 ```{r, echo=FALSE}
 
@@ -194,62 +192,30 @@ log_formulas <- c (
 )
 ```
 
-```{r}
-lapply(mapply(list, log_formulas, params_ensemble, SIMPLIFY = FALSE)[[1]]
-```
-
 ```{r, echo=FALSE}
 # Outer loop to iterate over the sequences
-lapply(dep_tree_metric_seqs, function(seq) {
+initial_values <- lapply( dep_tree_metric_seqs, function(seq) {
   # Inner loop 1 to iterate over the formulas
-  coefficients <- lapply (seq(from=1, to=length(log_formulas), by=1), function(i)
-    # Inner loop 2 to operate over the parameters
-    lapply (seq(from=1, to=length(params_ensemble[[i]]), by=1), function(j)
-    lapply(structure(coef(lm(log_formulas[[i]], seq)),function(x)
-              names=params_ensemble[[i]]))
-  initial_values <- sapply(coefficients, function (coef) 1, USE.NAMES=TRUE, simplify=FALSE)
-  #initial_values <- lapply(seq(from=1, to=length(log_formulas), by=1), function (i)
-  #  structure(coef(lm(log_formulas[[i]], seq)), names=params_ensemble[[i]])
-  #)
-  #lapply(initial_values, function(x) x["a"] = exp(x["a"]))
+  lapply( seq(from=1, to=length(log_formulas), by=1), function(i) {
+    lm <- lm(log_formulas[[i]], seq)
+    # Inner loop 2 to iterate over the parameters of each model
+    structure(sapply( seq(from=1, to=length(params_ensemble[[i]]), by=1), function(j)
+      # Check if the parameter corresponds to "a", if so reverse the log transform by exponentiating it
+      if(params_ensemble[[i]][[j]] == 'a') exp(coef(lm)[[j]]) else coef(lm)[[j]]), names=params_ensemble[[i]])
+  })
 })
-
+data.frame(do.call(rbind, initial_values))
 ```
 
-```{r, echo=FALSE}
-
-
-gen_nlm <- function (frm, ds, initial_values) { nls(
-  formula=d~frm,
-  data=ds,
-  start=initial_values,
-  trace=TRUE
-)}
-
-gen_initial_values_lm <- function(frm, ds) { lm(
-  log(d)
-)}
-
-model_ensemble <- function(ds) {
-  c(
-    # Model 1
-    generate_nlm (ds, )
-    function(ds, initial_values){ nls(
-                  formula=d~a*n^b,
-                  data=ds,
-                  start=initial_values,
-                  trace=TRUE
-                  )},
-
-    # Model 2
-    function >>>>>>> 2f5a7f0fc75a40bafb097dd0fd8f5c1aead6dc73
-```{R}
-a_initial = 4
-b_initial = 4
-nonlinear_model <- nls(
-  d~a*n^b,
-  data=dep_tree_metric_seqs[[3]],
-  start=list(a=a_initial, b=b_initial),
-  trace=TRUE
-)
+```{r}
+nl_models <- lapply( seq(from=1, to=length(dep_tree_metric_seqs), by=1), function(i) {
+  lapply( seq(from=1, to=length(formula_ensemble), by=1), function(j) {
+    nlm <- nls(
+      formula=formula_ensemble[[j]],
+      data=dep_tree_metric_seqs[[i]],
+      start=initial_values[[i]][[j]],
+      trace=FALSE
+    )
+  })
+})
 ```
