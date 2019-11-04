@@ -110,6 +110,7 @@ for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
        col='blue')
 }
 ```
+<<<<<<< HEAD
 
 ```{r, echo=FALSE}
 mean_seqs <- lapply(dep_tree_metric_seqs, function(x) aggregate(x, list(x$n), mean))
@@ -163,6 +164,8 @@ for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
         col="red")
 }
 ```
+=======
+>>>>>>> 2f5a7f0fc75a40bafb097dd0fd8f5c1aead6dc73
 
 ```{r, echo=FALSE}
 
@@ -239,31 +242,7 @@ model_ensemble <- function(ds) {
                   )},
 
     # Model 2
-    function (q) { (stats$N - stats$M)*log(1-q) - stats$N*log(q) },
-
-    # Zeta with gamma=2
-    function(lambda){ (n/2)^hp$b },
-
-    # Zeta
-    function(gamma) { stats$M_prime*gamma + stats$N*log(zeta(gamma)) },
-
-    # Right-truncated Zeta
-    function(gamma, k_max){ gamma*stats$M_prime + stats$N*log(H(gamma, k_max)) },
-
-    # Altmann function
-    function(gamma, delta, k_max) { gamma*stats$M_prime + delta*stats$M - stats$N*log( c_f(gamma, delta, k_max ) ) }
-  )
-}
-```
-```{r}
-dep_tree_metric_seqs[[1]]
-```
-```{r}
-lin_model  <- (lm(log(d)~ 0+ log(n/2), dep_tree_metric_seqs[[3]]))
-coef(lin_model)[[1]]
-coef(nls(d~(n/2)^b, data=dep_tree_metric_seqs[[3]], start=list(b=coef(lin_model)[[1]]), trace=TRUE))[[1]]
-```
-
+    function >>>>>>> 2f5a7f0fc75a40bafb097dd0fd8f5c1aead6dc73
 ```{R}
 a_initial = 4
 b_initial = 4
