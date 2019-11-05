@@ -26,21 +26,18 @@ rm(requiredPackages)
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 ```
 
-% Possible solutions for heteroscedasticity: work on smoothed versions of the data: eg. average all points for a value x and work on that
+```{r, echo=FALSE,include=FALSE}
+# Possible solutions for heteroscedasticity: work on smoothed versions of the data: eg. average all points for a value x and work on that
 
-% plot everything to be plotted
-% Check soundness by generating perfect synthetic data and checking the fit against it. R doesnt like perfect function, some error must be added to the actual data
+# plot everything to be plotted
+# Check soundness by generating perfect synthetic data and checking the fit against it. R doesnt like perfect function, some error must be added to the actual data
 
-% replace d with a z score transformation of d
-% This transform could help to reduce noise in te data
+# replace d with a z score transformation of d
+# This transform could help to reduce noise in te data
 
-## R Markdown
+```
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r echo=FALSE}
+```{r, echo=FALSE}
   # Read the list of languages from file
 filename_suffix <- "_dependency_tree_metrics.txt"
 language_list <- as.vector(read.table("data/language_list.txt", header = FALSE)$V1)
@@ -48,8 +45,18 @@ language_list <- as.vector(read.table("data/language_list.txt", header = FALSE)$
 # Push the in-degree sequences and theh list of entries to the global scope
 dep_tree_cols <- c('n', 'k^2', 'd')
 dep_tree_metric_seqs <- lapply(language_list, function(x) data.frame(read.table(paste("data/", x, filename_suffix, sep=''), header = FALSE, col.names=dep_tree_cols)))
+
+avg_seqs <- lapply(dep_tree_metric_seqs, function(x) aggregate(x, list(x$n), mean))
 ```
 
+# Results
+## On the validity of the inputs
+```{r, echo=FALSE}
+valid_k.2 <- lapply(dep_tree_metric_seqs, function(x) (4-(6/x$n) <= x$k.2) & (x$k.2 <= x$n-1))
+valid_d <- lapply(dep_tree_metric_seqs, function(x) (x$k.2*x$n/(8*(x$n-1)) + 1/2 <= x$d) & (x$d <= x$n-1))
+```
+## Results
+The first table in this results section summarizes the properties of the degree sequences, in particular the sample size and the mean and standard deviation of both the number of vertices $n$ and the mean dependency length $d$: 
 ```{r, echo=FALSE}
 summary_cols <- c('N', 'mean_n', 'sd_n', 'mean_d', 'sd_d')
 metric_stats <- lapply(dep_tree_metric_seqs, function(x) list(
@@ -63,12 +70,8 @@ summary_df <- data.frame(do.call(rbind, lapply(metric_stats, function(x) c(x$N, 
 kable(summary_df, 'latex', col.names=summary_cols, booktabs=T, linesep='', align='c', digits=4) %>%
   kable_styling(latex_options="striped", full_width=F)
 ```
-
-```{r, echo=FALSE}
-valid_k.2 <- lapply(dep_tree_metric_seqs, function(x) (4-(6/x$n) <= x$k.2) & (x$k.2 <= x$n-1))
-valid_d <- lapply(dep_tree_metric_seqs, function(x) (x$k.2*x$n/(8*(x$n-1)) + 1/2 <= x$d) & (x$d <= x$n-1))
-```
-
+TODO: COMMENT THE TABLE
+Before going any further it is a good practice to check what the data looks like so let's plot the mean depencency length $d$ vs the number of vertices $n$:
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
 old.par <- par(mfrow=c(ceiling(length(dep_tree_metric_seqs)/3), 3))
 par(mar=c(4,4,2,2))
@@ -82,21 +85,55 @@ for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
        col='blue')
 }
 ```
-
+We would like to check for any possible power-law dependencies and we can do so by plotting data taking logs on both axes:
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
 old.par <- par(mfrow=c(ceiling(length(dep_tree_metric_seqs)/3), 3))
 par(mar=c(4,4,2,2))
 for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
-  plot(x=log(dep_tree_metric_seqs[[i]]$n),
-       y=log(dep_tree_metric_seqs[[i]]$d),
+  plot(x=dep_tree_metric_seqs[[i]]$n,
+       y=dep_tree_metric_seqs[[i]]$d,
        main=language_list[[i]],
-       #log='xy',
+       log='xy',
        xlab='log(# vertices)',
        ylab='log(mean dependency length)',
        col='blue')
 }
 ```
+Note that rather than applying the log to the data itself we have set the plot axes to logarithmic, distributing the ticks in a log fashion. We can now observe that the plots suggest a power-law despite the large amount of dispersion.
 
+A way to deal with this dispersion and get a clearer intuition on the underlying trend is to average the mean length for a given number of vertices:
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+old.par <- par(mfrow=c(ceiling(length(dep_tree_metric_seqs)/3), 3))
+par(mar=c(4,4,2,2))
+
+for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
+  plot(x=avg_seqs[[i]]$n,
+       y=avg_seqs[[i]]$d,
+       main=language_list[[i]],
+       #log='xy',
+       xlab='# vertices',
+       ylab='avg mean dependency length',
+       col='blue')
+}
+```
+Although there is stil a significant amount of dispersion for larger values of $n$, we have a way clearer view of the distribution shape. By plotting the same averaged points on log-log axes:
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+old.par <- par(mfrow=c(ceiling(length(dep_tree_metric_seqs)/3), 3))
+par(mar=c(4,4,2,2))
+
+for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
+  plot(x=avg_seqs[[i]]$n,
+       y=avg_seqs[[i]]$d,
+       main=language_list[[i]],
+       log='xy',
+       xlab='log(# vertices)',
+       ylab='log(avg mean dependency length)',
+       col='blue')
+}
+```
+The data points form an almost straight line in the log-log plot (again with dispersion when $n$ gets large) so we have reasonable evidence to believe they follow a power-law distribution.  
+
+We now want to compare how far the real scaling of $d$ is from the one existing at a random linear arrangement. For that purpose we can compare the points to the averaged ones and the expected mean length, given by $E[\langle d \rangle] = (n+1)/3$. Plotting that in a regular and double logarithmic scale:
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
 old.par <- par(mfrow=c(ceiling(length(dep_tree_metric_seqs)/3), 3))
 par(mar=c(4,4,2,2))
@@ -107,61 +144,45 @@ for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
        #log='xy',
        xlab='log(# vertices)',
        ylab='log(mean dependency length)',
-       col='blue')
-}
-```
-<<<<<<< HEAD
-
-```{r, echo=FALSE}
-mean_seqs <- lapply(dep_tree_metric_seqs, function(x) aggregate(x, list(x$n), mean))
-```
-
-```{r, echo=FALSE, fig.width=16, fig.height=18}
-old.par <- par(mfrow=c(ceiling(length(mean_seqs)/3), 3))
-par(mar=c(4,4,2,2))
-for (i in seq(from=1, to=length(mean_seqs), by=1)) {
-  plot(x=mean_seqs[[i]]$n,
-       y=mean_seqs[[i]]$d,
-       main=language_list[[i]],
-       #log='xy',
-       xlab='# vertices',
-       ylab='mean (d)',
-       col='blue')
-}
-```
-
-```{r, echo=FALSE, fig.width=16, fig.height=18}
-old.par <- par(mfrow=c(ceiling(length(mean_seqs)/3), 3))
-par(mar=c(4,4,2,2))
-for (i in seq(from=1, to=length(mean_seqs), by=1)) {
-  plot(x=mean_seqs[[i]]$n,
-       y=mean_seqs[[i]]$d,
-       main=language_list[[i]],
-       log='xy',
-       xlab='# vertices',
-       ylab='mean (d)',
-       col='blue')
-}
-```
-
-```{r, echo=FALSE, fig.width=16, fig.height=18}
-old.par <- par(mfrow=c(ceiling(length(dep_tree_metric_seqs)/3), 3))
-par(mar=c(4,4,2,2))
-for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
-  plot(x=dep_tree_metric_seqs[[i]]$n,
-       y=dep_tree_metric_seqs[[i]]$d,
-       main=language_list[[i]],
-       log='xy',
-       xlab='# vertices',
-       ylab='mean dependency length',
-       col='blue')
-
-  lines(x=mean_seqs[[i]]$n,
-        y=mean_seqs[[i]]$d,
-        col="green")
-  lines(x=mean_seqs[[i]]$n,
-        y=(mean_seqs[[i]]$d+1)/3,
+       col='light blue')
+  # Add the average sequence values
+  lines(x=avg_seqs[[i]]$n,
+        y=avg_seqs[[i]]$d,
+        col="blue")
+  
+  # Add the expected mean length
+  lines(x=avg_seqs[[i]]$n,
+        y=(avg_seqs[[i]]$n+1)/3,
         col="red")
+  
+  legend("topleft", legend=c("Avg mean length", "Expected mean length"),
+     col=c('blue', 'red'), lty=3, pch=1, cex=1.4)
+}
+```
+
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+old.par <- par(mfrow=c(ceiling(length(dep_tree_metric_seqs)/3), 3))
+par(mar=c(4,4,2,2))
+for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
+  plot(x=dep_tree_metric_seqs[[i]]$n,
+       y=dep_tree_metric_seqs[[i]]$d,
+       main=language_list[[i]],
+       log='xy',
+       xlab='log(# vertices)',
+       ylab='log(mean dependency length)',
+       col='light blue')
+  # Add the average sequence values
+  lines(x=avg_seqs[[i]]$n,
+        y=avg_seqs[[i]]$d,
+        col="blue")
+  
+  # Add the expected mean length
+  lines(x=avg_seqs[[i]]$n,
+        y=(avg_seqs[[i]]$n+1)/3,
+        col="red")
+  
+  legend("topleft", legend=c("Avg mean length", "Expected mean length"),
+     col=c('blue', 'red'), lty=3, pch=1, cex=1.4)
 }
 ```
 
@@ -204,7 +225,6 @@ initial_values <- lapply( dep_tree_metric_seqs, function(seq) {
       if(params_ensemble[[i]][[j]] == 'a') exp(coef(lm)[[j]]) else coef(lm)[[j]]), names=params_ensemble[[i]])
   })
 })
-data.frame(do.call(rbind, initial_values))
 ```
 
 ```{r}
