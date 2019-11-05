@@ -187,6 +187,9 @@ for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
 ```
 
 ```{r, echo=FALSE}
+# List of model labels
+model_labels <- c("0", "1", "2", "3", "4" )
+
 # Model parameters list
 params_ensemble <- list(
   c(),          # Model 0
@@ -242,14 +245,21 @@ nl_models <- lapply( dep_tree_metric_seqs, function(seq) {
   })
 })
 ```
-```{r}
-table(dep_tree_metric_seqs[[1]]$n)
+
+```{r, echo=FALSE}
+#best_parameters <- lapply(as.numeric(which.min(sapply(nl_models, delta_AIC_df[i,]))
+best_params <- lapply(1:length(language_list), function(i) 
+  sapply(1:length(model_labels), function (j)
+    if (length(params_ensemble[[j]]) > 0) coef(nl_models[[i]][[j]]) else NA
+  )
+)
+best_params
 ```
 
 ```{r, echo=FALSE}
-# Generate s factor
-lapply( seq(from=1, to=length(dep_tree_metric_seqs), by=1), function(i) {
-  lapply( seq(from=1, to=length(nl_models[[i]]), by=1), function(j) {
+# Generate deviances
+model_deviances <- lapply( seq(from=1, to=length(dep_tree_metric_seqs), by=1), function(i) {
+  sapply( seq(from=1, to=length(nl_models[[i]]), by=1), function(j) {
     if ( length(params_ensemble[[j]]) > 0 ) {
       deviance(nl_models[[i]][[j]]) }
     else {
@@ -257,7 +267,27 @@ lapply( seq(from=1, to=length(dep_tree_metric_seqs), by=1), function(i) {
     }
   })
 })
+
+# Generate AICs
+AIC_deviances <- lapply( seq(from=1, to=length(dep_tree_metric_seqs), by=1), function(i) {
+  sapply( seq(from=1, to=length(nl_models[[i]]), by=1), function(j) {
+    if ( length(params_ensemble[[j]]) > 0 ) {
+      AIC(nl_models[[i]][[j]]) }
+    else {
+      n <- length(dep_tree_metric_seqs[[i]]$n)
+      n*log(2*pi) + n*log(model_deviances[[i]][[j]]/n) + n + 2
+    }
+  })
+})
+
+kable(data.frame(do.call(rbind, model_AICs), row.names = language_list),  col.names=model_labels, booktabs=T, linesep='', align='c', digits=2) %>%
+  kable_styling(latex_options="striped", full_width=F)
 ```
+```{r}
+best_model <- lapply(AIC_deviances, function(x) which.min(as.vector(x)))
+best_coefs <- lapply(1:length(language_list), function(i) best_params[[i]][[ as.numeric(best_model[i]) ]])
+```
+
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
 old.par <- par(mfrow=c(ceiling(length(dep_tree_metric_seqs)/3), 3))
 par(mar=c(4,4,2,2))
@@ -269,12 +299,13 @@ for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
        xlab='log(# vertices)',
        ylab='log(mean dependency length)',
        col='blue')
-
-  lines(x=dep_tree_metric_seqs[[i]]$n,
-        y=functions_ensemble[[1]]()(dep_tree_metric_seqs[[i]]$n),
+  
+  lines(x=avg_seqs[[i]]$n,
+        y=do.call (functions_ensemble[[ as.numeric(best_model[i]) ]], as.list(best_coefs[[i]]))(avg_seqs[[i]]$n),
         col="red"
   )
 }
+
 ```
 ```{r}
 list(dep_tree_metric_seqs[[i]]$n)
