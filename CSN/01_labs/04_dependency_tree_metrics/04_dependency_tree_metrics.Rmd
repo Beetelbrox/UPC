@@ -71,51 +71,6 @@ model_ensemble <- list(
 ```
 
 ```{r, echo=FALSE}
-# Single structure to store the whole ensemble so we can move it around easily
-
-  # List of model labels
-  "label"=c("0", "1", "2", "3", "4" ),
-
-  # Model parameters list
-  "params"=list(
-    c(),          # Model 0
-    c('b'),       # Model 1
-    c('a', 'b'),  # Model 2
-    c('a','c'),   # Model 3
-    c('a')        # Model 4
-  ),
-
-  # Model function generator lists
-  "f"=c(
-    function() {     function(n) n/3 + 1/3 },   # Model 0
-    function(b) {    function(n) (n/2)^b },     # Model 1
-    function(a, b) { function(n) a*n^b },       # Model 2
-    function(a, c) { function(n) a*exp(c*n) },  # Model 3
-    function(a) {    function(n) a*log(n) }     # Model 4
-  
-  ),
-  
-  # Model formulas list
-  "formula"=c(
-    NA,                     # Model 0
-    d~(n/2)^b,              # Model 1
-    d~a*n^b,                # Model 2
-    d~a*exp(c*n),           # Model 3
-    d~a*log(n)              # Model 4
-  ),
-
-# Log transform of the model formulas list
-  "log_formula"=c (
-    NA,                    # Model 0
-    log(d)~log(n/2) + 0,   # Model 1
-    log(d)~log(n),         # Model 2
-    log(d)~n,              # Model 3
-    log(d)~1*log(log(n))   # Model 4
-  )
-), "[[", i))  # Transpose the list so we can have one model per row
-```
-
-```{r, echo=FALSE}
 plot_grid <- function(data, labels, xlab, ylab, color="blue", lines=list(), line_colors=c(), log=FALSE) {
   old.par <- par(mfrow=c(ceiling(length(data)/3), 3))
   par(mar=c(4,4,2,2))
@@ -222,39 +177,59 @@ plot_grid(metric_seqs, language_list, 'log(# vertices)', 'log(avg mean dependenc
 plot_grid(metric_seqs, language_list, 'log(# vertices)', 'log(avg mean dependency length)', color="light blue", log=TRUE,
           lines=list(avg_seqs, lapply(avg_seqs, function(x) list("n"=x$n, "d"=(x$n+1)/3))), line_colors=c("blue", "red"))
 ```
+
 ```{r}
-nl_models <- lapply( metric_seqs, function(seq) {
-  # Inner loop 1 to iterate over the formulas
-  lapply(model_ensemble, function(model) {
-    if (length(model$params) > 0) {
-      
-    } else NA
+generate_nlms <- function(seqs, ensemble) {
+  lapply( seqs, function(seq) {
+    # Inner loop 1 to iterate over the formulas
+    lapply(ensemble, function(model) {
+      if (length(model$params) > 0) {
+        lm <- lm(model$log_formula, seq)
+        initial_values <- structure(lapply(1:length(model$params), function(i)
+          if (model$params[i] == "a") exp(coef(lm)[[i]]) else coef(lm)[[i]] ), names=model$params)
+        nls( formula=model$formula, data=seq, start=initial_values, trace=FALSE)
+      } else NA
+    })
   })
-})
+}
+
+calculate_deviances <- function(seqs, models) {
+  lapply (1:length(seqs), function(i) {
+    sapply(1:length(models[[i]]), function(j) {
+      if (!is.na(models[[i]][j])) { deviance(models[[i]][[j]]) }
+      else { sum( (seqs[[i]]$d - (seqs[[i]]$n+1)/3)^2) }
+    })
+  })
+}
+
+calculate_AICs <- function(seqs, models, devs) {
+  lapply (1:length(seqs), function(i) {
+    sapply(1:length(models[[i]]), function(j) {
+      if (!is.na(models[[i]][j])) { AIC(models[[i]][[j]]) }
+      else {
+        n <- length(seqs[[i]]$n)
+        n*log(2*pi) + n*log(devs[[i]][[j]]/n) + n + 2
+      }
+    })
+  })
+}
 ```
 
-```{r, echo=FALSE}
-# Outer loop to iterate over the sequences
+```{r}
 
-nl_models <- lapply( dep_tree_metric_seqs, function(seq) {
-  # Inner loop 1 to iterate over the formulas
-  lapply(model_ensemble, function(model) {
-    if (length(model$params) > 0) {
-      
-    }
-  })
-  lapply( seq(from=1, to=length(log_formulas), by=1), function(i) {
-    if ( length(params_ensemble[[i]]) > 0 ) {
-      lm <- lm(log_formulas[[i]], seq)
-      # Inner loop 2 to iterate over the parameters of each model
-      initial_values <- structure(sapply( seq(from=1, to=length(params_ensemble[[i]]), by=1), function(j)
-        # Check if the parameter corresponds to "a", if so reverse the log transform by exponentiating it
-        if(params_ensemble[[i]][[j]] == 'a') exp(coef(lm)[[j]]) else coef(lm)[[j]] ), names=params_ensemble[[i]] )
-      # Generate the non-linear model
-      nls( formula=formula_ensemble[[i]], data=seq, start=initial_values, trace=FALSE )
-    } else { NA }
-  })
-})
+nlms <- generate_nlms(seqs = avg_seqs, model_ensemble)
+deviances <- calculate_deviances(avg_seqs, nlms)
+AICs <- calculate_AICs(avg_seqs, nlms, deviances)
+
+kable(data.frame(do.call(rbind, AICs), row.names = language_list),  col.names=sapply(model_ensemble, function(x) x$label), booktabs=T, linesep='', align='c', digits=2) %>%
+  kable_styling(latex_options="striped", full_width=F)
+```
+
+
+```{r, echo=FALSE}
+best_params <- lapply(nlms, function(x) lapply(x, function(nlm) if(!is.na(nlm)[1]) coef(nlm) else NA))
+best_model <- lapply(AICs, function(x) which.min(as.vector(x)))
+best_coefs <- lapply(1:length(language_list), function(i) best_params[[i]][[ as.numeric(best_model[i]) ]])
 ```
 
 ```{r, echo=FALSE}
@@ -293,25 +268,23 @@ model_AICs <- lapply( seq(from=1, to=length(dep_tree_metric_seqs), by=1), functi
 kable(data.frame(do.call(rbind, model_AICs), row.names = language_list),  col.names=model_labels, booktabs=T, linesep='', align='c', digits=2) %>%
   kable_styling(latex_options="striped", full_width=F)
 ```
-```{r, echo=FALSE}
-best_model <- lapply(model_AICs, function(x) which.min(as.vector(x)))
-best_coefs <- lapply(1:length(language_list), function(i) best_params[[i]][[ as.numeric(best_model[i]) ]])
+```{r}
+list(best_coefs[[1]])[[1]]["c"]
 ```
 
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
-old.par <- par(mfrow=c(ceiling(length(dep_tree_metric_seqs)/3), 3))
+old.par <- par(mfrow=c(ceiling(length(metric_seqs)/3), 3))
 par(mar=c(4,4,2,2))
-for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
-  plot(x=dep_tree_metric_seqs[[i]]$n,
-       y=dep_tree_metric_seqs[[i]]$d,
+for (i in seq(from=1, to=length(metric_seqs), by=1)) {
+  plot(x=metric_seqs[[i]]$n,
+       y=metric_seqs[[i]]$d,
        main=language_list[[i]],
        #log='xy',
        xlab='log(# vertices)',
        ylab='log(mean dependency length)',
        col='blue')
-  
   lines(x=avg_seqs[[i]]$n,
-        y=do.call (functions_ensemble[[ as.numeric(best_model[i]) ]], as.list(best_coefs[[i]]))(avg_seqs[[i]]$n),
+        y=do.call (model_ensemble[[ as.numeric(best_model[i]) ]]$f, as.list(best_coefs[[i]]))(avg_seqs[[i]]$n),
         col="red"
   )
   
@@ -324,19 +297,18 @@ for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
 ```
 
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
-old.par <- par(mfrow=c(ceiling(length(dep_tree_metric_seqs)/3), 3))
+old.par <- par(mfrow=c(ceiling(length(metric_seqs)/3), 3))
 par(mar=c(4,4,2,2))
-for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
-  plot(x=dep_tree_metric_seqs[[i]]$n,
-       y=dep_tree_metric_seqs[[i]]$d,
+for (i in seq(from=1, to=length(metric_seqs), by=1)) {
+  plot(x=metric_seqs[[i]]$n,
+       y=metric_seqs[[i]]$d,
        main=language_list[[i]],
        log='xy',
        xlab='log(# vertices)',
        ylab='log(mean dependency length)',
        col='blue')
-  
   lines(x=avg_seqs[[i]]$n,
-        y=do.call (functions_ensemble[[ as.numeric(best_model[i]) ]], as.list(best_coefs[[i]]))(avg_seqs[[i]]$n),
+        y=do.call (model_ensemble[[ as.numeric(best_model[i]) ]]$f, as.list(best_coefs[[i]]))(avg_seqs[[i]]$n),
         col="red"
   )
   
