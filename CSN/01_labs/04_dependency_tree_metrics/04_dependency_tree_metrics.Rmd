@@ -1,3 +1,8 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
  ---
 title: "Lab 04 - Non-linear regression on dependency trees"
 author: "Francisco Javier Jurado, Roger Pujol Torramorell"
@@ -22,9 +27,75 @@ for (pac in requiredPackages) {
 rm(pac)
 rm(requiredPackages)
 
-# set pwd to current directory, must load rstudioapi before.
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+# set pwd to current directory, must load rstudioapi before. Need to check availability of API to avoid issues when knitting
+if (rstudioapi::isAvailable()) setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
 ```
+
+```{r, echo=FALSE}
+# Single structure to store the whole ensemble so we can move it around easily
+model_ensemble = list(
+  # List of model labels
+  "labels"=c("0", "1", "2", "3", "4" ),
+
+  # Model parameters list
+  "params"=list(
+    c(),          # Model 0
+    c('b'),       # Model 1
+    c('a', 'b'),  # Model 2
+    c('a','c'),   # Model 3
+    c('a')        # Model 4
+  ),
+
+  # Model function generator lists
+  "functions"=c(
+    function() {     function(n) n/3 + 1/3 },   # Model 0
+    function(b) {    function(n) (n/2)^b },     # Model 1
+    function(a, b) { function(n) a*n^b },       # Model 2
+    function(a, c) { function(n) a*exp(c*n) },  # Model 3
+    function(a) {    function(n) a*log(n) }     # Model 4
+  
+  ),
+  
+  # Model formulas list
+  "formulas"=c(
+    NA,                     # Model 0
+    d~(n/2)^b,              # Model 1
+    d~a*n^b,                # Model 2
+    d~a*exp(c*n),           # Model 3
+    d~a*log(n)              # Model 4
+  ),
+
+# Log transform of the model formulas list
+  "log_formulas"=c (
+    NA,                    # Model 0
+    log(d)~log(n/2) + 0,   # Model 1
+    log(d)~log(n),         # Model 2
+    log(d)~n,              # Model 3
+    log(d)~1*log(log(n))   # Model 4
+  )
+)
+
+plot_grid <- function(data, labels, xlab, ylab, color="blue", lines=list(), line_colors=c(), log=FALSE) {
+  old.par <- par(mfrow=c(ceiling(length(data)/3), 3))
+  par(mar=c(4,4,2,2))
+  for (i in 1:length(data)) {
+    plot(x=data[[i]]$n,
+         y=data[[i]]$d,
+         main=labels[[i]],
+         log= if(log) "xy" else '',
+         xlab=xlab,
+         ylab=ylab,
+         col=color)
+    for (j in seq_along(lines)) {
+        lines(x=lines[[j]][[i]]$n,
+        y=lines[[j]][[i]]$d,
+        col=line_colors[[j]])
+    }
+  }
+}
+```
+
 
 ```{r, echo=FALSE,include=FALSE}
 # Possible solutions for heteroscedasticity: work on smoothed versions of the data: eg. average all points for a value x and work on that
@@ -44,9 +115,9 @@ language_list <- as.vector(read.table("data/language_list.txt", header = FALSE)$
 
 # Push the in-degree sequences and theh list of entries to the global scope
 dep_tree_cols <- c('n', 'k^2', 'd')
-dep_tree_metric_seqs <- lapply(language_list, function(x) data.frame(read.table(paste("data/", x, filename_suffix, sep=''), header = FALSE, col.names=dep_tree_cols)))
+metric_seqs <- lapply(language_list, function(x) data.frame(read.table(paste("data/", x, filename_suffix, sep=''), header = FALSE, col.names=dep_tree_cols)))
 
-avg_seqs <- lapply(dep_tree_metric_seqs, function(x) aggregate(x, list(x$n), mean))
+avg_seqs <- lapply(metric_seqs, function(x) aggregate(x, list(x$n), mean))
 ```
 
 # Results
@@ -71,161 +142,44 @@ kable(summary_df, 'latex', col.names=summary_cols, booktabs=T, linesep='', align
   kable_styling(latex_options="striped", full_width=F)
 ```
 TODO: COMMENT THE TABLE
+
+\newpage
 Before going any further it is a good practice to check what the data looks like so let's plot the mean depencency length $d$ vs the number of vertices $n$:
+
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
-old.par <- par(mfrow=c(ceiling(length(dep_tree_metric_seqs)/3), 3))
-par(mar=c(4,4,2,2))
-for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
-  plot(x=dep_tree_metric_seqs[[i]]$n,
-       y=dep_tree_metric_seqs[[i]]$d,
-       main=language_list[[i]],
-       #log='xy',
-       xlab='# vertices',
-       ylab='mean dependency length',
-       col='blue')
-}
+plot_grid(metric_seqs, language_list, '# vertices', 'mean dependency length')
 ```
+\newpage
 We would like to check for any possible power-law dependencies and we can do so by plotting data taking logs on both axes:
+
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
-old.par <- par(mfrow=c(ceiling(length(dep_tree_metric_seqs)/3), 3))
-par(mar=c(4,4,2,2))
-for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
-  plot(x=dep_tree_metric_seqs[[i]]$n,
-       y=dep_tree_metric_seqs[[i]]$d,
-       main=language_list[[i]],
-       log='xy',
-       xlab='log(# vertices)',
-       ylab='log(mean dependency length)',
-       col='blue')
-}
+plot_grid(metric_seqs, language_list, 'log(# vertices)', 'log(mean dependency length)', log=TRUE)
 ```
 Note that rather than applying the log to the data itself we have set the plot axes to logarithmic, distributing the ticks in a log fashion. We can now observe that the plots suggest a power-law despite the large amount of dispersion.
 
+\newpage
 A way to deal with this dispersion and get a clearer intuition on the underlying trend is to average the mean length for a given number of vertices:
-```{r, echo=FALSE, fig.width=16, fig.height=18}
-old.par <- par(mfrow=c(ceiling(length(dep_tree_metric_seqs)/3), 3))
-par(mar=c(4,4,2,2))
 
-for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
-  plot(x=avg_seqs[[i]]$n,
-       y=avg_seqs[[i]]$d,
-       main=language_list[[i]],
-       #log='xy',
-       xlab='# vertices',
-       ylab='avg mean dependency length',
-       col='blue')
-}
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+plot_grid(avg_seqs, language_list, '# vertices', 'avg mean dependency length')
 ```
 Although there is stil a significant amount of dispersion for larger values of $n$, we have a way clearer view of the distribution shape. By plotting the same averaged points on log-log axes:
-```{r, echo=FALSE, fig.width=16, fig.height=18}
-old.par <- par(mfrow=c(ceiling(length(dep_tree_metric_seqs)/3), 3))
-par(mar=c(4,4,2,2))
 
-for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
-  plot(x=avg_seqs[[i]]$n,
-       y=avg_seqs[[i]]$d,
-       main=language_list[[i]],
-       log='xy',
-       xlab='log(# vertices)',
-       ylab='log(avg mean dependency length)',
-       col='blue')
-}
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+plot_grid(avg_seqs, language_list, 'log(# vertices)', 'log(avg mean dependency length)', log=TRUE)
 ```
 The data points form an almost straight line in the log-log plot (again with dispersion when $n$ gets large) so we have reasonable evidence to believe they follow a power-law distribution.  
 
 We now want to compare how far the real scaling of $d$ is from the one existing at a random linear arrangement. For that purpose we can compare the points to the averaged ones and the expected mean length, given by $E[\langle d \rangle] = (n+1)/3$. Plotting that in a regular and double logarithmic scale:
+
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
-old.par <- par(mfrow=c(ceiling(length(dep_tree_metric_seqs)/3), 3))
-par(mar=c(4,4,2,2))
-for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
-  plot(x=dep_tree_metric_seqs[[i]]$n,
-       y=dep_tree_metric_seqs[[i]]$d,
-       main=language_list[[i]],
-       #log='xy',
-       xlab='log(# vertices)',
-       ylab='log(mean dependency length)',
-       col='light blue')
-  # Add the average sequence values
-  lines(x=avg_seqs[[i]]$n,
-        y=avg_seqs[[i]]$d,
-        col="blue")
-
-  # Add the expected mean length
-  lines(x=avg_seqs[[i]]$n,
-        y=(avg_seqs[[i]]$n+1)/3,
-        col="red")
-
-  legend("topleft", legend=c("Avg mean length", "Expected mean length"),
-     col=c('blue', 'red'), lty=3, pch=1, cex=1.4)
-}
+plot_grid(metric_seqs, language_list, 'log(# vertices)', 'log(avg mean dependency length)', color="light blue",
+          lines=list(avg_seqs, lapply(avg_seqs, function(x) list("n"=x$n, "d"=(x$n+1)/3))), line_colors=c("blue", "red"))
 ```
 
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
-old.par <- par(mfrow=c(ceiling(length(dep_tree_metric_seqs)/3), 3))
-par(mar=c(4,4,2,2))
-for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
-  plot(x=dep_tree_metric_seqs[[i]]$n,
-       y=dep_tree_metric_seqs[[i]]$d,
-       main=language_list[[i]],
-       log='xy',
-       xlab='log(# vertices)',
-       ylab='log(mean dependency length)',
-       col='light blue')
-  # Add the average sequence values
-  lines(x=avg_seqs[[i]]$n,
-        y=avg_seqs[[i]]$d,
-        col="blue")
-
-  # Add the expected mean length
-  lines(x=avg_seqs[[i]]$n,
-        y=(avg_seqs[[i]]$n+1)/3,
-        col="red")
-
-  legend("topleft", legend=c("Avg mean length", "Expected mean length"),
-     col=c('blue', 'red'), lty=3, pch=1, cex=1.4)
-}
-```
-
-```{r, echo=FALSE}
-# List of model labels
-model_labels <- c("0", "1", "2", "3", "4" )
-
-# Model parameters list
-params_ensemble <- list(
-  c(),          # Model 0
-  c('b'),       # Model 1
-  c('a', 'b'),  # Model 2
-  c('a','c'),   # Model 3
-  c('a')        # Model 4
-)
-
-# Model function generator lists
-functions_ensemble <- c(
-  function() {     function(n) n/3 + 1/3 },   # Model 0
-  function(b) {    function(n) (n/2)^b },     # Model 1
-  function(a, b) { function(n) a*n^b },       # Model 2
-  function(a, c) { function(n) a*exp(c*n) },  # Model 3
-  function(a) {    function(n) a*log(n) }     # Model 4
-
-)
-
-# Model formulas list
-formula_ensemble <- c(
-  NA,                     # Model 0
-  d~(n/2)^b,              # Model 1
-  d~a*n^b,                # Model 2
-  d~a*exp(c*n),           # Model 3
-  d~a*log(n)              # Model 4
-)
-
-# Log transform of the model formulas list
-log_formulas <- c (
-  NA,                    # Model 0
-  log(d)~log(n/2) + 0,   # Model 1
-  log(d)~log(n),         # Model 2
-  log(d)~n,              # Model 3
-  log(d)~1*log(log(n))   # Model 4
-)
+plot_grid(metric_seqs, language_list, 'log(# vertices)', 'log(avg mean dependency length)', color="light blue", log=TRUE,
+          lines=list(avg_seqs, lapply(avg_seqs, function(x) list("n"=x$n, "d"=(x$n+1)/3))), line_colors=c("blue", "red"))
 ```
 
 ```{r, echo=FALSE}
@@ -253,7 +207,6 @@ best_params <- lapply(1:length(language_list), function(i)
     if (length(params_ensemble[[j]]) > 0) coef(nl_models[[i]][[j]]) else NA
   )
 )
-best_params
 ```
 
 ```{r, echo=FALSE}
@@ -269,7 +222,7 @@ model_deviances <- lapply( seq(from=1, to=length(dep_tree_metric_seqs), by=1), f
 })
 
 # Generate AICs
-AIC_deviances <- lapply( seq(from=1, to=length(dep_tree_metric_seqs), by=1), function(i) {
+model_AICs <- lapply( seq(from=1, to=length(dep_tree_metric_seqs), by=1), function(i) {
   sapply( seq(from=1, to=length(nl_models[[i]]), by=1), function(j) {
     if ( length(params_ensemble[[j]]) > 0 ) {
       AIC(nl_models[[i]][[j]]) }
@@ -283,8 +236,8 @@ AIC_deviances <- lapply( seq(from=1, to=length(dep_tree_metric_seqs), by=1), fun
 kable(data.frame(do.call(rbind, model_AICs), row.names = language_list),  col.names=model_labels, booktabs=T, linesep='', align='c', digits=2) %>%
   kable_styling(latex_options="striped", full_width=F)
 ```
-```{r}
-best_model <- lapply(AIC_deviances, function(x) which.min(as.vector(x)))
+```{r, echo=FALSE}
+best_model <- lapply(model_AICs, function(x) which.min(as.vector(x)))
 best_coefs <- lapply(1:length(language_list), function(i) best_params[[i]][[ as.numeric(best_model[i]) ]])
 ```
 
@@ -304,9 +257,36 @@ for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
         y=do.call (functions_ensemble[[ as.numeric(best_model[i]) ]], as.list(best_coefs[[i]]))(avg_seqs[[i]]$n),
         col="red"
   )
+  
+    # Add the average sequence values
+  lines(x=avg_seqs[[i]]$n,
+        y=avg_seqs[[i]]$d,
+        col="green")
 }
 
 ```
-```{r}
-list(dep_tree_metric_seqs[[i]]$n)
+
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+old.par <- par(mfrow=c(ceiling(length(dep_tree_metric_seqs)/3), 3))
+par(mar=c(4,4,2,2))
+for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
+  plot(x=dep_tree_metric_seqs[[i]]$n,
+       y=dep_tree_metric_seqs[[i]]$d,
+       main=language_list[[i]],
+       log='xy',
+       xlab='log(# vertices)',
+       ylab='log(mean dependency length)',
+       col='blue')
+  
+  lines(x=avg_seqs[[i]]$n,
+        y=do.call (functions_ensemble[[ as.numeric(best_model[i]) ]], as.list(best_coefs[[i]]))(avg_seqs[[i]]$n),
+        col="red"
+  )
+  
+    # Add the average sequence values
+  lines(x=avg_seqs[[i]]$n,
+        y=avg_seqs[[i]]$d,
+        col="green")
+}
+
 ```
