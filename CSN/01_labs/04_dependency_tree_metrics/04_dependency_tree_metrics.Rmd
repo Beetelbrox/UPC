@@ -1,4 +1,4 @@
----
+ ---
 title: "Lab 04 - Non-linear regression on dependency trees"
 author: "Francisco Javier Jurado, Roger Pujol Torramorell"
 date: "October 29, 2019"
@@ -56,7 +56,7 @@ valid_k.2 <- lapply(dep_tree_metric_seqs, function(x) (4-(6/x$n) <= x$k.2) & (x$
 valid_d <- lapply(dep_tree_metric_seqs, function(x) (x$k.2*x$n/(8*(x$n-1)) + 1/2 <= x$d) & (x$d <= x$n-1))
 ```
 ## Results
-The first table in this results section summarizes the properties of the degree sequences, in particular the sample size and the mean and standard deviation of both the number of vertices $n$ and the mean dependency length $d$: 
+The first table in this results section summarizes the properties of the degree sequences, in particular the sample size and the mean and standard deviation of both the number of vertices $n$ and the mean dependency length $d$:
 ```{r, echo=FALSE}
 summary_cols <- c('N', 'mean_n', 'sd_n', 'mean_d', 'sd_d')
 metric_stats <- lapply(dep_tree_metric_seqs, function(x) list(
@@ -149,12 +149,12 @@ for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
   lines(x=avg_seqs[[i]]$n,
         y=avg_seqs[[i]]$d,
         col="blue")
-  
+
   # Add the expected mean length
   lines(x=avg_seqs[[i]]$n,
         y=(avg_seqs[[i]]$n+1)/3,
         col="red")
-  
+
   legend("topleft", legend=c("Avg mean length", "Expected mean length"),
      col=c('blue', 'red'), lty=3, pch=1, cex=1.4)
 }
@@ -175,67 +175,107 @@ for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
   lines(x=avg_seqs[[i]]$n,
         y=avg_seqs[[i]]$d,
         col="blue")
-  
+
   # Add the expected mean length
   lines(x=avg_seqs[[i]]$n,
         y=(avg_seqs[[i]]$n+1)/3,
         col="red")
-  
+
   legend("topleft", legend=c("Avg mean length", "Expected mean length"),
      col=c('blue', 'red'), lty=3, pch=1, cex=1.4)
 }
 ```
 
 ```{r, echo=FALSE}
-
 # Model parameters list
 params_ensemble <- list(
+  c(),          # Model 0
   c('b'),       # Model 1
   c('a', 'b'),  # Model 2
   c('a','c'),   # Model 3
   c('a')        # Model 4
 )
 
+# Model function generator lists
+functions_ensemble <- c(
+  function() {     function(n) n/3 + 1/3 },   # Model 0
+  function(b) {    function(n) (n/2)^b },     # Model 1
+  function(a, b) { function(n) a*n^b },       # Model 2
+  function(a, c) { function(n) a*exp(c*n) },  # Model 3
+  function(a) {    function(n) a*log(n) }     # Model 4
+
+)
+
 # Model formulas list
 formula_ensemble <- c(
-  d~(n/2)^b,     # Model 1
-  d~a*n^b,       # Model 2
-  d~a*exp(c*n),  # Model 3
-  d~a*log(n)     # Model 4
+  NA,                     # Model 0
+  d~(n/2)^b,              # Model 1
+  d~a*n^b,                # Model 2
+  d~a*exp(c*n),           # Model 3
+  d~a*log(n)              # Model 4
 )
 
 # Log transform of the model formulas list
 log_formulas <- c (
-  log(d)~log(n/2) + 0, # Model 1
-  log(d)~log(n),   # Model 2
-  log(d)~n,        # Model 3
-  log(d)~1*log(log(n)) # Model 4
+  NA,                    # Model 0
+  log(d)~log(n/2) + 0,   # Model 1
+  log(d)~log(n),         # Model 2
+  log(d)~n,              # Model 3
+  log(d)~1*log(log(n))   # Model 4
 )
 ```
 
 ```{r, echo=FALSE}
 # Outer loop to iterate over the sequences
-initial_values <- lapply( dep_tree_metric_seqs, function(seq) {
+nl_models <- lapply( dep_tree_metric_seqs, function(seq) {
   # Inner loop 1 to iterate over the formulas
   lapply( seq(from=1, to=length(log_formulas), by=1), function(i) {
-    lm <- lm(log_formulas[[i]], seq)
-    # Inner loop 2 to iterate over the parameters of each model
-    structure(sapply( seq(from=1, to=length(params_ensemble[[i]]), by=1), function(j)
-      # Check if the parameter corresponds to "a", if so reverse the log transform by exponentiating it
-      if(params_ensemble[[i]][[j]] == 'a') exp(coef(lm)[[j]]) else coef(lm)[[j]]), names=params_ensemble[[i]])
+    if ( length(params_ensemble[[i]]) > 0 ) {
+      lm <- lm(log_formulas[[i]], seq)
+      # Inner loop 2 to iterate over the parameters of each model
+      initial_values <- structure(sapply( seq(from=1, to=length(params_ensemble[[i]]), by=1), function(j)
+        # Check if the parameter corresponds to "a", if so reverse the log transform by exponentiating it
+        if(params_ensemble[[i]][[j]] == 'a') exp(coef(lm)[[j]]) else coef(lm)[[j]] ), names=params_ensemble[[i]] )
+      # Generate the non-linear model
+      nls( formula=formula_ensemble[[i]], data=seq, start=initial_values, trace=FALSE )
+    } else { NA }
   })
 })
 ```
-
 ```{r}
-nl_models <- lapply( seq(from=1, to=length(dep_tree_metric_seqs), by=1), function(i) {
-  lapply( seq(from=1, to=length(formula_ensemble), by=1), function(j) {
-    nlm <- nls(
-      formula=formula_ensemble[[j]],
-      data=dep_tree_metric_seqs[[i]],
-      start=initial_values[[i]][[j]],
-      trace=FALSE
-    )
+table(dep_tree_metric_seqs[[1]]$n)
+```
+
+```{r, echo=FALSE}
+# Generate s factor
+lapply( seq(from=1, to=length(dep_tree_metric_seqs), by=1), function(i) {
+  lapply( seq(from=1, to=length(nl_models[[i]]), by=1), function(j) {
+    if ( length(params_ensemble[[j]]) > 0 ) {
+      deviance(nl_models[[i]][[j]]) }
+    else {
+      sum( (dep_tree_metric_seqs[[i]]$d - (dep_tree_metric_seqs[[i]]$n+1)/3)^2)
+    }
   })
 })
+```
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+old.par <- par(mfrow=c(ceiling(length(dep_tree_metric_seqs)/3), 3))
+par(mar=c(4,4,2,2))
+for (i in seq(from=1, to=length(dep_tree_metric_seqs), by=1)) {
+  plot(x=dep_tree_metric_seqs[[i]]$n,
+       y=dep_tree_metric_seqs[[i]]$d,
+       main=language_list[[i]],
+       #log='xy',
+       xlab='log(# vertices)',
+       ylab='log(mean dependency length)',
+       col='blue')
+
+  lines(x=dep_tree_metric_seqs[[i]]$n,
+        y=functions_ensemble[[1]]()(dep_tree_metric_seqs[[i]]$n),
+        col="red"
+  )
+}
+```
+```{r}
+list(dep_tree_metric_seqs[[i]]$n)
 ```
