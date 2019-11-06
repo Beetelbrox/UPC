@@ -115,14 +115,17 @@ metric_seqs <- structure(lapply(language_list, function(x) data.frame(read.table
 
 avg_seqs <- lapply(metric_seqs, function(x) aggregate(x, list(x$n), mean))
 ```
+```{r}
+avg_seqs
+```
 
 # Results
-## On the validity of the inputs
+## On input validity
 ```{r, echo=FALSE}
 valid_k.2 <- lapply(dep_tree_metric_seqs, function(x) (4-(6/x$n) <= x$k.2) & (x$k.2 <= x$n-1))
 valid_d <- lapply(dep_tree_metric_seqs, function(x) (x$k.2*x$n/(8*(x$n-1)) + 1/2 <= x$d) & (x$d <= x$n-1))
 ```
-## Results
+## Properties summary
 The first table in this results section summarizes the properties of the degree sequences, in particular the sample size and the mean and standard deviation of both the number of vertices $n$ and the mean dependency length $d$:
 ```{r, echo=FALSE}
 summary_cols <- c('N', 'mean_n', 'sd_n', 'mean_d', 'sd_d')
@@ -140,6 +143,7 @@ kable(summary_df, 'latex', col.names=summary_cols, booktabs=T, linesep='', align
 TODO: COMMENT THE TABLE
 
 \newpage
+## Preliminary visualization
 Before going any further it is a good practice to check what the data looks like so let's plot the mean depencency length $d$ vs the number of vertices $n$:
 
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
@@ -213,6 +217,14 @@ calculate_AICs <- function(seqs, models, devs) {
     })
   })
 }
+```
+
+## Checking for heteroscedasticity
+
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+var_seqs <- lapply(metric_seqs, function(x) aggregate(x, list(x$n), var))
+plot_grid(var_seqs, language_list, '# vertices', 'avg mean dependency length')
+var_seqs
 ```
 
 ```{r}
