@@ -72,9 +72,8 @@ model_ensemble <- list(
 
 ```{r, echo=FALSE}
 generate_nlms <- function(seqs, ensemble) {
-  lapply( seqs, function(seq) {
-    # Inner loop 1 to iterate over the formulas
-    lapply(ensemble, function(model) {
+  lapply( seqs, function(seq) {         # Outer loop to iterate over the dependency sequences
+    lapply(ensemble, function(model) {  # Inner loop to iterate over the models
       if (length(model$params) > 0) {
         lm <- lm(model$log_formula, seq)
         initial_values <- structure(lapply(1:length(model$params), function(i)
