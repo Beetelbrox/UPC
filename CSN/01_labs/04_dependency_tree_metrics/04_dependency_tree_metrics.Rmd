@@ -48,13 +48,13 @@ model_ensemble <- list(
         params=c('b'),
         f=function(b) { function(n) (n/2)^b },
         formula=d~(n/2)^b,
-        log_formula=log(d)~log(n/2) + 0),
+        log_formula=function(d0) { log(d)~log(n/2) + 0 } ),
   
   model(label="2",
         params=c('a', 'b'),
         f=function(a, b) { function(n) a*n^b },
         formula=d~a*n^b,
-        log_formula=log(d)~log(n)),
+        log_formula=function(d0) { log(d)~log(n) } ),
   
   model(label="3",
         params=c('a','c'),
@@ -66,8 +66,14 @@ model_ensemble <- list(
         params=c('a'),
         f=function(a) { function(n) a*log(n) },
         formula=d~a*log(n),
-        log_formula=log(d)~1*log(log(n)))
-  )
+        log_formula=log(d)~1*log(log(n))),
+
+  model(label="1+",
+        params=c('b', 'd'),
+        f=function(b, d) { function(n) (n/2)^b + d},
+        formula=d~(n/2)^b + d,
+        log_formula=function(d0) { log(d-d0)~log(n/2) + 0 } )
+)
 ```
 
 ```{r, echo=FALSE}
