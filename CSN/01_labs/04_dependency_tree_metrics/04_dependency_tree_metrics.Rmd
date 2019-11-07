@@ -36,7 +36,7 @@ if (rstudioapi::isAvailable()) setwd(dirname(rstudioapi::getActiveDocumentContex
 # Model Class definition
 model <- setRefClass("model", fields=list(label="character", params="ANY", f="function", formula="ANY", log_formula="ANY"))
 
-# List of models
+# List of models. Each model is an object. f returns the model function given its parameters to be able to generate points
 model_ensemble <- list(
   model(label="0",
         params=c(),
@@ -71,6 +71,41 @@ model_ensemble <- list(
 ```
 
 ```{r, echo=FALSE}
+generate_nlms <- function(seqs, ensemble) {
+  lapply( seqs, function(seq) {
+    # Inner loop 1 to iterate over the formulas
+    lapply(ensemble, function(model) {
+      if (length(model$params) > 0) {
+        lm <- lm(model$log_formula, seq)
+        initial_values <- structure(lapply(1:length(model$params), function(i)
+          if (model$params[i] == "a") exp(coef(lm)[[i]]) else coef(lm)[[i]] ), names=model$params)
+        nls( formula=model$formula, data=seq, start=initial_values, trace=FALSE)
+      } else NA
+    })
+  })
+}
+
+calculate_deviances <- function(seqs, models) {
+  lapply (1:length(seqs), function(i) {
+    sapply(1:length(models[[i]]), function(j) {
+      if (!is.na(models[[i]][j])) { deviance(models[[i]][[j]]) }
+      else { sum( (seqs[[i]]$d - (seqs[[i]]$n+1)/3)^2) }
+    })
+  })
+}
+
+calculate_AICs <- function(seqs, models, devs) {
+  lapply (1:length(seqs), function(i) {
+    sapply(1:length(models[[i]]), function(j) {
+      if (!is.na(models[[i]][j])) { AIC(models[[i]][[j]]) }
+      else {
+        n <- length(seqs[[i]]$n)
+        n*log(2*pi) + n*log(devs[[i]][[j]]/n) + n + 2
+      }
+    })
+  })
+}
+
 plot_grid <- function(data, labels, xlab, ylab, color="blue", lines=list(), line_colors=c(), log=FALSE) {
   old.par <- par(mfrow=c(ceiling(length(data)/3), 3))
   par(mar=c(4,4,2,2))
@@ -115,29 +150,27 @@ metric_seqs <- structure(lapply(language_list, function(x) data.frame(read.table
 
 avg_seqs <- lapply(metric_seqs, function(x) aggregate(x, list(x$n), mean))
 ```
-```{r}
-avg_seqs
-```
 
 # Results
-## On input validity
+
+## On input validity [ WIP ]
 ```{r, echo=FALSE}
-valid_k.2 <- lapply(dep_tree_metric_seqs, function(x) (4-(6/x$n) <= x$k.2) & (x$k.2 <= x$n-1))
-valid_d <- lapply(dep_tree_metric_seqs, function(x) (x$k.2*x$n/(8*(x$n-1)) + 1/2 <= x$d) & (x$d <= x$n-1))
+valid_k.2 <- lapply(metric_seqs, function(x) (4-(6/x$n) <= x$k.2) & (x$k.2 <= x$n-1))
+valid_d <- lapply(metric_seqs, function(x) (x$k.2*x$n/(8*(x$n-1)) + 1/2 <= x$d) & (x$d <= x$n-1))
 ```
 ## Properties summary
 The first table in this results section summarizes the properties of the degree sequences, in particular the sample size and the mean and standard deviation of both the number of vertices $n$ and the mean dependency length $d$:
 ```{r, echo=FALSE}
 summary_cols <- c('N', 'mean_n', 'sd_n', 'mean_d', 'sd_d')
-metric_stats <- lapply(dep_tree_metric_seqs, function(x) list(
-                    N=length(x),
+metric_stats <- lapply(metric_seqs, function(x) list(
+                    N=length(x$n),
                     mean_n=mean(x$n),
                     sd_n=sd(x$n),
                     mean_d=mean(x$d),
                     sd_d=sd(x$d)))
 
 summary_df <- data.frame(do.call(rbind, lapply(metric_stats, function(x) c(x$N, x$mean_n, x$sd_n, x$mean_d, x$sd_d))), row.names=language_list)
-kable(summary_df, 'latex', col.names=summary_cols, booktabs=T, linesep='', align='c', digits=4) %>%
+kable(summary_df, col.names=summary_cols, booktabs=T, linesep='', align='c', digits=4) %>%
   kable_styling(latex_options="striped", full_width=F)
 ```
 TODO: COMMENT THE TABLE
@@ -182,53 +215,21 @@ plot_grid(metric_seqs, language_list, 'log(# vertices)', 'log(avg mean dependenc
           lines=list(avg_seqs, lapply(avg_seqs, function(x) list("n"=x$n, "d"=(x$n+1)/3))), line_colors=c("blue", "red"))
 ```
 
-```{r}
-generate_nlms <- function(seqs, ensemble) {
-  lapply( seqs, function(seq) {
-    # Inner loop 1 to iterate over the formulas
-    lapply(ensemble, function(model) {
-      if (length(model$params) > 0) {
-        lm <- lm(model$log_formula, seq)
-        initial_values <- structure(lapply(1:length(model$params), function(i)
-          if (model$params[i] == "a") exp(coef(lm)[[i]]) else coef(lm)[[i]] ), names=model$params)
-        nls( formula=model$formula, data=seq, start=initial_values, trace=FALSE)
-      } else NA
-    })
-  })
-}
-
-calculate_deviances <- function(seqs, models) {
-  lapply (1:length(seqs), function(i) {
-    sapply(1:length(models[[i]]), function(j) {
-      if (!is.na(models[[i]][j])) { deviance(models[[i]][[j]]) }
-      else { sum( (seqs[[i]]$d - (seqs[[i]]$n+1)/3)^2) }
-    })
-  })
-}
-
-calculate_AICs <- function(seqs, models, devs) {
-  lapply (1:length(seqs), function(i) {
-    sapply(1:length(models[[i]]), function(j) {
-      if (!is.na(models[[i]][j])) { AIC(models[[i]][[j]]) }
-      else {
-        n <- length(seqs[[i]]$n)
-        n*log(2*pi) + n*log(devs[[i]][[j]]/n) + n + 2
-      }
-    })
-  })
-}
-```
-
 ## Checking for heteroscedasticity
+One of the assumptions of non-linear regression is homoscedasticity, so before generating our models we need to make sure it holds.
 
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
-var_seqs <- lapply(metric_seqs, function(x) aggregate(x, list(x$n), var))
-plot_grid(var_seqs, language_list, '# vertices', 'avg mean dependency length')
-var_seqs
+# Careful, this contains
+var_seqs <- lapply(1:length(metric_seqs), function(i) data.frame(n=avg_seqs[[i]]$n, d=sapply(avg_seqs[[i]]$n, function(x) var( metric_seqs[[i]][metric_seqs[[i]]$n == x,]$d) ) ))
+plot_grid(var_seqs, language_list, '# vertices', 'mean dependency length variance')
 ```
 
-```{r}
+Note that in order to calculate the variance for a given value of $n$ we need more than one data point so those $n$ with a single point have been omitted.
 
+## On correctness
+Before applying our methods to the real data 
+
+```{r}
 nlms <- generate_nlms(seqs = avg_seqs, model_ensemble)
 deviances <- calculate_deviances(avg_seqs, nlms)
 AICs <- calculate_AICs(avg_seqs, nlms, deviances)
@@ -242,92 +243,4 @@ kable(data.frame(do.call(rbind, AICs), row.names = language_list),  col.names=sa
 best_params <- lapply(nlms, function(x) lapply(x, function(nlm) if(!is.na(nlm)[1]) coef(nlm) else NA))
 best_model <- lapply(AICs, function(x) which.min(as.vector(x)))
 best_coefs <- lapply(1:length(language_list), function(i) best_params[[i]][[ as.numeric(best_model[i]) ]])
-```
-
-```{r, echo=FALSE}
-#best_parameters <- lapply(as.numeric(which.min(sapply(nl_models, delta_AIC_df[i,]))
-best_params <- lapply(1:length(language_list), function(i) 
-  sapply(1:length(model_labels), function (j)
-    if (length(params_ensemble[[j]]) > 0) coef(nl_models[[i]][[j]]) else NA
-  )
-)
-```
-
-```{r, echo=FALSE}
-# Generate deviances
-model_deviances <- lapply( seq(from=1, to=length(dep_tree_metric_seqs), by=1), function(i) {
-  sapply( seq(from=1, to=length(nl_models[[i]]), by=1), function(j) {
-    if ( length(params_ensemble[[j]]) > 0 ) {
-      deviance(nl_models[[i]][[j]]) }
-    else {
-      sum( (dep_tree_metric_seqs[[i]]$d - (dep_tree_metric_seqs[[i]]$n+1)/3)^2)
-    }
-  })
-})
-
-# Generate AICs
-model_AICs <- lapply( seq(from=1, to=length(dep_tree_metric_seqs), by=1), function(i) {
-  sapply( seq(from=1, to=length(nl_models[[i]]), by=1), function(j) {
-    if ( length(params_ensemble[[j]]) > 0 ) {
-      AIC(nl_models[[i]][[j]]) }
-    else {
-      n <- length(dep_tree_metric_seqs[[i]]$n)
-      n*log(2*pi) + n*log(model_deviances[[i]][[j]]/n) + n + 2
-    }
-  })
-})
-
-kable(data.frame(do.call(rbind, model_AICs), row.names = language_list),  col.names=model_labels, booktabs=T, linesep='', align='c', digits=2) %>%
-  kable_styling(latex_options="striped", full_width=F)
-```
-```{r}
-list(best_coefs[[1]])[[1]]["c"]
-```
-
-```{r, echo=FALSE, fig.width=16, fig.height=18}
-old.par <- par(mfrow=c(ceiling(length(metric_seqs)/3), 3))
-par(mar=c(4,4,2,2))
-for (i in seq(from=1, to=length(metric_seqs), by=1)) {
-  plot(x=metric_seqs[[i]]$n,
-       y=metric_seqs[[i]]$d,
-       main=language_list[[i]],
-       #log='xy',
-       xlab='log(# vertices)',
-       ylab='log(mean dependency length)',
-       col='blue')
-  lines(x=avg_seqs[[i]]$n,
-        y=do.call (model_ensemble[[ as.numeric(best_model[i]) ]]$f, as.list(best_coefs[[i]]))(avg_seqs[[i]]$n),
-        col="red"
-  )
-  
-    # Add the average sequence values
-  lines(x=avg_seqs[[i]]$n,
-        y=avg_seqs[[i]]$d,
-        col="green")
-}
-
-```
-
-```{r, echo=FALSE, fig.width=16, fig.height=18}
-old.par <- par(mfrow=c(ceiling(length(metric_seqs)/3), 3))
-par(mar=c(4,4,2,2))
-for (i in seq(from=1, to=length(metric_seqs), by=1)) {
-  plot(x=metric_seqs[[i]]$n,
-       y=metric_seqs[[i]]$d,
-       main=language_list[[i]],
-       log='xy',
-       xlab='log(# vertices)',
-       ylab='log(mean dependency length)',
-       col='blue')
-  lines(x=avg_seqs[[i]]$n,
-        y=do.call (model_ensemble[[ as.numeric(best_model[i]) ]]$f, as.list(best_coefs[[i]]))(avg_seqs[[i]]$n),
-        col="red"
-  )
-  
-    # Add the average sequence values
-  lines(x=avg_seqs[[i]]$n,
-        y=avg_seqs[[i]]$d,
-        col="green")
-}
-
 ```
