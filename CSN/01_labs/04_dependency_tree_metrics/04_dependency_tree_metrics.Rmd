@@ -43,25 +43,25 @@ model_ensemble <- list(
         f=function() { function(n) n/3 + 1/3 },
         formula=NA,
         log_formula=NA),
-  
+
   model(label="1",
         params=c('b'),
         f=function(b) { function(n) (n/2)^b },
         formula=d~(n/2)^b,
         log_formula=function(d0) { log(d)~log(n/2) + 0 } ),
-  
+
   model(label="2",
         params=c('a', 'b'),
         f=function(a, b) { function(n) a*n^b },
         formula=d~a*n^b,
         log_formula=function(d0) { log(d)~log(n) } ),
-  
+
   model(label="3",
         params=c('a','c'),
         f=function(a, c) { function(n) a*exp(c*n) },
         formula=d~a*exp(c*n),
         log_formula=log(d)~n),
-  
+
   model(label="4",
         params=c('a'),
         f=function(a) { function(n) a*log(n) },
@@ -111,6 +111,13 @@ calculate_AICs <- function(seqs, models, devs) {
   })
 }
 
+# This pushes tables to the global context
+generate_models_and_measures <- function (seqs, ensemble) {
+  nlms <<- generate_nlms(seqs=seqs, ensemble=ensemble)
+  deviances <<- calculate_deviances(seqs, nlms)
+  AICs <<- calculate_AICs(seqs, nlms, deviances)
+}
+
 plot_grid <- function(data, labels, xlab, ylab, color="blue", lines=list(), line_colors=c(), log=FALSE) {
   old.par <- par(mfrow=c(ceiling(length(data)/3), 3))
   par(mar=c(4,4,2,2))
@@ -144,6 +151,10 @@ plot_grid <- function(data, labels, xlab, ylab, color="blue", lines=list(), line
 ```
 
 ```{r, echo=FALSE}
+
+###########################################################################################
+# Reading the data from file
+###########################################################################################
   # Read the list of languages from file
 filename_suffix <- "_dependency_tree_metrics.txt"
 language_list <- as.vector(read.table("data/language_list.txt", header = FALSE)$V1)
@@ -154,6 +165,20 @@ metric_seqs <- structure(lapply(language_list, function(x) data.frame(read.table
                          names=language_list)
 
 avg_seqs <- lapply(metric_seqs, function(x) aggregate(x, list(x$n), mean))
+
+###########################################################################################
+# Generation of the testing sequences
+###########################################################################################
+
+# Hard-coded list of parameters and number of observations
+test_params <- list(c(), c(b=0.5), c(a=0.8, b=0.5), c(a=0.8, c=0.01), c(a=0.8))
+num_test_observations = 200
+# Generate the functions with the provided parameters
+test_functions <- lapply(1:length(test_params), function(i) do.call(model_ensemble[[i]]$f, as.list(test_params[[i]])))
+# Generate the test sequences of length num_test_observations. To avoid issues with the optimizer we add some gaussian error
+test_seqs <- lapply(test_functions, function(f) data.frame(
+  n=1:num_test_observations,
+  d=sapply(1:num_test_observations, function(i) f(i)) + rnorm(num_test_observations, sd=0.05)))
 ```
 
 # Results
@@ -233,25 +258,41 @@ plot_grid(metric_seqs, language_list, 'log(# vertices)', 'log(avg mean dependenc
 ```
 
 ## On correctness
-Before applying our methods to the real data 
 
-```{r}
-nlms <- generate_nlms(seqs = avg_seqs, model_ensemble)
-deviances <- calculate_deviances(avg_seqs, nlms)
-AICs <- calculate_AICs(avg_seqs, nlms, deviances)
+```{r, echo=FALSE}
+generate_models_and_measures(test_seqs, model_ensemble)
+fitted_params <- lapply(nlms, function(x) lapply(x, function(nlm) if(!is.na(nlm)[1]) coef(nlm) else c()))
+best_models <- lapply(AICs, function(x) which.min(as.vector(x)))
+best_coefs <- lapply(1:length(nlms), function(i) fitted_params[[i]][[ as.numeric(best_models[i]) ]])
+```
 
-kable(data.frame(do.call(rbind, AICs), row.names = language_list),  col.names=sapply(model_ensemble, function(x) x$label), booktabs=T, linesep='', align='c', digits=2) %>%
+Before trying to select the best model for each real dependency length sequence we would like to make sure our model selection pipeline works properly. In order to test it we generated test sequences for each one of the models in our ensemble following the actual function of each model. With regards to the parameters of the models we chose the following values (no particular criteria, we made an educated guess based on the values obtained when fitting on the real data): $a=0.8$, $b=0.5$, $c=0.01$.  
+Because the optimizer has some difficulties trying to fit data that perfectly matches the function being fitted (reaches max number of iterations before convergence due to precision issues) we have added some gaussian noise as suggested in the lab session. We wanted keep the data as close as possible to the real functions so after trying several parameters we chose a $mean=0$ and $sd=0.05$ as the noise's gausian distribution parameters. By plotting the synthetic data (with linear axes) we can see the shapes of the functions in our ensemble:
+
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+plot_grid(test_seqs, lapply(model_ensemble, function(x) paste("Model ", x$label)), xlab='n', ylab='f(n)')
+```
+
+Now that we have our testing data we can fit the models and calculate the AIC for each one of them:
+```{r, echo=FALSE}
+kable(data.frame(do.call(rbind, AICs), row.names=sapply(model_ensemble, function(x) x$label)), col.names=sapply(model_ensemble, function(x) x$label),
+      'latex', booktabs=T, linesep='', align='c', digits=2) %>%
   kable_styling(latex_options="striped", full_width=F)
 ```
 
+We can see how the lowest AIC value (which in this case is negative) for each one of the models corresponds to the itself so we can conclude that we are selecting the models correctly. By plotting the fitted functions against the test data we obtain the following:
+
+
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+fitted_test_functions <- lapply (1:length(test_functions), function(i) data.frame(
+  n=1:num_test_observations,
+  d=sapply (1:num_test_observations, function(n)
+    do.call(do.call(model_ensemble[[ best_models [[i]] ]]$f, as.list(best_coefs[[i]])), list(n)))
+  )
+)
+
+plot_grid(test_seqs, lapply(1:length(best_models), function(i) paste("Model ", model_ensemble[[i]]$label, " - Best fit: Model ", model_ensemble[[ best_models[[i]] ]]$label )), xlab='n', ylab='f(n)', color="light blue",
+          lines=list(fitted_test_functions), line_colors=c("red"))
+```
+We can see how they fit perfectly. To avoid additional tables we have avoided including a comparison table for the parameters, but as it can be seen in the charts the nle was able to fit them almoet perfectly. Note that it can happen (there's some randomness in the results due to the noise and the optimizer) that the model selected as the best fitting for Model 2 is Model 3. This is because Model 3 is a more general case of Model 2 (to obtain Model 2 simply make $a = (1/2)^b$ in Model 3), so it can happen than Model 3 is able to find a value of $a$ around $a = (1/2)^b$ that obtains a lower AIC by fitting some of the noise.
 # <NOTE> Comparison between non-average and average fitted lines. For non-averaged it is always model 2, for averaged is not always the case
-
-```{r, echo=FALSE}
-best_params <- lapply(nlms, function(x) lapply(x, function(nlm) if(!is.na(nlm)[1]) coef(nlm) else NA))
-best_model <- lapply(AICs, function(x) which.min(as.vector(x)))
-best_coefs <- lapply(1:length(language_list), function(i) best_params[[i]][[ as.numeric(best_model[i]) ]])
-```
-```{r}
-best_model
-```
-
