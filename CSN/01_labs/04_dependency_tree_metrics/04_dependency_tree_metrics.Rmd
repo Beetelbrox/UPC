@@ -105,6 +105,13 @@ calculate_AICs <- function(seqs, models, devs) {
   })
 }
 
+# This pushes tables to the global context
+generate_models_and_measures <- function (seqs, ensemble) {
+  nlms <<- generate_nlms(seqs=seqs, ensemble=ensemble)
+  deviances <<- calculate_deviances(seqs, nlms)
+  AICs <<- calculate_AICs(seqs, nlms, deviances)
+}
+
 plot_grid <- function(data, labels, xlab, ylab, color="blue", lines=list(), line_colors=c(), log=FALSE) {
   old.par <- par(mfrow=c(ceiling(length(data)/3), 3))
   par(mar=c(4,4,2,2))
@@ -227,25 +234,49 @@ plot_grid(metric_seqs, language_list, 'log(# vertices)', 'log(avg mean dependenc
 ```
 
 ## On correctness
-Before applying our methods to the real data 
+Before applying our fitting method to the real data we would like to make sure they work properly. For that purpose we will generate a set of synthetic sequences using the functions from our model ensemble, fit them and then check if the output of our model selection process matches the original data. As parameters we will arbitrarily choose (based on observations of the values obtained when fitting the real sequences) $a = 0.8$, $b=0.5$ and $c=0.01$. We start by generating a instance of each model.:
 
-```{r}
-nlms <- generate_nlms(seqs = avg_seqs, model_ensemble)
-deviances <- calculate_deviances(avg_seqs, nlms)
-AICs <- calculate_AICs(avg_seqs, nlms, deviances)
+```{r, echo=FALSE}
+test_params <- list(c(), c(b=0.5), c(a=0.8, b=0.5), c(a=0.8, c=0.01), c(a=0.8))
+num_test_observations = 200
+test_functions <- lapply(1:length(test_params), function(i) do.call(model_ensemble[[i]]$f, as.list(test_params[[i]])))
+# We need to add omse error to the function so the estimator can converge.
+test_seqs <- lapply(test_functions, function(f) data.frame(
+  n=1:num_test_observations,
+  d=sapply(1:num_test_observations, function(i) f(i)) + rnorm(num_test_observations, sd=0.05)))
+```
 
-kable(data.frame(do.call(rbind, AICs), row.names = language_list),  col.names=sapply(model_ensemble, function(x) x$label), booktabs=T, linesep='', align='c', digits=2) %>%
+```{r, echo=FALSE, fig.width=16}
+plot_grid(test_seqs, lapply(model_ensemble, function(x) paste("Model ", x$label)), xlab='n', ylab='f(n)')
+```
+
+```{r, echo=FALSE}
+generate_models_and_measures(test_seqs, model_ensemble)
+kable(data.frame(do.call(rbind, AICs), row.names=sapply(model_ensemble, function(x) x$label)), col.names=sapply(model_ensemble, function(x) x$label), booktabs=T, linesep='', align='c', digits=2) %>%
   kable_styling(latex_options="striped", full_width=F)
 ```
 
 # <NOTE> Comparison between non-average and average fitted lines. For non-averaged it is always model 2, for averaged is not always the case
 
 ```{r, echo=FALSE}
-best_params <- lapply(nlms, function(x) lapply(x, function(nlm) if(!is.na(nlm)[1]) coef(nlm) else NA))
-best_model <- lapply(AICs, function(x) which.min(as.vector(x)))
-best_coefs <- lapply(1:length(language_list), function(i) best_params[[i]][[ as.numeric(best_model[i]) ]])
+fitted_params <- lapply(nlms, function(x) lapply(x, function(nlm) if(!is.na(nlm)[1]) coef(nlm) else c()))
+best_models <- lapply(AICs, function(x) which.min(as.vector(x)))
+best_coefs <- lapply(1:length(nlms), function(i) fitted_params[[i]][[ as.numeric(best_model[i]) ]])
 ```
-```{r}
-best_model
+
+
+```{r, echo=FALSE}
+fitted_test_functions <- lapply (1:length(test_functions), function(i) data.frame(
+  n=1:num_test_observations,
+  d=sapply (1:num_test_observations, function(n)
+    do.call(do.call(model_ensemble[[ best_model [[i]] ]]$f, as.list(best_coefs[[i]])), list(n))
+  )
+))
+```
+
+
+```{r, echo=FALSE, fig.width=16}
+plot_grid(test_seqs, lapply(model_ensemble, function(x) paste("Model ", x$label)), xlab='n', ylab='f(n)', color="light blue",
+          lines=list(fitted_test_functions), line_colors=c("red"))
 ```
 
