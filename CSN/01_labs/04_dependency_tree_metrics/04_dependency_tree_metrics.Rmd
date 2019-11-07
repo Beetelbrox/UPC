@@ -190,6 +190,18 @@ plot_grid(metric_seqs, language_list, 'log(# vertices)', 'log(mean dependency le
 Note that rather than applying the log to the data itself we have set the plot axes to logarithmic, distributing the ticks in a log fashion. We can now observe that the plots suggest a power-law despite the large amount of dispersion.
 
 \newpage
+## Checking for heteroscedasticity
+We have seen in the preliminary plots that there is a One of the assumptions of non-linear regression is homoscedasticity, so before generating our models we need to make sure it holds.
+
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+# Careful, this contains
+var_seqs <- lapply(1:length(metric_seqs), function(i) data.frame(n=avg_seqs[[i]]$n, d=sapply(avg_seqs[[i]]$n, function(x) var( metric_seqs[[i]][metric_seqs[[i]]$n == x,]$d) ) ))
+plot_grid(var_seqs, language_list, '# vertices', 'mean dependency length variance')
+```
+
+Note that in order to calculate the variance for a given value of $n$ we need more than one data point so those $n$ with a single point have been omitted.
+
+\newpage
 A way to deal with this dispersion and get a clearer intuition on the underlying trend is to average the mean length for a given number of vertices:
 
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
@@ -214,17 +226,6 @@ plot_grid(metric_seqs, language_list, 'log(# vertices)', 'log(avg mean dependenc
           lines=list(avg_seqs, lapply(avg_seqs, function(x) list("n"=x$n, "d"=(x$n+1)/3))), line_colors=c("blue", "red"))
 ```
 
-## Checking for heteroscedasticity
-One of the assumptions of non-linear regression is homoscedasticity, so before generating our models we need to make sure it holds.
-
-```{r, echo=FALSE, fig.width=16, fig.height=18}
-# Careful, this contains
-var_seqs <- lapply(1:length(metric_seqs), function(i) data.frame(n=avg_seqs[[i]]$n, d=sapply(avg_seqs[[i]]$n, function(x) var( metric_seqs[[i]][metric_seqs[[i]]$n == x,]$d) ) ))
-plot_grid(var_seqs, language_list, '# vertices', 'mean dependency length variance')
-```
-
-Note that in order to calculate the variance for a given value of $n$ we need more than one data point so those $n$ with a single point have been omitted.
-
 ## On correctness
 Before applying our methods to the real data 
 
@@ -237,9 +238,14 @@ kable(data.frame(do.call(rbind, AICs), row.names = language_list),  col.names=sa
   kable_styling(latex_options="striped", full_width=F)
 ```
 
+# <NOTE> Comparison between non-average and average fitted lines. For non-averaged it is always model 2, for averaged is not always the case
 
 ```{r, echo=FALSE}
 best_params <- lapply(nlms, function(x) lapply(x, function(nlm) if(!is.na(nlm)[1]) coef(nlm) else NA))
 best_model <- lapply(AICs, function(x) which.min(as.vector(x)))
 best_coefs <- lapply(1:length(language_list), function(i) best_params[[i]][[ as.numeric(best_model[i]) ]])
 ```
+```{r}
+best_model
+```
+
