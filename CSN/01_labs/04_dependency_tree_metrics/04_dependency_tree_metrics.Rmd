@@ -78,14 +78,13 @@ model_ensemble <- list(
         params=c('a', 'b', 'e'),
         f=function(a, b, e) { function(n) a*n^b + e},
         formula=d~a*n^b + e,
-        log_formula=function(d0) { log(d-d0)~log(n) })
-  #,
-#  
-#  model(label="3+",
-#        params=c('a','c', 'e'),
-#        f=function(a, c, e) { function(n) a*exp(c*n) + e },
-#        formula=d~a*exp(c*n) + e,
- #       log_formula=function(d0) { log(d-d0)~n })
+        log_formula=function(d0) { log(d-d0)~log(n) }),
+  
+  model(label="3+",
+        params=c('a','c', 'e'),
+        f=function(a, c, e) { function(n) a*exp(c*n) + e },
+        formula=d~a*exp(c*n) + e,
+        log_formula=function(d0) { log(d-d0)~n })
 )
 ```
 
@@ -98,7 +97,7 @@ generate_nlms <- function(seqs, ensemble) {
         lm <- lm(model$log_formula(d0), seq)
         initial_values <- structure(lapply(1:length(model$params), function(i)
           if (model$params[i] == "a") exp(coef(lm)[[i]]) else if (model$params[i] == "e") d0 else coef(lm)[[i]] ), names=model$params)
-        nls( formula=model$formula, data=seq, start=initial_values, control=nls.control(maxiter=5000), trace=TRUE)
+        nls( formula=model$formula, data=seq, start=initial_values, control=nls.control(maxiter=1000, warnOnly = TRUE), trace=FALSE)
       } else NA
     })
   })
@@ -185,14 +184,15 @@ avg_seqs <- lapply(metric_seqs, function(x) aggregate(x, list(x$n), mean))
 ###########################################################################################
 
 # Hard-coded list of parameters and number of observations
-test_params <- list(c(), c(b=0.5), c(a=0.8, b=0.5), c(a=0.8, c=0.01), c(a=0.8), c(b=0.5, e=2), c(a=0.8, b=0.5, e=2))#, c(a=0.8, c=0.01, e=2))
-num_test_observations = 200
+test_params <- list(c(), c(b=0.5), c(a=0.8, b=0.5), c(a=0.8, c=0.01), c(a=0.8), c(b=0.5, e=2), c(a=0.8, b=0.5, e=2), c(a=0.8, c=0.01, e=2))
+max_n_test <- 200
+test_n <- 2:max_n_test
 # Generate the functions with the provided parameters
 test_functions <- lapply(1:length(test_params), function(i) do.call(model_ensemble[[i]]$f, as.list(test_params[[i]])))
 # Generate the test sequences of length num_test_observations. To avoid issues with the optimizer we add some gaussian error
 test_seqs <- lapply(test_functions, function(f) data.frame(
-  n=1:num_test_observations,
-  d=sapply(sapply(1:num_test_observations, function(i) f(i)) + rnorm(num_test_observations, sd=0.05), function(x) if (x>=1) x else 1))) # The nls freaks out w/ values close to 0 so we force all values to be at least 1 (after all, the min distance is 1  )
+  n=test_n,
+  d=sapply(sapply(test_n, function(i) f(i)) + rnorm(length(test_n), sd=0.02), function(x) x))) # The nls freaks out w/ values close to 0 so we force all values to be at least 1 (after all, the min distance is 1  )
 ```
 
 # Results
@@ -274,6 +274,9 @@ plot_grid(metric_seqs, language_list, 'log(# vertices)', 'log(avg mean dependenc
 ## On correctness
 ```{r}
 generate_models_and_measures(metric_seqs, model_ensemble)
+fitted_params <- lapply(nlms, function(x) lapply(x, function(nlm) if(!is.na(nlm)[1]) coef(nlm) else c()))
+best_models <- lapply(AICs, function(x) which.min(as.vector(x)))
+best_coefs <- lapply(1:length(nlms), function(i) fitted_params[[i]][[ as.numeric(best_models[i]) ]])
 ```
 
 
@@ -298,13 +301,19 @@ kable(data.frame(do.call(rbind, AICs), row.names=sapply(model_ensemble, function
   kable_styling(latex_options="striped", full_width=F)
 ```
 
-We can see how the lowest AIC value (which in this case is negative) for each one of the models corresponds to the itself so we can conclude that we are selecting the models correctly. By plotting the fitted functions against the test data we obtain the following:
+```{r, echo=FALSE}
+kable(data.frame(do.call(rbind, AICs), row.names=language_list), col.names=sapply(model_ensemble, function(x) x$label),
+       booktabs=T, linesep='', align='c', digits=2) %>%
+  kable_styling(latex_options="striped", full_width=F)
+```
 
+
+We can see how the lowest AIC value (which in this case is negative) for each one of the models corresponds to the itself so we can conclude that we are selecting the models correctly. By plotting the fitted functions against the test data we obtain the following:
 
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
 fitted_test_functions <- lapply (1:length(test_functions), function(i) data.frame(
-  n=1:num_test_observations,
-  d=sapply (1:num_test_observations, function(n)
+  n=test_n,
+  d=sapply (test_n, function(n)
     do.call(do.call(model_ensemble[[ best_models [[i]] ]]$f, as.list(best_coefs[[i]])), list(n)))
   )
 )
@@ -314,3 +323,34 @@ plot_grid(test_seqs, lapply(1:length(best_models), function(i) paste("Model ", m
 ```
 We can see how they fit perfectly. To avoid additional tables we have avoided including a comparison table for the parameters, but as it can be seen in the charts the nle was able to fit them almoet perfectly. Note that it can happen (there's some randomness in the results due to the noise and the optimizer) that the model selected as the best fitting for Model 2 is Model 3. This is because Model 3 is a more general case of Model 2 (to obtain Model 2 simply make $a = (1/2)^b$ in Model 3), so it can happen than Model 3 is able to find a value of $a$ around $a = (1/2)^b$ that obtains a lower AIC by fitting some of the noise.
 # <NOTE> Comparison between non-average and average fitted lines. For non-averaged it is always model 2, for averaged is not always the case
+```{r}
+length(best_models)
+```
+```{r}
+fitted_metric_functions[[9]]
+```
+
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+fitted_metric_functions <- lapply (1:length(avg_seqs), function(i) data.frame(
+  n=avg_seqs[[i]]$n,
+  d=sapply (avg_seqs[[i]]$n, function(n)
+    do.call(do.call(model_ensemble[[ best_models [[i]] ]]$f, as.list(best_coefs[[i]])), list(n)))
+  )
+)
+
+plot_grid(metric_seqs, lapply(1:length(language_list), function(i) paste(language_list[[i]], " - Best fit: Model ", model_ensemble[[ best_models[[i]] ]]$label )), xlab='n', ylab='f(n)', color="light blue", 
+          lines=list(fitted_metric_functions), line_colors=c("red"))
+```
+
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+fitted_metric_functions <- lapply (1:length(avg_seqs), function(i) data.frame(
+  n=avg_seqs[[i]]$n,
+  d=sapply (avg_seqs[[i]]$n, function(n)
+    do.call(do.call(model_ensemble[[ best_models [[i]] ]]$f, as.list(best_coefs[[i]])), list(n)))
+  )
+)
+
+plot_grid(metric_seqs, lapply(1:length(language_list), function(i) paste(language_list[[i]], " - Best fit: Model ", model_ensemble[[ best_models[[i]] ]]$label )), xlab='n', ylab='f(n)', color="light blue", 
+          lines=list(fitted_metric_functions), line_colors=c("red"), log=TRUE)
+```
+
