@@ -294,7 +294,7 @@ plot_grid(test_seqs, lapply(model_ensemble, function(x) paste("Model ", x$label)
 Now that we have our testing data we can fit the models and calculate the AIC for each one of them:
 ```{r, echo=FALSE}
 kable(data.frame(do.call(rbind, AICs), row.names=sapply(model_ensemble, function(x) x$label)), col.names=sapply(model_ensemble, function(x) x$label),
-      'latex', booktabs=T, linesep='', align='c', digits=2) %>%
+       booktabs=T, linesep='', align='c', digits=2) %>%
   kable_styling(latex_options="striped", full_width=F)
 ```
 
