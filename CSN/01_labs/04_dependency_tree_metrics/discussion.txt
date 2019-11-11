@@ -13,9 +13,9 @@ As we already explained in the section "Checking for heteroscedasticity", the or
 
 As mentioned earlier in the discussion, the best models are 1+, 2, and 2+. All those methods are different versions of the power-law model, which seems logical since we can see an almost straight line for the averages in a log-log plot. When checking them visually, we can see that they fit the real data accurately. With the aggregated data, it is even more evident that the model describes the distribution perfectly.
 
-(TODO: The extent to which languages resemble or differ.)
+(DONE: The extent to which languages resemble or differ.)
 
-From here, we can say that all the language distributions seem to follow a power-law model. 
+From here, we can say that all the language distributions seem to follow a power-law model. Also, as we already stated in the "Properties summary" section, for most of the languages, the average number of nodes ranges from 16 to 26, except for Basque, Chinese, and Turquish, which have lower values. Regarding the mean dependency length, most languages have a value oscillating around 2, except for Chinese with a lower value (1.44), and, English and Hungarian with higher values (3.05 and 3.87 respectively). Finally, the standard deviation also is consistent at around 0.8 through most languages, except for Chinese (0.48) and Hungarian (1.78).
 
 (DONE(?): conclusions)
 
