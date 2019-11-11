@@ -1,0 +1,5 @@
+In this lab session, we are going to practice on the fit of a non-linear function to data using collections of syntactic dependency trees from different languages.
+In asyntactic dependency trees, the vertices are the words (tokens) of a sentence, and links indicate syntactic dependencies between words. 
+
+$n$ is defined as the number of vertices of a tree. $\langle k^2\rangle$ is defined as its degree 2nd moment and $\langle d\rangle$ as the mean length of its edges.
+In our particular case, we are going to investigate the scaling of $\langle d\rangle$ as a function of $n$.
