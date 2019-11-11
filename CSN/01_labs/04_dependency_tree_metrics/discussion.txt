@@ -1,0 +1,16 @@
+(DONE: If there is a significant difference between the fit of the functions from null hypotheses and that of alternative hypotheses.)
+
+From our results, we can see that the null hypotheses (model 0) have a terrible fit, whereas other alternative hypotheses have way better fits. Taking a look at the AIC results, we see how the values for model 0 are always at least two times higher than any other model, which indicates it is considerably worse than the others. Visually, we see how the null hypotheses are almost upper bounding the real data. In contrast, for example, using the power-law model (model 2, which seems to be one of the best for our data, together with model 1+ and 2+), we see how it almost matches perfectly the average for each number of vertices.
+It is worth noting that when the number of vertices is high, there are fewer observations, and they have more significant variance, which means it is harder to fit. Also, this means that we are dealing with heteroscedasticity.
+
+(TODO: If the original data satisfy the assumption of homoscedasticity of the non-linear regression methods considered here. In case that it does not hold, you should explain how you have addressed it.)
+
+As we already explained in the section "Checking for heteroscedasticity", the original data doesn't satisfy the assumption of homoscedasticity. Instead, it clearly shows heteroscedasticity in plots (\ref{plot_of_heteroscedasticity}), where we can see a massive increase in the variance for higher values. 
+
+(DONE: Discuss if the function giving the best fit gives a reasonably good fit (e.g., checking visually that the best function provides a sufficiently good fit. Remember that the best function of an ensemble is not necessarily the best in absolute terms.)
+
+As mentioned earlier in the discussion, the best models are 1+, 2 and 2+. All those methods are different versions of the power-law model, which seems logical since we can see an almost straight line for the averages in a log-log plot. When checking them visually, we can see that they fit the real data accurately. With the aggregated data, it is even more evident that the model describes the distribution perfectly.
+
+(TODO: The extent to which languages resemble or differ.)
+
+(TODO: Conclusions)
