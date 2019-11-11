@@ -1,0 +1,21 @@
+# Methods
+## Finding the initial values
+To find appropriate initial values to improve the performance of the non-linear regression, we perform a double logarithmic transformation as described in the guide for model 2. With this method, we get the following formulas:
+\begin{table}[H]
+\centering
+    \begin{tabular}{cc}
+        \toprule
+        Model & Log formula \\
+        \midrule
+        1 & $\log\langle d\rangle = b\log(\frac{n}{2}) + 0$ \\
+        2 & $\log\langle d\rangle = b\log(n) + a'$ \\
+        3 & $\log\langle d\rangle = cn + a'$ \\
+        4 & $\log\langle d\rangle = \log(\log(n))+ a'$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+\textit{Note that: $a' = \log(a)$}
+
+Then we apply a linear regression to these formulas to find the coefficients. Then we directly assign the coefficients directly (recall $a = \exp(a')$).
+
+To calculate the models "+" version, we use the same strategy as for the regular models. The only difference is that we set the new extra value as the minimum $\langle d\rangle$ and subtract it to the target $\langle d\rangle$ before the linear regression.
