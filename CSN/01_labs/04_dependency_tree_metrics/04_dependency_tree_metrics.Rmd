@@ -32,7 +32,7 @@ if (rstudioapi::isAvailable()) setwd(dirname(rstudioapi::getActiveDocumentContex
 
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, include=FALSE}
 # Model Class definition
 model <- setRefClass("model", fields=list(label="character", params="ANY", f="function", formula="ANY", log_formula="ANY", lower="ANY"))
 
@@ -67,6 +67,12 @@ model_ensemble <- list(
         f=function(a) { function(n) a*log(n) },
         formula=d~a*log(n),
         log_formula=function(d0) { log(d)~1*log(log(n)) } ),
+  
+    model(label="5",
+        params=c('a', 'b', 'c'),
+        f=function(a, b, c) { function(n) a*(n^b)*exp(c*n) },
+        formula=d~a*(n^b)*exp(c*n),
+        log_formula=function(d0) { log(d)~log(n) + n }),
 
   model(label="1+",
         params=c('b', 'e'),
@@ -84,11 +90,23 @@ model_ensemble <- list(
         params=c('a','c', 'e'),
         f=function(a, c, e) { function(n) a*exp(c*n) + e },
         formula=d~a*exp(c*n) + e,
-        log_formula=function(d0) { log(d-d0)~n })
+        log_formula=function(d0) { log(d-d0)~n }),
+  
+    model(label="4+",
+        params=c('a', 'e'),
+        f=function(a, e) { function(n) a*log(n) + e},
+        formula=d~a*log(n) + e,
+        log_formula=function(d0) { log(d-d0)~1*log(log(n)) } ),
+  
+      model(label="5+",
+        params=c('a', 'b', 'c', 'e'),
+        f=function(a, b, c, e) { function(n) a*(n^b)*exp(c*n) + e },
+        formula=d~a*(n^b)*exp(c*n) + e,
+        log_formula=function(d0) { log(d-d0)~log(n) + n })
 )
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, include=FALSE}
 generate_nlms <- function(seqs, ensemble) {
   lapply( seqs, function(seq) {         # Outer loop to iterate over the dependency sequences
     d0 <- min(seq$d/2)
@@ -169,7 +187,19 @@ metric_seqs_raw <- lapply(structure(lapply(language_list, function(x) data.frame
 ###########################################################################################
 
 # Hard-coded list of parameters and number of observations
-test_params <- list(c(), c(b=0.5), c(a=0.8, b=0.5), c(a=0.8, c=0.01), c(a=0.8), c(b=0.5, e=2), c(a=0.8, b=0.5, e=2), c(a=0.8, c=0.01, e=2))
+test_params <- list(
+  c(),
+  c(b=0.5),
+  c(a=0.8, b=0.5),
+  c(a=0.8, c=0.01),
+  c(a=0.8),
+  c(a=0.8, b=0.5, c=0.01),
+  c(b=0.5, e=2),
+  c(a=0.8, b=0.5, e=2),
+  c(a=0.8, c=0.01, e=2),
+  c(a=0.8, e=2),
+  c(a=0.8, b=0.5, c=0.01, e=2)
+)
 max_n_test <- 200
 test_n <- 2:max_n_test
 # Generate the functions with the provided parameters
@@ -179,6 +209,14 @@ test_seqs <- lapply(test_functions, function(f) data.frame(
   n=test_n,
   d=sapply(sapply(test_n, function(i) f(i)) + rnorm(length(test_n), sd=0.02), function(x) x))) # The nls freaks out w/ values close to 0 so we force all values to be at least 1 (after all, the min distance is 1  )
 ```
+
+#Introduction
+
+In this lab session, we are going to practice on the fit of a non-linear function to data using collections of syntactic dependency trees from different languages.
+In asyntactic dependency trees, the vertices are the words (tokens) of a sentence, and links indicate syntactic dependencies between words. 
+
+$n$ is defined as the number of vertices of a tree. $\langle k^2\rangle$ is defined as its degree 2nd moment and $\langle d\rangle$ as the mean length of its edges.
+In our particular case, we are going to investigate the scaling of $\langle d\rangle$ as a function of $n$.
 
 # Results
 
@@ -201,17 +239,16 @@ and
 \]
 
 As we are working with $\langle d \rangle$ and its bounds depend on the value of $\langle k^2 \rangle$ we can deem a row as invalid if it does not satisfy any of the conditions. By checking validity of both measures for all languages, we obtain the following table:
-The rows that do not qualify
 
 ```{r, echo=FALSE}
 invalid_cols <- c('# invalid rows k^2', '# invalid rows d')
 invalid_rows <- lapply(language_list, function(lang) c( sum(!valid_k.2[[lang]]), sum(!valid_d[[lang]]) ) )
 invalid_df <- data.frame(do.call(rbind, invalid_rows), row.names=language_list)
-kable(invalid_df, 'latex', col.names=invalid_cols, booktabs=T, linesep='', align='c', digits=4) %>%
+kable(invalid_df,  col.names=invalid_cols, format='latex', booktabs=T, linesep='', align='c', digits=4) %>%
   kable_styling(latex_options="striped", full_width=F)
 ```
 
-We can observe how the all the invalid rows are due to the $\langle k^2 \rangle$ parameter. This is not coincidental, as if we take a closer look to which side of the inequality is not satisfied we find out that for all cases the value of $\langle k^2 \rangle$ is smaller than the lower bound, with the consequence of lowering $\langle d \rangle$'s lower bound too. With regards to upper bound, they are not violated in any case. Even if we a apply a tighter bound for $\langle d \rangle$, $\langle k^2 \rangle \leq n/2$ (upper bound of $\langle d \rangle$ for non-crossing trees) no row breaks this condition. A final remark is that all but 3 invalid entries (over all languages) happen for $n=9$, which is definitely an unusual finding. Although there are some relation between the number of observations and incidences (the first and second largest amount of invalid rows happen for the first and second languages with the largst number of trees in the dataset) they are not consistent over all languages. As the amount of invalid rows is very small compared to the overall amount of entries, we have opted for removing them from the dataset before proceeding with the fitting. 
+We can observe how the all the invalid rows are due to the $\langle k^2 \rangle$ parameter. This is not coincidental, as if we take a closer look to which side of the inequality is not satisfied we find out that for all cases the value of $\langle k^2 \rangle$ is smaller than the lower bound, with the consequence of lowering $\langle d \rangle$'s lower bound too. With regards to upper bound, they are not violated in any case. Even if we a apply a tighter bound for $\langle d \rangle$, $\langle d \rangle \leq n/2$ (upper bound of $\langle d \rangle$ for non-crossing trees) no row breaks this condition. A final remark is that all but 3 invalid entries (over all languages) happen for $n=9$, which is definitely an unusual finding. Although there are some relation between the number of observations and incidences (the first and second largest amount of invalid rows happen for the first and second languages with the largst number of trees in the dataset) they are not consistent over all languages. As the amount of invalid rows is very small compared to the overall amount of entries, we have opted for removing them from the dataset before proceeding with the fitting. 
 
 ```{r, echo=FALSE}
 metric_seqs <- lapply(language_list, function(lang) metric_seqs_raw[[lang]][valid_k.2[[lang]] & valid_d[[lang]],] )
@@ -230,10 +267,11 @@ metric_stats <- lapply(metric_seqs, function(x) list(
                     sd_d=sd(x$d)))
 
 summary_df <- data.frame(do.call(rbind, lapply(metric_stats, function(x) c(x$N, x$mean_n, x$sd_n, x$mean_d, x$sd_d))), row.names=language_list)
-kable(summary_df, col.names=summary_cols, booktabs=T, linesep='', align='c', digits=4) %>%
+kable(summary_df, col.names=summary_cols, format='latex', booktabs=T, linesep='', align='c', digits=4) %>%
   kable_styling(latex_options="striped", full_width=F)
 ```
-The first thing we can observe is that the amount of syntactic trees available for each language is not equal, and the relative amount does not immediately correpsond to the relative amount of that language's speakers. To be able to better compare the means and standard deviations let's plot the corresponding boxplots for the distributions od $n$ and $\langle d \rangle$
+The first thing we can observe is that the amount of syntactic trees available for each language is not equal, and the relative amount does not immediately correpsond to the relative amount of speakers of said language.  
+To be able to better compare the means and standard deviations let's plot the corresponding boxplots for the distributions of $n$ and $\langle d \rangle$
 
 ```{r, echo=FALSE, fig.width=16, fig.height=8}
 boxplot(structure(lapply(metric_seqs, function(seq) seq$n), names=language_list), ylab='# nodes', main='Number of nodes (n)')
@@ -262,7 +300,8 @@ We would like to check for any possible power-law dependencies and we can do so 
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
 plot_grid(metric_seqs, language_list, 'log(# vertices)', 'log(mean dependency length)', log=TRUE)
 ```
-Note that rather than applying the log to the data itself we have set the plot axes to logarithmic, distributing the ticks in a log fashion. The plots suggest a power-law distribution of We can now observe that the plots suggest that $\langle d \rangle$ follows a power-law distribution, although there is a significant amount of dispersion and it increases for large values of $n$. Notice that the scale is quite different for different languages, so what seem like large variations for some languages are not such when compared against the overall range of $\langle d \rangle$.
+
+Note that rather than applying the log to the data itself we have set the plot axes to logarithmic, distributing the ticks in a log fashion. We can now observe that the plots suggest that $\langle d \rangle$ follows a power-law distribution, although there is a significant amount of dispersion and it increases for large values of $n$. Notice that the scale is quite different for different languages, so what seem like large variations for some languages might not be when compared with the overall range of $\langle d \rangle$.
 
 \newpage
 ## Checking for heteroscedasticity
@@ -271,108 +310,83 @@ In the previous charts we observed a significant amount of dispersion for $\lang
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
 # Careful, this contains
 var_seqs <- lapply(1:length(metric_seqs), function(i) data.frame(n=avg_seqs[[i]]$n, d=sapply(avg_seqs[[i]]$n, function(x) var( metric_seqs[[i]][metric_seqs[[i]]$n == x,]$d) ) ))
-plot_grid(var_seqs, language_list, '# vertices', 'mean dependency length variance')
+plot_grid(var_seqs, language_list, '# vertices', 'mean dependency length variance' )
 ```
 
-Note that in order to calculate the variance for a given value of $n$ we need more than one data point so those $n$ with a single point have been omitted. Before commenting on the plots take into consideration that the range of values varies wildly from one language to another, so what it might seem like a large variance it's actually not when compared to the largest range over all languages (eg chinese seems to have a large amount of heteroscedas)
+Note that in order to calculate the variance for a given value of $n$ we need more than one data point so those $n$ with a single point have been omitted. Before performing the visual comparison, take into account that the scale of the y axis on the plots varies significantly from one language to another, so it needs to be taken into consideration when evaluating the amount of heteroscedasticity. We can see how several languages have relatively constant variance except from several isolated points, while others like Tuskish and Chinese present a way more visible variation as $n$ increases, and because of this we might want to consider some method to deal with this fact.  
 
-\newpage
-A way to deal with this dispersion and get a clearer intuition on the underlying trend is to average the mean length for a given number of vertices:
+A way of trying to visualize any underlying trend in the data and to somewhat alleviate the heteroscedasticity issue is to work on the average mean length for a given number $n$ of vertices instead of the whole dataset:
 
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
 plot_grid(avg_seqs, language_list, '# vertices', 'avg mean dependency length')
 ```
-Although there is stil a significant amount of dispersion for larger values of $n$, we have a way clearer view of the distribution shape. By plotting the same averaged points on log-log axes:
+
+Although there is stil a significant amount of dispersion for larger values of $n$, we have a way clearer view of the distribution shape, although with far less data points.
+
+\newpage
+By plotting the same averaged points on a log-log axes:
 
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
 plot_grid(avg_seqs, language_list, 'log(# vertices)', 'log(avg mean dependency length)', log=TRUE)
 ```
-The data points form an almost straight line in the log-log plot (again with dispersion when $n$ gets large) so we have reasonable evidence to believe they follow a power-law distribution.  
 
-We now want to compare how far the real scaling of $d$ is from the one existing at a random linear arrangement. For that purpose we can compare the points to the averaged ones and the expected mean length, given by $E[\langle d \rangle] = (n+1)/3$. Plotting that in a regular and double logarithmic scale:
+The data points form an almost straight line in the log-log plot (again with dispersion when $n$ gets large) so we have reasonable evidence to believe they follow a power-law distribution and that heteroscedasticity could indeed be an issue to take into consideration.
+
+\newpage
+## Real vs random scaling of d
+
+We now want to compare how far the real scaling of $\langle d \rangle$ is from the one existing at a random linear arrangement. For that purpose we can compare the points to the averaged ones and the expected mean length, given by $E[\langle d \rangle] = (n+1)/3$. Plotting the expected and empirical mean length together with the data points:
 
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
 plot_grid(metric_seqs, language_list, 'log(# vertices)', 'log(avg mean dependency length)', color="light blue",
           lines=list(avg_seqs, lapply(avg_seqs, function(x) list("n"=x$n, "d"=(x$n+1)/3))), line_colors=c("blue", "red"))
 ```
 
+Expected mean length is plotted in red, empirical averaged mean length is plotted in dark blue and empirical mean length values is plotted in light blue for readability purposes in all comparison plots from now on.
+
+\newpage
+Plotting the same lines on log-log charts:
+
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
 plot_grid(metric_seqs, language_list, 'log(# vertices)', 'log(avg mean dependency length)', color="light blue", log=TRUE,
           lines=list(avg_seqs, lapply(avg_seqs, function(x) list("n"=x$n, "d"=(x$n+1)/3))), line_colors=c("blue", "red"))
 ```
 
+We can see how the average trend scales sublinearly with the number of nodes $n$, which agrees with what was explained in theory lectures about $\langle d \rangle$ being minimized in real trees, most likely to reduce cognitive load.
+
+\newpage
 ## On correctness
-```{r}
-generate_models_and_measures(metric_seqs, model_ensemble)
-fitted_params <- lapply(nlms, function(x) lapply(x, function(nlm) if(!is.na(nlm)[1]) coef(nlm) else c()))
-best_models <- lapply(AICs, function(x) which.min(as.vector(x)))
-best_coefs <- lapply(1:length(nlms), function(i) fitted_params[[i]][[ as.numeric(best_models[i]) ]])
-```
-```{r, echo=FALSE}
-kable(data.frame(do.call(rbind, AICs), row.names=language_list), col.names=sapply(model_ensemble, function(x) x$label),
-       booktabs=T, linesep='', align='c', digits=2) %>%
-  kable_styling(latex_options="striped", full_width=F)
-```
 
-```{r, echo=FALSE, fig.width=16, fig.height=18}
-fitted_metric_functions <- lapply (1:length(avg_seqs), function(i) data.frame(
-  n=avg_seqs[[i]]$n,
-  d=sapply (avg_seqs[[i]]$n, function(n)
-    do.call(do.call(model_ensemble[[ best_models [[i]] ]]$f, as.list(best_coefs[[i]])), list(n)))
-  )
-)
 
-plot_grid(metric_seqs, lapply(1:length(language_list), function(i) paste(language_list[[i]], " - Best fit: Model ", model_ensemble[[ best_models[[i]] ]]$label )), xlab='n', ylab='f(n)', color="light blue",
-          lines=list(fitted_metric_functions), line_colors=c("red"))
-```
 
-```{r, echo=FALSE, fig.width=16, fig.height=18}
-fitted_metric_functions <- lapply (1:length(avg_seqs), function(i) data.frame(
-  n=avg_seqs[[i]]$n,
-  d=sapply (avg_seqs[[i]]$n, function(n)
-    do.call(do.call(model_ensemble[[ best_models [[i]] ]]$f, as.list(best_coefs[[i]])), list(n)))
-  )
-)
-
-plot_grid(metric_seqs, lapply(1:length(language_list), function(i) paste(language_list[[i]], " - Best fit: Model ", model_ensemble[[ best_models[[i]] ]]$label )), xlab='n', ylab='f(n)', color="light blue", 
-          lines=list(fitted_metric_functions), line_colors=c("red"), log=TRUE)
-```
-
-```{r, echo=FALSE, fig.width=16, fig.height=18}
-plot_grid(avg_seqs, lapply(1:length(language_list), function(i) paste(language_list[[i]], " - Best fit: Model ", model_ensemble[[ best_models[[i]] ]]$label )), xlab='n', ylab='f(n)', color="light blue",
-          lines=list(fitted_metric_functions), line_colors=c("red"))
-```
-
-```{r, echo=FALSE, fig.width=16, fig.height=18}
-plot_grid(avg_seqs, lapply(1:length(language_list), function(i) paste(language_list[[i]], " - Best fit: Model ", model_ensemble[[ best_models[[i]] ]]$label )), xlab='n', ylab='f(n)', color="light blue", 
-          lines=list(fitted_metric_functions), line_colors=c("red"), log=TRUE)
-```
-
-```{r, echo=FALSE}
-generate_models_and_measures(test_seqs, model_ensemble)
+```{r, echo=FALSE, include=FALSE}
+generate_models_and_measures(test_seqs, model_ensemble);
 fitted_params <- lapply(nlms, function(x) lapply(x, function(nlm) if(!is.na(nlm)[1]) coef(nlm) else c()))
 best_models <- lapply(AICs, function(x) which.min(as.vector(x)))
 best_coefs <- lapply(1:length(nlms), function(i) fitted_params[[i]][[ as.numeric(best_models[i]) ]])
 ```
 
-Before trying to select the best model for each real dependency length sequence we would like to make sure our model selection pipeline works properly. In order to test it we generated test sequences for each one of the models in our ensemble following the actual function of each model. With regards to the parameters of the models we chose the following values (no particular criteria, we made an educated guess based on the values obtained when fitting on the real data): $a=0.8$, $b=0.5$, $c=0.01$.  
-Because the optimizer has some difficulties trying to fit data that perfectly matches the function being fitted (reaches max number of iterations before convergence due to precision issues) we have added some gaussian noise as suggested in the lab session. We wanted keep the data as close as possible to the real functions so after trying several parameters we chose a $mean=0$ and $sd=0.05$ as the noise's gausian distribution parameters. By plotting the synthetic data (with linear axes) we can see the shapes of the functions in our ensemble:
+Before trying to select the best model for each real dependency length sequence we would like to make sure our model selection pipeline works properly. In order to test or methods we can make use of synthetic data generated using the functions $f(n, params)$ of each one of the models in our ensemble. As values for the models' parameters we chose the following values (no particular criteria, we made an educated guess based on the values obtained when fitting on the real data): $a=0.8$, $b=0.5$, $c=0.01$ and $e=2$.
 
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
 plot_grid(test_seqs, lapply(model_ensemble, function(x) paste("Model ", x$label)), xlab='n', ylab='f(n)')
 ```
 
-Now that we have our testing data we can fit the models and calculate the AIC for each one of them:
-```{r, echo=FALSE}
+Because the nle optimizer has difficulties fitting functions to data that perfectly matches them we added additive gaussian noise (0 mean, 0.02 sd) to each data point as suggested.
+
+\newpage
+With the testing data ready, we can fit each one of our models to it and see how they perform. By calculating the AIC we obtain the following table:
+
+```{r, echo=FALSE, fig.width=14}
 kable(data.frame(do.call(rbind, AICs), row.names=sapply(model_ensemble, function(x) x$label)), col.names=sapply(model_ensemble, function(x) x$label),
-       booktabs=T, linesep='', align='c', digits=2) %>%
-  kable_styling(latex_options="striped", full_width=F)
+       format='latex', booktabs=T, linesep='', align='c', digits=2 ) %>%
+  kable_styling(latex_options=c("striped", "scale_down"))
 ```
 
+We can see how the lowest AIC value (which in this case is negative) for each one of the models is indeed either itself or a generalization (eg 1 to 2/2+/5/5+, 2 to 2+/5/5+, etc. This happens because the more general form has some flexibility to be able to fit part of the noise), so we can conclude that our process performs the selection properly.
 
-
-
-We can see how the lowest AIC value (which in this case is negative) for each one of the models corresponds to the itself so we can conclude that we are selecting the models correctly. By plotting the fitted functions against the test data we obtain the following:
+\newpage 
+If we plot the fitted function against the test data we obtain the following:
 
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
 fitted_test_functions <- lapply (1:length(test_functions), function(i) data.frame(
@@ -385,8 +399,145 @@ fitted_test_functions <- lapply (1:length(test_functions), function(i) data.fram
 plot_grid(test_seqs, lapply(1:length(best_models), function(i) paste("Model ", model_ensemble[[i]]$label, " - Best fit: Model ", model_ensemble[[ best_models[[i]] ]]$label )), xlab='n', ylab='f(n)', color="light blue",
           lines=list(fitted_test_functions), line_colors=c("red"))
 ```
-We can see how they fit perfectly. To avoid additional tables we have avoided including a comparison table for the parameters, but as it can be seen in the charts the nle was able to fit them almoet perfectly. Note that it can happen (there's some randomness in the results due to the noise and the optimizer) that the model selected as the best fitting for Model 2 is Model 3. This is because Model 3 is a more general case of Model 2 (to obtain Model 2 simply make $a = (1/2)^b$ in Model 3), so it can happen than Model 3 is able to find a value of $a$ around $a = (1/2)^b$ that obtains a lower AIC by fitting some of the noise.
-# <NOTE> Comparison between non-average and average fitted lines. For non-averaged it is always model 2, for averaged is not always the case
 
+We can see how they fit perfectly. We have observed that in some occassions model 2+ was selected for model 2+ due to the noise, but in the vast majority of occasions it selected either the actual model or a more general version of it.
 
+\newpage
 
+## Fitting on real data
+
+```{r, echo=FALSE, include=FALSE}
+generate_models_and_measures(metric_seqs, model_ensemble);
+fitted_params <- lapply(nlms, function(x) lapply(x, function(nlm) if(!is.na(nlm)[1]) coef(nlm) else c()))
+best_models <- lapply(AICs, function(x) which.min(as.vector(x)))
+best_coefs <- lapply(1:length(nlms), function(i) fitted_params[[i]][[ as.numeric(best_models[i]) ]])
+```
+
+Now that we have made sure our pipeline works we can proceed with the fitting of the real data. After trying to fit with both the whole dataset and the aggregated data to try to address the heteroscedasticity issue we decided to go with the whole dataset, as the fit achieved was way better compared to the one obtained with the aggregated data, mainly due to the lack of data points in the latter (and also the aggregated data still presented a fair amount of variation in its variance as $n$ increased. After fitting the models to the data we obtain the following residual standard errors:
+
+```{r, echo=FALSE}
+s <- lapply(1:length(language_list), function(i) {
+      sapply(1:length(model_ensemble), function(j) {
+        sqrt(deviances[[i]][[j]]/(if(!is.na(nlms[[i]][[j]][1])) df.residual(nlms[[i]][[j]]) else length(metric_seqs[[i]]$n)))
+      })
+})
+kable(data.frame(do.call(rbind, s), row.names=language_list), col.names=sapply(model_ensemble, function(x) x$label), 'latex', booktabs=T, linesep='', align='c', caption = 'Residual Standard Errors', digits=3) %>%
+  kable_styling(latex_options=c("striped", "HOLD_position"), full_width=F)
+```
+
+AICs:
+
+```{r, echo=FALSE}
+kable(data.frame(do.call(rbind, AICs), row.names=language_list), col.names=sapply(model_ensemble, function(x) x$label), format='latex', caption= 'AICs', booktabs=T, linesep='', align='c', digits=2) %>%
+  kable_styling(latex_options=c("striped", "scale_down", "HOLD_position"))
+```
+
+And AIC differences:
+
+```{r, echo=FALSE}
+kable(data.frame(do.call(rbind, lapply(AICs, function(x) x - min(x))), row.names=language_list), col.names=sapply(model_ensemble, function(x) x$label), format='latex', caption= 'AIC Differences',booktabs=T, linesep='', align='c', digits=2) %>%
+  kable_styling(latex_options=c("striped", "scale_down", "HOLD_position"))
+```
+It interesting to observe how despite the more general model should be able to provide a better fit, sometimes the penalization on the number of parameters imposed by the AIC leads to choosing a simpler model over the more complex one.
+
+\newpage
+By listing the parameters that provide the best fit for each model we obtain the following table:
+
+```{r, echo=FALSE}
+kable(data.frame(do.call(rbind, lapply(fitted_params, function(lang) do.call(c, lapply(2:length(lang), function(i) lang[[i]] )))), row.names=language_list), col.names=do.call(c, sapply(model_ensemble, function(x) x$params)), booktabs=T, linesep='', align='c', digits=3) %>%
+  kable_styling(latex_options=c("striped", "scale_down", "HOLD_position"))
+```
+
+(We were not able to properly create the second row of headers to indicate the model, so the parameters are listed in alphabetic order and the models in increasing order). We can see how the same parameters in nested models converge to similar values as expected, while the extra parameters allow for the additional fine tuning.
+\newpage
+
+Finally, If we plot the best fitting functions (being the best the ones having the lowest AIC) we obtain the following chart on regular axes:
+
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+fitted_metric_functions <- lapply (1:length(avg_seqs), function(i) data.frame(
+  n=avg_seqs[[i]]$n,
+  d=sapply (avg_seqs[[i]]$n, function(n)
+    do.call(do.call(model_ensemble[[ best_models [[i]] ]]$f, as.list(best_coefs[[i]])), list(n)))
+  )
+)
+
+plot_grid(metric_seqs, lapply(1:length(language_list), function(i) paste(language_list[[i]], " - Best fit: Model ", model_ensemble[[ best_models[[i]] ]]$label )), xlab='n', ylab='f(n)', color="light blue", 
+          lines=list(fitted_metric_functions), line_colors=c("red"))
+```
+
+They do indeed present a quite good fit, despite the large amount of dispersion for large values. Notice that some flavour of the 2/5 models always happen to be the best fit, something to be expected as real languages present power-law distributions.
+
+\newpage
+By plotting the same in a log-log axes we can also observe how the functions fit the data reasonably well:
+
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+
+plot_grid(metric_seqs, lapply(1:length(language_list), function(i) paste(language_list[[i]], " - Best fit: Model ", model_ensemble[[ best_models[[i]] ]]$label )), xlab='n', ylab='f(n)', color="light blue", 
+          lines=list(fitted_metric_functions), line_colors=c("red"), log=TRUE)
+```
+
+\newpage
+Now, by plotting the fitted functions against the aggregated data (recall that we used the whole data to fit and select the models):
+
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+plot_grid(avg_seqs, lapply(1:length(language_list), function(i) paste(language_list[[i]], " - Best fit: Model ", model_ensemble[[ best_models[[i]] ]]$label )), xlab='n', ylab='f(n)', color="light blue",
+          lines=list(fitted_metric_functions), line_colors=c("red"))
+```
+
+Surprisingly they are an excellent fit of the aggregated data, up to the point where the dispersion grows too large for an exponential function to be able to fit it closely.
+
+\newpage
+By plotting on log-log axes we can see how the good fit persists:
+
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+plot_grid(avg_seqs, lapply(1:length(language_list), function(i) paste(language_list[[i]], " - Best fit: Model ", model_ensemble[[ best_models[[i]] ]]$label )), xlab='n', ylab='f(n)', color="light blue", 
+          lines=list(fitted_metric_functions), line_colors=c("red"), log=TRUE)
+```
+
+It is worth noting that despite the (presumed) heteroscedasticity observed in the previous section, by fitting in the whole data we were able to obtain quite good results without doing any additional modifications to the data (results way better than obtained when fitting with only the aggregated data). Nevertheless, once the dispersion grew too large no clear trend could be observed and the quality of the fit naturally would decrease.
+
+\newpage
+# Discussion
+
+(DONE: If there is a significant difference between the fit of the functions from null hypotheses and that of alternative hypotheses.)
+
+From our results, we can see that the null hypotheses (model 0) have a terrible fit, whereas other alternative hypotheses have way better fits. Taking a look at the AIC results, we see how the values for model 0 are always at least two times higher than any other model, which indicates it is considerably worse than the others. Visually, we see how the null hypotheses are almost upper bounding the real data. In contrast, for example, using the power-law model (model 2, which seems to be one of the best for our data, together with model 1+ and 2+), we see how it almost matches perfectly the average for each number of vertices.
+It is worth noting that when the number of vertices is high, there are fewer observations, and they have more significant variance, which means it is harder to fit. Also, this means that we are dealing with heteroscedasticity.
+
+(TODO: If the original data satisfy the assumption of homoscedasticity of the non-linear regression methods considered here. In case that it does not hold, you should explain how you have addressed it.)
+
+As we already explained in the section "Checking for heteroscedasticity", the original data doesn't satisfy the assumption of homoscedasticity. Instead, it clearly shows heteroscedasticity in the plots from the section mentioned before, where we can see a massive increase in the variance for higher values. 
+
+(DONE: Discuss if the function giving the best fit gives a reasonably good fit (e.g., checking visually that the best function provides a sufficiently good fit. Remember that the best function of an ensemble is not necessarily the best in absolute terms.)
+
+As mentioned earlier in the discussion, the best models are 1+, 2, and 2+. All those methods are different versions of the power-law model, which seems logical since we can see an almost straight line for the averages in a log-log plot. When checking them visually, we can see that they fit the real data accurately. With the aggregated data, it is even more evident that the model describes the distribution perfectly.
+
+(DONE: The extent to which languages resemble or differ.)
+
+From here, we can say that all the language distributions seem to follow a power-law model. Also, as we already stated in the "Properties summary" section, for most of the languages, the average number of nodes ranges from 16 to 26, except for Basque, Chinese, and Turquish, which have lower values. Regarding the mean dependency length, most languages have a value oscillating around 2, except for Chinese with a lower value (1.44), and, English and Hungarian with higher values (3.05 and 3.87 respectively). Finally, the standard deviation also is consistent at around 0.8 through most languages, except for Chinese (0.48) and Hungarian (1.78).
+
+(DONE(?): conclusions)
+
+To sum up, we managed to find a function of $n$ that is reasonably accurate to represent the scaling of $\langle d\rangle$ (mean length of the edges). This function is slightly different for each language, but all of them are based in a power-law model.
+
+# Methods
+## Finding the initial values
+To find appropriate initial values to improve the performance of the non-linear regression, we perform a double logarithmic transformation as described in the guide for model 2. With this method, we get the following formulas:
+\begin{table}[H]
+\centering
+    \begin{tabular}{cc}
+        \toprule
+        Model & Log formula \\
+        \midrule
+        1 & $\log\langle d\rangle = b\log(\frac{n}{2}) + 0$ \\
+        2 & $\log\langle d\rangle = b\log(n) + a'$ \\
+        3 & $\log\langle d\rangle = cn + a'$ \\
+        4 & $\log\langle d\rangle = \log(\log(n))+ a'$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+\textit{Note that: $a' = \log(a)$}
+
+Then we apply a linear regression to these formulas to find the coefficients. Then we directly assign the coefficients directly (recall $a = \exp(a')$).
+
+To calculate the models "+" version, we use the same strategy as for the regular models. The only difference is that we set the new extra value as the minimum $\langle d\rangle$ and subtract it to the target $\langle d\rangle$ before the linear regression.
