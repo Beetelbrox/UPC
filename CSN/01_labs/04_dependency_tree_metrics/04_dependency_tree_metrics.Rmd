@@ -3,7 +3,7 @@ output:
   pdf_document: default
   html_document: default
 ---
- ---
+---
 title: "Lab 04 - Non-linear regression on dependency trees"
 author: "Francisco Javier Jurado, Roger Pujol Torramorell"
 date: "October 29, 2019"
@@ -14,7 +14,7 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, include=FALSE}
 # Load and install necessary packages
 requiredPackages <- c("knitr", "rstudioapi", "kableExtra", "stats")
 
@@ -151,20 +151,7 @@ plot_grid <- function(data, labels, xlab, ylab, color="blue", lines=list(), line
 }
 ```
 
-
-```{r, echo=FALSE,include=FALSE}
-# Possible solutions for heteroscedasticity: work on smoothed versions of the data: eg. average all points for a value x and work on that
-
-# plot everything to be plotted
-# Check soundness by generating perfect synthetic data and checking the fit against it. R doesnt like perfect function, some error must be added to the actual data
-
-# replace d with a z score transformation of d
-# This transform could help to reduce noise in te data
-
-```
-
 ```{r, echo=FALSE}
-
 ###########################################################################################
 # Reading the data from file
 ###########################################################################################
@@ -174,10 +161,8 @@ language_list <- as.vector(read.table("data/language_list.txt", header = FALSE)$
 
 # Push the in-degree sequences and theh list of entries to the global scope
 dep_tree_cols <- c('n', 'k^2', 'd')
-metric_seqs <- structure(lapply(language_list, function(x) data.frame(read.table(paste("data/", x, filename_suffix, sep=''), header = FALSE, col.names=dep_tree_cols))),
-                         names=language_list)
-
-avg_seqs <- lapply(metric_seqs, function(x) aggregate(x, list(x$n), mean))
+metric_seqs_raw <- lapply(structure(lapply(language_list, function(x) data.frame(read.table(paste("data/", x, filename_suffix, sep=''), header = FALSE, col.names=dep_tree_cols))),
+                         names=language_list), function(lang) lang[order(lang$n),])
 
 ###########################################################################################
 # Generation of the testing sequences
@@ -197,13 +182,44 @@ test_seqs <- lapply(test_functions, function(f) data.frame(
 
 # Results
 
-## On input validity [ WIP ]
+## On input validity
 ```{r, echo=FALSE}
-valid_k.2 <- lapply(metric_seqs, function(x) (4-(6/x$n) <= x$k.2) & (x$k.2 <= x$n-1))
-valid_d <- lapply(metric_seqs, function(x) (x$k.2*x$n/(8*(x$n-1)) + 1/2 <= x$d) & (x$d <= x$n-1))
+valid_k.2 <- lapply(metric_seqs_raw, function(x) (4-(6/x$n) <= x$k.2) & (x$k.2 <= x$n-1))
+valid_d <- lapply(metric_seqs_raw, function(x) (x$k.2*x$n/(8*(x$n-1)) + 1/2 <= x$d) & (x$d <= x$n/2))
 ```
+
+As the first step in our data analysis process we need to check that the values of $\langle d \rangle$ and $\langle k^2 \rangle$ provided in the input data satisfy the following conditions:
+
+\[
+4-6/n \leq \langle k^2 \rangle \leq n-1
+\]
+
+and
+
+\[
+\frac{n}{8(n-1)}\langle k^2 \rangle + \frac{1}{2} \leq \langle d \rangle \leq n-1
+\]
+
+As we are working with $\langle d \rangle$ and its bounds depend on the value of $\langle k^2 \rangle$ we can deem a row as invalid if it does not satisfy any of the conditions. By checking validity of both measures for all languages, we obtain the following table:
+The rows that do not qualify
+
+```{r, echo=FALSE}
+invalid_cols <- c('# invalid rows k^2', '# invalid rows d')
+invalid_rows <- lapply(language_list, function(lang) c( sum(!valid_k.2[[lang]]), sum(!valid_d[[lang]]) ) )
+invalid_df <- data.frame(do.call(rbind, invalid_rows), row.names=language_list)
+kable(invalid_df, 'latex', col.names=invalid_cols, booktabs=T, linesep='', align='c', digits=4) %>%
+  kable_styling(latex_options="striped", full_width=F)
+```
+
+We can observe how the all the invalid rows are due to the $\langle k^2 \rangle$ parameter. This is not coincidental, as if we take a closer look to which side of the inequality is not satisfied we find out that for all cases the value of $\langle k^2 \rangle$ is smaller than the lower bound, with the consequence of lowering $\langle d \rangle$'s lower bound too. With regards to upper bound, they are not violated in any case. Even if we a apply a tighter bound for $\langle d \rangle$, $\langle k^2 \rangle \leq n/2$ (upper bound of $\langle d \rangle$ for non-crossing trees) no row breaks this condition. A final remark is that all but 3 invalid entries (over all languages) happen for $n=9$, which is definitely an unusual finding. Although there are some relation between the number of observations and incidences (the first and second largest amount of invalid rows happen for the first and second languages with the largst number of trees in the dataset) they are not consistent over all languages. As the amount of invalid rows is very small compared to the overall amount of entries, we have opted for removing them from the dataset before proceeding with the fitting. 
+
+```{r, echo=FALSE}
+metric_seqs <- lapply(language_list, function(lang) metric_seqs_raw[[lang]][valid_k.2[[lang]] & valid_d[[lang]],] )
+avg_seqs <- lapply(metric_seqs, function(x) aggregate(x, list(x$n), mean))
+```
+
 ## Properties summary
-The first table in this results section summarizes the properties of the degree sequences, in particular the sample size and the mean and standard deviation of both the number of vertices $n$ and the mean dependency length $d$:
+Now that the data is clean it would be interesting to have an overall view on the properties of the degree sequences, in particular the sample size and the mean and standard deviation of both the number of vertices $n$ and the mean dependency length $d$:
 ```{r, echo=FALSE}
 summary_cols <- c('N', 'mean_n', 'sd_n', 'mean_d', 'sd_d')
 metric_stats <- lapply(metric_seqs, function(x) list(
@@ -217,26 +233,40 @@ summary_df <- data.frame(do.call(rbind, lapply(metric_stats, function(x) c(x$N, 
 kable(summary_df, col.names=summary_cols, booktabs=T, linesep='', align='c', digits=4) %>%
   kable_styling(latex_options="striped", full_width=F)
 ```
-TODO: COMMENT THE TABLE
+The first thing we can observe is that the amount of syntactic trees available for each language is not equal, and the relative amount does not immediately correpsond to the relative amount of that language's speakers. To be able to better compare the means and standard deviations let's plot the corresponding boxplots for the distributions od $n$ and $\langle d \rangle$
+
+```{r, echo=FALSE, fig.width=16, fig.height=8}
+boxplot(structure(lapply(metric_seqs, function(seq) seq$n), names=language_list), ylab='# nodes', main='Number of nodes (n)')
+```
+
+Most languages' average number of nodes range from 16 to 26, with the exception of Chinese, Basque and Turkish which have a very low value compared to the others. Standard deviation varies significantly between languages, Arabic having a sd almost equal to its mean and English's being less than half its mean.  
+
+```{r, echo=FALSE, fig.width=16, fig.height=8}
+boxplot(structure(lapply(metric_seqs, function(seq) seq$d), names=language_list), ylab='mean dependency length', main='Mean Dependency length (d)')
+```
+
+With regard to the mean dependency length most languages have a value around 2, with the exception of English (3.05), Hungarian (3.87) and Chinese (1.44). Standard deviation is somewhat consistent around 0.8, Hungarian and chinese being the exception with values 1.78 and 0.48 respectively.  
+For both values the mayority of outliers lie above the quartile line, which makes sense as negative lengths are not possible.
 
 \newpage
 ## Preliminary visualization
-Before going any further it is a good practice to check what the data looks like so let's plot the mean depencency length $d$ vs the number of vertices $n$:
+Before going any further it is a good practice to check what the data looks like, so let's plot the mean depencency length $\langle d \rangle$ vs the number of vertices $n$:
 
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
 plot_grid(metric_seqs, language_list, '# vertices', 'mean dependency length')
 ```
+
 \newpage
 We would like to check for any possible power-law dependencies and we can do so by plotting data taking logs on both axes:
 
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
 plot_grid(metric_seqs, language_list, 'log(# vertices)', 'log(mean dependency length)', log=TRUE)
 ```
-Note that rather than applying the log to the data itself we have set the plot axes to logarithmic, distributing the ticks in a log fashion. We can now observe that the plots suggest a power-law despite the large amount of dispersion.
+Note that rather than applying the log to the data itself we have set the plot axes to logarithmic, distributing the ticks in a log fashion. The plots suggest a power-law distribution of We can now observe that the plots suggest that $\langle d \rangle$ follows a power-law distribution, although there is a significant amount of dispersion and it increases for large values of $n$. Notice that the scale is quite different for different languages, so what seem like large variations for some languages are not such when compared against the overall range of $\langle d \rangle$.
 
 \newpage
 ## Checking for heteroscedasticity
-We have seen in the preliminary plots that there is a One of the assumptions of non-linear regression is homoscedasticity, so before generating our models we need to make sure it holds.
+In the previous charts we observed a significant amount of dispersion for $\langle d \rangle$'s values, and for some languages it increased for large values of $n$. As the non-linear models that we will be using assume constant variance (Homoscedasticity), it's worth to check if that is the case by plotting the value of $\langle d \rangle$'s variance for different values of $n$:
 
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
 # Careful, this contains
@@ -244,7 +274,7 @@ var_seqs <- lapply(1:length(metric_seqs), function(i) data.frame(n=avg_seqs[[i]]
 plot_grid(var_seqs, language_list, '# vertices', 'mean dependency length variance')
 ```
 
-Note that in order to calculate the variance for a given value of $n$ we need more than one data point so those $n$ with a single point have been omitted.
+Note that in order to calculate the variance for a given value of $n$ we need more than one data point so those $n$ with a single point have been omitted. Before commenting on the plots take into consideration that the range of values varies wildly from one language to another, so what it might seem like a large variance it's actually not when compared to the largest range over all languages (eg chinese seems to have a large amount of heteroscedas)
 
 \newpage
 A way to deal with this dispersion and get a clearer intuition on the underlying trend is to average the mean length for a given number of vertices:

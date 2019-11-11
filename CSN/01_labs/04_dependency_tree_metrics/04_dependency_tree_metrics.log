@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019) (preloaded format=pdflatex 2019.11.5)  8 NOV 2019 13:08
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019) (preloaded format=pdflatex 2019.11.5)  11 NOV 2019 14:51
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -433,13 +433,13 @@ Package uniquecounter Info: New unique counter `rerunfilecheck' on input line 2
 )
 \Hy@SectionHShift=\skip46
 )
-Package hyperref Info: Option `unicode' set `true' on input line 28.
+Package hyperref Info: Option `unicode' set `true' on input line 30.
 (/home/fjjm/.TinyTeX/texmf-dist/tex/latex/hyperref/puenc.def
 File: puenc.def 2019/09/28 v7.00a Hyperref: PDF Unicode definition (HO)
 Now handling font encoding PU ...
 ... no UTF-8 mapping file for font encoding PU
 )
-Package hyperref Info: Option `breaklinks' set `true' on input line 28.
+Package hyperref Info: Option `breaklinks' set `true' on input line 30.
 (/home/fjjm/.TinyTeX/texmf-dist/tex/latex/graphics/color.sty
 Package: color 2016/07/10 v1.1e Standard LaTeX Color (DPC)
 (/home/fjjm/.TinyTeX/texmf-dist/tex/latex/graphics-cfg/color.cfg
@@ -464,42 +464,6 @@ Package: framed 2011/10/22 v 0.96: framed or shaded text with page breaks
 \fb@frh=\dimen125
 \FrameRule=\dimen126
 \FrameSep=\dimen127
-) (/home/fjjm/.TinyTeX/texmf-dist/tex/latex/tools/longtable.sty
-Package: longtable 2019/02/06 v4.12 Multi-page Table package (DPC)
-\LTleft=\skip48
-\LTright=\skip49
-\LTpre=\skip50
-\LTpost=\skip51
-\LTchunksize=\count116
-\LTcapwidth=\dimen128
-\LT@head=\box30
-\LT@firsthead=\box31
-\LT@foot=\box32
-\LT@lastfoot=\box33
-\LT@cols=\count117
-\LT@rows=\count118
-\c@LT@tables=\count119
-\c@LT@chunks=\count120
-\LT@p@ftn=\toks24
-) (/home/fjjm/.TinyTeX/texmf-dist/tex/latex/booktabs/booktabs.sty
-Package: booktabs 2019/10/08 v1.6180339 publication quality tables
-\heavyrulewidth=\dimen129
-\lightrulewidth=\dimen130
-\cmidrulewidth=\dimen131
-\belowrulesep=\dimen132
-\belowbottomsep=\dimen133
-\aboverulesep=\dimen134
-\abovetopsep=\dimen135
-\cmidrulesep=\dimen136
-\cmidrulekern=\dimen137
-\defaultaddspace=\dimen138
-\@cmidla=\count121
-\@cmidlb=\count122
-\@aboverulesep=\dimen139
-\@belowrulesep=\dimen140
-\@thisruleclass=\count123
-\@lastruleclass=\count124
-\@thisrulewidth=\dimen141
 ) (/home/fjjm/.TinyTeX/texmf-dist/tex/latex/graphics/graphicx.sty
 Package: graphicx 2017/06/01 v1.1a Enhanced LaTeX Graphics (DPC,SPQR)
 (/home/fjjm/.TinyTeX/texmf-dist/tex/latex/graphics/graphics.sty
@@ -511,8 +475,8 @@ File: graphics.cfg 2016/06/04 v1.11 sample graphics configuration
 )
 Package graphics Info: Driver file: pdftex.def on input line 105.
 )
-\Gin@req@height=\dimen142
-\Gin@req@width=\dimen143
+\Gin@req@height=\dimen128
+\Gin@req@width=\dimen129
 ) (/home/fjjm/.TinyTeX/texmf-dist/tex/latex/oberdiek/grffile.sty
 Package: grffile 2017/06/30 v1.18 Extended file name support for graphics (HO)
 Package grffile Info: Option `multidot' is set to `true'.
@@ -521,9 +485,45 @@ Package grffile Info: Option `space' is set to `true'.
 Package grffile Info: \Gin@ii of package `graphicx' fixed on input line 494.
 ) (/home/fjjm/.TinyTeX/texmf-dist/tex/latex/titling/titling.sty
 Package: titling 2009/09/04 v2.1d maketitle typesetting
-\thanksmarkwidth=\skip52
-\thanksmargin=\skip53
-\droptitle=\skip54
+\thanksmarkwidth=\skip48
+\thanksmargin=\skip49
+\droptitle=\skip50
+) (/home/fjjm/.TinyTeX/texmf-dist/tex/latex/booktabs/booktabs.sty
+Package: booktabs 2019/10/08 v1.6180339 publication quality tables
+\heavyrulewidth=\dimen130
+\lightrulewidth=\dimen131
+\cmidrulewidth=\dimen132
+\belowrulesep=\dimen133
+\belowbottomsep=\dimen134
+\aboverulesep=\dimen135
+\abovetopsep=\dimen136
+\cmidrulesep=\dimen137
+\cmidrulekern=\dimen138
+\defaultaddspace=\dimen139
+\@cmidla=\count116
+\@cmidlb=\count117
+\@aboverulesep=\dimen140
+\@belowrulesep=\dimen141
+\@thisruleclass=\count118
+\@lastruleclass=\count119
+\@thisrulewidth=\dimen142
+) (/home/fjjm/.TinyTeX/texmf-dist/tex/latex/tools/longtable.sty
+Package: longtable 2019/02/06 v4.12 Multi-page Table package (DPC)
+\LTleft=\skip51
+\LTright=\skip52
+\LTpre=\skip53
+\LTpost=\skip54
+\LTchunksize=\count120
+\LTcapwidth=\dimen143
+\LT@head=\box30
+\LT@firsthead=\box31
+\LT@foot=\box32
+\LT@lastfoot=\box33
+\LT@cols=\count121
+\LT@rows=\count122
+\c@LT@tables=\count123
+\c@LT@chunks=\count124
+\LT@p@ftn=\toks24
 ) (/home/fjjm/.TinyTeX/texmf-dist/tex/latex/tools/array.sty
 Package: array 2019/08/31 v2.4l Tabular extension package (FMi)
 \col@sep=\dimen144
@@ -640,31 +640,31 @@ Package xcolor Info: Model `wave' substituted by `hsb' on input line 1371.
 ) (./04_dependency_tree_metrics.aux)
 \openout1 = `04_dependency_tree_metrics.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 139.
-LaTeX Font Info:    ... okay on input line 139.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 139.
-LaTeX Font Info:    ... okay on input line 139.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 139.
-LaTeX Font Info:    ... okay on input line 139.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 139.
-LaTeX Font Info:    ... okay on input line 139.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 139.
-LaTeX Font Info:    ... okay on input line 139.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 139.
-LaTeX Font Info:    ... okay on input line 139.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 139.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 142.
+LaTeX Font Info:    ... okay on input line 142.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 142.
+LaTeX Font Info:    ... okay on input line 142.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 142.
+LaTeX Font Info:    ... okay on input line 142.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 142.
+LaTeX Font Info:    ... okay on input line 142.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 142.
+LaTeX Font Info:    ... okay on input line 142.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 142.
+LaTeX Font Info:    ... okay on input line 142.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 142.
 LaTeX Font Info:    Trying to load font information for TS1+cmr on input line 1
-39.
+42.
 (/home/fjjm/.TinyTeX/texmf-dist/tex/latex/base/ts1cmr.fd
 File: ts1cmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 )
-LaTeX Font Info:    ... okay on input line 139.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 139.
-LaTeX Font Info:    ... okay on input line 139.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 139.
-LaTeX Font Info:    ... okay on input line 139.
-LaTeX Font Info:    Trying to load font information for T1+lmr on input line 13
-9.
+LaTeX Font Info:    ... okay on input line 142.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 142.
+LaTeX Font Info:    ... okay on input line 142.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 142.
+LaTeX Font Info:    ... okay on input line 142.
+LaTeX Font Info:    Trying to load font information for T1+lmr on input line 14
+2.
 (/home/fjjm/.TinyTeX/texmf-dist/tex/latex/lm/t1lmr.fd
 File: t1lmr.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
@@ -703,7 +703,7 @@ File: t1lmr.fd 2009/10/30 v1.6 Font defs for Latin Modern
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
 \AtBeginShipoutBox=\box48
-Package hyperref Info: Link coloring OFF on input line 139.
+Package hyperref Info: Link coloring OFF on input line 142.
 (/home/fjjm/.TinyTeX/texmf-dist/tex/latex/hyperref/nameref.sty
 Package: nameref 2019/09/16 v2.46 Cross-referencing by name of section
 (/home/fjjm/.TinyTeX/texmf-dist/tex/latex/oberdiek/refcount.sty
@@ -713,9 +713,9 @@ Package: gettitlestring 2016/05/16 v1.5 Cleanup title references (HO)
 )
 \c@section@level=\count137
 )
-LaTeX Info: Redefining \ref on input line 139.
-LaTeX Info: Redefining \pageref on input line 139.
-LaTeX Info: Redefining \nameref on input line 139.
+LaTeX Info: Redefining \ref on input line 142.
+LaTeX Info: Redefining \pageref on input line 142.
+LaTeX Info: Redefining \nameref on input line 142.
 (./04_dependency_tree_metrics.out) (./04_dependency_tree_metrics.out)
 \@outlinefile=\write4
 \openout4 = `04_dependency_tree_metrics.out'.
@@ -735,227 +735,266 @@ G,.JBIG2,.JB2,.eps]
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
-LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 1
-53.
-(/home/fjjm/.TinyTeX/texmf-dist/tex/latex/lm/t1lmtt.fd
-File: t1lmtt.fd 2009/10/30 v1.6 Font defs for Latin Modern
-)
 LaTeX Font Info:    Trying to load font information for OT1+lmr on input line 1
-76.
+52.
 (/home/fjjm/.TinyTeX/texmf-dist/tex/latex/lm/ot1lmr.fd
 File: ot1lmr.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
 LaTeX Font Info:    Trying to load font information for OML+lmm on input line 1
-76.
+52.
 (/home/fjjm/.TinyTeX/texmf-dist/tex/latex/lm/omllmm.fd
 File: omllmm.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
 LaTeX Font Info:    Trying to load font information for OMS+lmsy on input line 
-176.
+152.
 (/home/fjjm/.TinyTeX/texmf-dist/tex/latex/lm/omslmsy.fd
 File: omslmsy.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
 LaTeX Font Info:    Trying to load font information for OMX+lmex on input line 
-176.
+152.
 (/home/fjjm/.TinyTeX/texmf-dist/tex/latex/lm/omxlmex.fd
 File: omxlmex.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10> on input line 176.
+(Font)              <10> on input line 152.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <7> on input line 176.
+(Font)              <7> on input line 152.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <5> on input line 176.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 176
+(Font)              <5> on input line 152.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 152
 .
 (/home/fjjm/.TinyTeX/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 176
+LaTeX Font Info:    Trying to load font information for U+msb on input line 152
 .
 (/home/fjjm/.TinyTeX/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) [1
 
 {/home/fjjm/.TinyTeX/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
-<"04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-8-1".pdf, id=41
-, 1156.32pt x 1300.86pt>
-File: "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-8-1".pdf G
-raphic file (type pdf)
-<use "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-8-1".pdf>
-Package pdftex.def Info: "04_dependency_tree_metrics_files/figure-latex/""unnam
-ed-chunk-8-1".pdf  used on input line 210.
-(pdftex.def)             Requested size: 469.75385pt x 528.47308pt.
-[2 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-8-1.pdf>]
-<"04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-9-1".pdf, id=53
-, 1156.32pt x 1300.86pt>
+<"04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-9-1".pdf, id=44
+, 1156.32pt x 578.16pt>
 File: "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-9-1".pdf G
 raphic file (type pdf)
 <use "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-9-1".pdf>
 Package pdftex.def Info: "04_dependency_tree_metrics_files/figure-latex/""unnam
-ed-chunk-9-1".pdf  used on input line 214.
-(pdftex.def)             Requested size: 469.75385pt x 528.47308pt.
-
-Underfull \hbox (badness 10000) in paragraph at lines 214--219
-[][]
- []
-
-[3 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-9-1.pdf>]
-<"04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-10-1".pdf, id=6
-4, 1156.32pt x 1300.86pt>
+ed-chunk-9-1".pdf  used on input line 245.
+(pdftex.def)             Requested size: 469.75385pt x 234.87692pt.
+<"04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-10-1".pdf, id=4
+5, 1156.32pt x 578.16pt>
 File: "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-10-1".pdf 
 Graphic file (type pdf)
 <use "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-10-1".pdf>
 Package pdftex.def Info: "04_dependency_tree_metrics_files/figure-latex/""unnam
-ed-chunk-10-1".pdf  used on input line 230.
-(pdftex.def)             Requested size: 469.75385pt x 528.47308pt.
-[4 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-10-1.pdf>]
-<"04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-11-1".pdf, id=7
+ed-chunk-10-1".pdf  used on input line 253.
+(pdftex.def)             Requested size: 469.75385pt x 234.87692pt.
+[2 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-9-1.pdf>] [3 
+<./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-10-1.pdf>]
+<"04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-11-1".pdf, id=6
 6, 1156.32pt x 1300.86pt>
 File: "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-11-1".pdf 
 Graphic file (type pdf)
 <use "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-11-1".pdf>
 Package pdftex.def Info: "04_dependency_tree_metrics_files/figure-latex/""unnam
-ed-chunk-11-1".pdf  used on input line 242.
+ed-chunk-11-1".pdf  used on input line 272.
 (pdftex.def)             Requested size: 469.75385pt x 528.47308pt.
-
-Underfull \hbox (badness 10000) in paragraph at lines 242--246
-[][]
- []
-
+[4 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-11-1.pdf>]
 <"04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-12-1".pdf, id=7
-7, 1156.32pt x 1300.86pt>
+8, 1156.32pt x 1300.86pt>
 File: "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-12-1".pdf 
 Graphic file (type pdf)
 <use "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-12-1".pdf>
 Package pdftex.def Info: "04_dependency_tree_metrics_files/figure-latex/""unnam
-ed-chunk-12-1".pdf  used on input line 247.
+ed-chunk-12-1".pdf  used on input line 276.
 (pdftex.def)             Requested size: 469.75385pt x 528.47308pt.
 
-Underfull \hbox (badness 10000) in paragraph at lines 247--251
+Underfull \hbox (badness 10000) in paragraph at lines 276--281
 [][]
  []
 
-[5 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-11-1.pdf>]
+[5 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-12-1.pdf>]
 <"04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-13-1".pdf, id=8
-8, 1156.32pt x 1300.86pt>
+9, 1156.32pt x 1300.86pt>
 File: "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-13-1".pdf 
 Graphic file (type pdf)
 <use "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-13-1".pdf>
 Package pdftex.def Info: "04_dependency_tree_metrics_files/figure-latex/""unnam
-ed-chunk-13-1".pdf  used on input line 258.
+ed-chunk-13-1".pdf  used on input line 292.
 (pdftex.def)             Requested size: 469.75385pt x 528.47308pt.
-[6 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-12-1.pdf>]
+[6 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-13-1.pdf>]
 <"04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-14-1".pdf, id=1
 01, 1156.32pt x 1300.86pt>
 File: "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-14-1".pdf 
 Graphic file (type pdf)
 <use "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-14-1".pdf>
 Package pdftex.def Info: "04_dependency_tree_metrics_files/figure-latex/""unnam
-ed-chunk-14-1".pdf  used on input line 260.
+ed-chunk-14-1".pdf  used on input line 304.
 (pdftex.def)             Requested size: 469.75385pt x 528.47308pt.
-[7 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-13-1.pdf>]
 
-Package xcolor Warning: Incompatible color definition on input line 265.
+Underfull \hbox (badness 10000) in paragraph at lines 304--308
+[][]
+ []
 
-LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <10> not available
-(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 267.
+<"04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-15-1".pdf, id=1
+02, 1156.32pt x 1300.86pt>
+File: "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-15-1".pdf 
+Graphic file (type pdf)
+<use "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-15-1".pdf>
+Package pdftex.def Info: "04_dependency_tree_metrics_files/figure-latex/""unnam
+ed-chunk-15-1".pdf  used on input line 309.
+(pdftex.def)             Requested size: 469.75385pt x 528.47308pt.
 
-Package xcolor Warning: Incompatible color definition on input line 269.
+Underfull \hbox (badness 10000) in paragraph at lines 309--313
+[][]
+ []
 
-
-Package xcolor Warning: Incompatible color definition on input line 269.
-
-LaTeX Font Info:    Trying to load font information for TS1+lmtt on input line 
-299.
-(/home/fjjm/.TinyTeX/texmf-dist/tex/latex/lm/ts1lmtt.fd
-File: ts1lmtt.fd 2009/10/30 v1.6 Font defs for Latin Modern
-) [8 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-14-1.pdf>]
-
-Package xcolor Warning: Incompatible color definition on input line 301.
-
-
-Package xcolor Warning: Incompatible color definition on input line 307.
-
-
-Package xcolor Warning: Incompatible color definition on input line 307.
-
+[7 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-14-1.pdf>]
+<"04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-16-1".pdf, id=1
+14, 1156.32pt x 1300.86pt>
+File: "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-16-1".pdf 
+Graphic file (type pdf)
+<use "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-16-1".pdf>
+Package pdftex.def Info: "04_dependency_tree_metrics_files/figure-latex/""unnam
+ed-chunk-16-1".pdf  used on input line 320.
+(pdftex.def)             Requested size: 469.75385pt x 528.47308pt.
+[8 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-15-1.pdf>]
 <"04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-17-1".pdf, id=1
-26, 1156.32pt x 1300.86pt>
+25, 1156.32pt x 1300.86pt>
 File: "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-17-1".pdf 
 Graphic file (type pdf)
 <use "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-17-1".pdf>
 Package pdftex.def Info: "04_dependency_tree_metrics_files/figure-latex/""unnam
-ed-chunk-17-1".pdf  used on input line 329.
+ed-chunk-17-1".pdf  used on input line 322.
 (pdftex.def)             Requested size: 469.75385pt x 528.47308pt.
-[9]
-<"04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-18-1".pdf, id=1
-31, 1156.32pt x 1300.86pt>
-File: "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-18-1".pdf 
-Graphic file (type pdf)
-<use "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-18-1".pdf>
-Package pdftex.def Info: "04_dependency_tree_metrics_files/figure-latex/""unnam
-ed-chunk-18-1".pdf  used on input line 331.
-(pdftex.def)             Requested size: 469.75385pt x 528.47308pt.
-[10 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-17-1.pdf>] [
-11 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-18-1.pdf>]
+[9 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-16-1.pdf>]
+
+Package xcolor Warning: Incompatible color definition on input line 327.
+
+LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 3
+28.
+(/home/fjjm/.TinyTeX/texmf-dist/tex/latex/lm/t1lmtt.fd
+File: t1lmtt.fd 2009/10/30 v1.6 Font defs for Latin Modern
+)
+LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <10> not available
+(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 329.
+
+Package xcolor Warning: Incompatible color definition on input line 331.
+
+
+Package xcolor Warning: Incompatible color definition on input line 331.
+
+LaTeX Font Info:    Trying to load font information for TS1+lmtt on input line 
+369.
+(/home/fjjm/.TinyTeX/texmf-dist/tex/latex/lm/ts1lmtt.fd
+File: ts1lmtt.fd 2009/10/30 v1.6 Font defs for Latin Modern
+) [10 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-17-1.pdf>]
+
+Package xcolor Warning: Incompatible color definition on input line 371.
+
+
+Package xcolor Warning: Incompatible color definition on input line 377.
+
+
+Package xcolor Warning: Incompatible color definition on input line 377.
+
 <"04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-20-1".pdf, id=1
-53, 1156.32pt x 1300.86pt>
+51, 1156.32pt x 1300.86pt>
 File: "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-20-1".pdf 
 Graphic file (type pdf)
 <use "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-20-1".pdf>
 Package pdftex.def Info: "04_dependency_tree_metrics_files/figure-latex/""unnam
-ed-chunk-20-1".pdf  used on input line 381.
+ed-chunk-20-1".pdf  used on input line 399.
 (pdftex.def)             Requested size: 469.75385pt x 528.47308pt.
-[12] [13 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-20-1.pd
-f>]
+[11]
+<"04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-21-1".pdf, id=1
+56, 1156.32pt x 1300.86pt>
+File: "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-21-1".pdf 
+Graphic file (type pdf)
+<use "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-21-1".pdf>
+Package pdftex.def Info: "04_dependency_tree_metrics_files/figure-latex/""unnam
+ed-chunk-21-1".pdf  used on input line 401.
+(pdftex.def)             Requested size: 469.75385pt x 528.47308pt.
+[12 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-20-1.pdf>]
 <"04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-22-1".pdf, id=1
-69, 1156.32pt x 1300.86pt>
+67, 1156.32pt x 1300.86pt>
 File: "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-22-1".pdf 
 Graphic file (type pdf)
 <use "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-22-1".pdf>
 Package pdftex.def Info: "04_dependency_tree_metrics_files/figure-latex/""unnam
-ed-chunk-22-1".pdf  used on input line 409.
+ed-chunk-22-1".pdf  used on input line 403.
+(pdftex.def)             Requested size: 469.75385pt x 528.47308pt.
+[13 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-21-1.pdf>]
+<"04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-23-1".pdf, id=1
+79, 1156.32pt x 1300.86pt>
+File: "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-23-1".pdf 
+Graphic file (type pdf)
+<use "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-23-1".pdf>
+Package pdftex.def Info: "04_dependency_tree_metrics_files/figure-latex/""unnam
+ed-chunk-23-1".pdf  used on input line 405.
+(pdftex.def)             Requested size: 469.75385pt x 528.47308pt.
+[14 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-22-1.pdf>] [
+15 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-23-1.pdf>]
+<"04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-25-1".pdf, id=2
+00, 1156.32pt x 1300.86pt>
+File: "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-25-1".pdf 
+Graphic file (type pdf)
+<use "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-25-1".pdf>
+Package pdftex.def Info: "04_dependency_tree_metrics_files/figure-latex/""unnam
+ed-chunk-25-1".pdf  used on input line 455.
+(pdftex.def)             Requested size: 469.75385pt x 528.47308pt.
+[16] [17 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-25-1.pd
+f>]
+<"04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-27-1".pdf, id=2
+15, 1156.32pt x 1300.86pt>
+File: "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-27-1".pdf 
+Graphic file (type pdf)
+<use "04_dependency_tree_metrics_files/figure-latex/""unnamed-chunk-27-1".pdf>
+Package pdftex.def Info: "04_dependency_tree_metrics_files/figure-latex/""unnam
+ed-chunk-27-1".pdf  used on input line 483.
 (pdftex.def)             Requested size: 469.75385pt x 528.47308pt.
 
-Underfull \hbox (badness 10000) in paragraph at lines 409--420
+Underfull \hbox (badness 10000) in paragraph at lines 483--494
 [][]
  []
 
-[14]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 425.
-[15 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-22-1.pdf>]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 425.
+[18]
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 499.
+[19 <./04_dependency_tree_metrics_files/figure-latex/unnamed-chunk-27-1.pdf>]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 499.
 (./04_dependency_tree_metrics.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 425.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 425.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 499.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 499.
 Package rerunfilecheck Info: File `04_dependency_tree_metrics.out' has not chan
 ged.
-(rerunfilecheck)             Checksum: 0573DD166E9B5DCE32ADFA1DF0D01BC3;944.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 425.
+(rerunfilecheck)             Checksum: 797DDDAAB69CB2E11399829666313027;895.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 499.
  ) 
 Here is how much of TeX's memory you used:
- 13052 strings out of 494111
- 186675 string characters out of 6174061
- 267727 words of memory out of 5000000
- 16878 multiletter control sequences out of 15000+600000
- 32690 words of font info for 40 fonts, out of 8000000 for 9000
+ 13077 strings out of 494111
+ 188339 string characters out of 6174061
+ 269392 words of memory out of 5000000
+ 16899 multiletter control sequences out of 15000+600000
+ 39967 words of font info for 42 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
  46i,9n,37p,446b,442s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/home/fjjm/.TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc}{/home/fjjm/
 .TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-ts1.enc}{/home/fjjm/.TinyTeX/texmf-di
 st/fonts/enc/dvips/lm/lm-ec.enc}{/home/fjjm/.TinyTeX/texmf-dist/fonts/enc/dvips
-/lm/lm-mathsy.enc}{/home/fjjm/.TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-rm.enc}
+/lm/lm-rm.enc}{/home/fjjm/.TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc}
 </home/fjjm/.TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx12.pfb></home/fjjm/.T
 inyTeX/texmf-dist/fonts/type1/public/lm/lmmi10.pfb></home/fjjm/.TinyTeX/texmf-d
 ist/fonts/type1/public/lm/lmmi7.pfb></home/fjjm/.TinyTeX/texmf-dist/fonts/type1
-/public/lm/lmr10.pfb></home/fjjm/.TinyTeX/texmf-dist/fonts/type1/public/lm/lmsy
-10.pfb></home/fjjm/.TinyTeX/texmf-dist/fonts/type1/public/lm/lmtk10.pfb></home/
-fjjm/.TinyTeX/texmf-dist/fonts/type1/public/lm/lmtt10.pfb>
-Output written on 04_dependency_tree_metrics.pdf (15 pages, 25576316 bytes).
+/public/lm/lmr10.pfb></home/fjjm/.TinyTeX/texmf-dist/fonts/type1/public/lm/lmr1
+7.pfb></home/fjjm/.TinyTeX/texmf-dist/fonts/type1/public/lm/lmr7.pfb></home/fjj
+m/.TinyTeX/texmf-dist/fonts/type1/public/lm/lmri12.pfb></home/fjjm/.TinyTeX/tex
+mf-dist/fonts/type1/public/lm/lmsy10.pfb></home/fjjm/.TinyTeX/texmf-dist/fonts/
+type1/public/lm/lmtk10.pfb></home/fjjm/.TinyTeX/texmf-dist/fonts/type1/public/l
+m/lmtt10.pfb>
+Output written on 04_dependency_tree_metrics.pdf (19 pages, 8349841 bytes).
 PDF statistics:
- 224 PDF objects out of 1000 (max. 8388607)
- 176 compressed objects within 2 object streams
- 29 named destinations out of 1000 (max. 500000)
- 104 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 282 PDF objects out of 1000 (max. 8388607)
+ 218 compressed objects within 3 object streams
+ 32 named destinations out of 1000 (max. 500000)
+ 124 words of extra memory for PDF output out of 10000 (max. 10000000)
 
