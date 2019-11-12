@@ -5,7 +5,11 @@
 
 class Floorplanning_solution {
   std::vector<int> norm_polish_expression;   // We can store the polish expression as a regular vetor of ints to save space
+  int with, height;
 public:
   Floorplanning_solution(const std::vector<int> &npe);
+
+  int get_width();
+  int get_height();
 };
 #endif

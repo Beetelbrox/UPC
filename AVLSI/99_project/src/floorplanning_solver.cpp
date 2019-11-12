@@ -32,14 +32,15 @@ void Floorplanning_solver::generate_initial_solution() {
       initial_pe[n_operands+n_operators] = node_shuffle[n_operands];
       ++n_operands;
     } else {
-      initial_pe[n_operands+n_operators] = (int(floor(log2(initial_pe.size() - n_operands+n_operators+2))) % 2) - 2;
+      initial_pe[n_operands+n_operators] = initial_pe[n_operands+n_operators-1] < 0 ? ((initial_pe[n_operands+n_operators-1]+3)%2)-2 : V;
       ++n_operators;
     }
-
   }
 
   Floorplanning_solution * sol = new Floorplanning_solution(initial_pe);
   solutions.push_back(*sol);
-  //cout << solutions.size() << endl;
+}
 
+int Floorplanning_solver::generate_perturbation(const Floorplanning_solution &current) {
+  
 }
