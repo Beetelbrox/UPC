@@ -21,7 +21,5 @@ ${FP_SOLUTION}.o: src/$(FP_SOLUTION).cpp src/$(FP_SOLUTION).h
 ${FP_PROB}.o: src/$(FP_PROB).cpp src/$(FP_PROB).h
 	$(CCC) $(CFLAGS) $(INC) -c src/$(FP_PROB).cpp
 
-
-
 clean:
 	rm --force *.o
