@@ -28,10 +28,10 @@ void Floorplanning_solution::swap_operands(int ix) {
 }
 
 void Floorplanning_solution::invert_chain(int ix) {
-  map<int, vector<int> >::iterator chains_it = next(chains.begin(),ix);
-  for (int &op: chains_it->second) {
-    op = ((op+3)%2)-2;
-  }
+  //map<int, vector<int> >::iterator chains_it = next(chains.begin(),ix);
+  //for (int &op: chains_it->second) {
+  //  op = ((op+3)%2)-2;
+  //}
 }
 
 int Floorplanning_solution::swap_operand_operator(int ix) {
