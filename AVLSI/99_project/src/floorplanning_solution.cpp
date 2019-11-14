@@ -35,8 +35,9 @@ void Floorplanning_solution::invert_chain(int ix) {
 }
 
 int Floorplanning_solution::swap_operand_operator(int ix) {
-  map<int, int>::iterator operand_it = next(operands.begin(),ix);
-  map<int, vector<int> >::iterator chains_it
+  //map<int, int>::iterator operand_it = next(operands.begin(),ix);
+  //map<int, vector<int> >::iterator chains_it
+  /*
   int side;
   bool r_operator = operand_it->first+1 != next(operand_it, 1)->first; // Check if the element to the right is an operator by checking if the next element in the operand list is not adjacent
   bool l_operator = operand_it->first-1 != prev(operand_it, 1)->first;
@@ -45,16 +46,13 @@ int Floorplanning_solution::swap_operand_operator(int ix) {
     chains_it = chains.find(operand_it->first+1);
   if (side) {
 
-  } else {
-
-  }
   } else { // We can get to the beginning of the previous chain by referencing from the next one (as there can only be 2 adjacent operators)
     if (operators.find(operand_it->first-2)
     chains_it = prev(chains.find(operand_it->first+2), 1);
     cout <<"op: " <<chains_it->first << endl;
   }
   // Try the next operator first. This assumes that there will always be at least one operand afterwards
-
+  */
   return 0;
 }
 
@@ -65,6 +63,7 @@ int Floorplanning_solution::get_num_chains(){ return chains.size(); }
 void Floorplanning_solution::print_npe() {
   map<int, int>::iterator operands_it;
   map<int, vector<int> >::iterator chains_it;
+  /*
   for(size_t i=0; i < 2*operands.size()-1; ++i) {
     operands_it = operands.find(i);
     if (operands_it != operands.end()) {
@@ -75,5 +74,6 @@ void Floorplanning_solution::print_npe() {
       i += chains_it->second.size()-1;
     }
   }
+  */
   cerr << endl;
 }
