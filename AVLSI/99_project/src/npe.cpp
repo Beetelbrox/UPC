@@ -55,10 +55,12 @@ void NPE::invert_chain(size_t ix) {
   }
 }
 
-int NPE::swap_operand_operator(size_t ix) {
-  if (ix >= operand_pos.size()) cerr << "Error: Index out of bounds while trying to operand-operator" << endl;
+int NPE::swap_operand_operator(size_t ch_ix, bool side) {
+  if (ch_ix >= operand_pos.size()) cerr << "Error: Index out of bounds while trying to operand-operator" << endl;
   else if (ix <= 0) cerr << "Error: Index for operand-operator swap must be greater than 0" << endl;
-  else {
+  else if (!side) {
+    chain_pos[chain]
+  } else {}
     int op_pos = operand_pos[ix], num_ops; // Get the position of the selected operand in the npe;
     bool operator_at_left = operand_pos[ix-1] != operand_pos[ix]-1,
         operator_at_right = ix == operand_pos.size()-1 ? true : operand_pos[ix+1] != operand_pos[ix]+1;
@@ -67,7 +69,7 @@ int NPE::swap_operand_operator(size_t ix) {
         cerr << "Bad perturbation: Balloting property violation" << endl;
         return -1;
       }
-      
+
     } else {
 
     }
