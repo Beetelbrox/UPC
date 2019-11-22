@@ -5,6 +5,8 @@
 
 
 int main() {
-  NPE npe({1, 2, -1, 3, -2, -2});
+  Floorplanning_problem fp_problem("testfile.txt");
+  Floorplanning_solver fp_solver(fp_problem);
+  fp_solver.solve();
   return 0;
 }

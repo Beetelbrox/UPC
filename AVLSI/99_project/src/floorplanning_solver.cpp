@@ -14,12 +14,14 @@ Floorplanning_solver::~Floorplanning_solver() {
 
 int Floorplanning_solver::solve() {
   generate_initial_solution();
-  generate_perturbation(*(solutions.end()-1));
+  for (int i=0; i<10; ++i) {
+  }
   return 0;
 }
 
-
+// Refactor this to make it random without the weird constraints
 void Floorplanning_solver::generate_initial_solution() {
+  cerr << "Generating initial solution...";
 
   vector<int> node_shuffle, initial_pe(2*problem.get_num_modules()-1, 0);
   int n_operands=1, n_operators=0;
@@ -39,29 +41,7 @@ void Floorplanning_solver::generate_initial_solution() {
 
   Floorplanning_solution * sol = new Floorplanning_solution(initial_pe);
   solutions.push_back(*sol);
-}
+  cerr << "done." << endl;
+  sol->print();
 
-int Floorplanning_solver::generate_perturbation(const Floorplanning_solution &current) {
-  Floorplanning_solution perturbation = current;
-  perturbation.print_npe();
-  int ix;
-  for(int i=0; i<10; ++i) {
-    ix = 1+ rand()%(problem.get_num_modules()-1);
-    cout << ix << endl;
-    perturbation.swap_operand_operator(ix);
-    perturbation.print_npe();
-  }
-  switch(rand()%3){
-    case 0: //swap two adjacent operands
-      perturbation.swap_operands(rand()%(problem.get_num_modules()-1));
-      break;
-    case 1:
-      perturbation.invert_chain(rand()%perturbation.get_num_chains());
-    break;
-
-    case 2:
-
-    break;
-  }
-  return 0;
 }

@@ -11,7 +11,6 @@ class Floorplanning_solver {
   std::vector<Floorplanning_solution> solutions;
 
   void generate_initial_solution();
-  int generate_perturbation(const Floorplanning_solution &current);
 
 public:
   static const int V = -1, H = -2;
