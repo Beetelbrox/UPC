@@ -10,7 +10,8 @@ class Floorplanning_solver {
   const Floorplanning_problem& problem;
   std::vector<Floorplanning_solution> solutions;
 
-  void generate_initial_solution();
+  void generate_initial_solution(int size);
+  std::pair <int, int> calculate_floorplan_dimensions(const std::vector<int> &npe);
 
 public:
   static const int V = -1, H = -2;

@@ -86,3 +86,5 @@ void Floorplanning_solution::print() {
 int Floorplanning_solution::get_width(){ return width; }
 int Floorplanning_solution::get_height(){ return height; }
 int Floorplanning_solution::get_num_chains(){ return 0; }
+
+vector<int>& Floorplanning_solution::get_npe(){ return npe; }

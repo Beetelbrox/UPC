@@ -1,5 +1,5 @@
 CCC = g++
-CFLAGS = -Wall
+CFLAGS = -Wall -Wextra
 
 FP_PROB = floorplanning_problem
 FP_SOLVER = floorplanning_solver
@@ -26,4 +26,4 @@ ${FP_PROB}.o: src/$(FP_PROB).cpp src/$(FP_PROB).h
 	$(CCC) $(CFLAGS) $(INC) -c src/$(FP_PROB).cpp
 
 clean:
-	rm --force *.o
+	rm --force *.o bin/*

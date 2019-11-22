@@ -22,7 +22,8 @@ public:
 
   int get_width();
   int get_height();
-  int get_num_chains();;
+  int get_num_chains();
+  std::vector<int>& get_npe();
 
   void print();
 
