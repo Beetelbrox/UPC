@@ -2,23 +2,30 @@
 #define _NPE_GUARD
 
 #include <vector>
-#include <map>
+#include <utility>
+#include <memory>
 
 class NPE {
-  std::vector<int> npe;
-  std::vector<int> operand_pos;
-  std::map<int, int> chains;
+  std::size_t length, num_operands, num_operators;
+  std::unique_ptr<int[]> npe, operand_pos;
+  std::vector<std::pair<int, int>> chains;
 
-  void swap_operands(std::vector<int> &perturbation, size_t ix);
-  void invert_chain(std::vector<int> &perturbation, size_t ix);
-  int swap_operand_operator(std::vector<int> &perturbation, size_t ix, bool side);
+  int parse_npe();
+  std::pair<int, int> gen_rnd_operand_swap();
+  std::pair<int, int> gen_rnd_chain_swap();
+  std::pair<int, int> gen_rnd_operand_operator_swap();
 
 public:
   static const int V = -1, H = -2;
   NPE(const std::vector<int> &seq);
 
-  std::vector<int> generate_random_perturbation();
 
+  std::pair<int, int> gen_rnd_perturbation();
+  int apply_perturbation(const std::pair<int, int> &perturbation, bool parse=true);
+
+  std::size_t get_length();
+  std::size_t get_num_operands();
+  std::size_t get_num_operators();
   void print();
 };
 
