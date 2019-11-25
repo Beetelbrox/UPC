@@ -4,6 +4,7 @@
 #include <cmath>
 #include <stack>
 #include "floorplanning_solver.h"
+#include "floorplan.h"
 
 using namespace std;
 
@@ -16,12 +17,15 @@ Floorplanning_solver::Floorplanning_solver(const Floorplanning_problem &p): prob
 }
 
 int Floorplanning_solver::solve() {
+  /*
   for(int i=0; i <1000; ++i) {
     pair<int, int> perturbation = npe->gen_rnd_perturbation();
     //std::cout << "(" << perturbation.first << "," << perturbation.second << ")" << std::endl;
     npe->apply_perturbation(perturbation);
-    npe->print();
+    //npe->print();
   }
+  */
+  pack_npe();
   //calculate_floorplan_dimensions(solutions.back().get_npe());
   return 0;
 }
@@ -53,7 +57,15 @@ void Floorplanning_solver::generate_random_npe(size_t size, vector<int> &npe_vec
   cerr << "done." << endl;
 }
 
+pair<int, int> Floorplanning_solver::pack_npe() {
+  stack<Floorplan *> fp_stack;
+  for(size_t i=0; i < npe->size(); ++i) {
+    if(npe->get_element(i) > 0) fp_stack.push(problem.get_module_floorplan(npe->get_element(i)));
+  }
+}
+
 pair <int, int> Floorplanning_solver::calculate_floorplan_dimensions(const vector<int> &npe) {
+/*
   stack<vector<pair<int, int>>> module_stack;
   vector<pair<int, int>> shape_function, submod_1, submod_2;
   for(int e : npe) {
@@ -73,7 +85,7 @@ pair <int, int> Floorplanning_solver::calculate_floorplan_dimensions(const vecto
       cerr << "Error: Bad index in NPE." << endl;
       return {-1,-1};
     }
-
   }
+  */
   return {0,0};
 }

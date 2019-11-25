@@ -23,9 +23,10 @@ public:
   std::pair<int, int> gen_rnd_perturbation();
   int apply_perturbation(const std::pair<int, int> &perturbation, bool parse=true);
 
-  std::size_t get_length();
+  std::size_t size();
   std::size_t get_num_operands();
   std::size_t get_num_operators();
+  int get_element(size_t ix);
   void print();
 };
 

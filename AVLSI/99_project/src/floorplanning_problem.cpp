@@ -1,9 +1,9 @@
-#include "floorplanning_problem.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <cmath>
 #include <algorithm>
+#include "floorplanning_problem.h"
 
 using namespace std;
 
@@ -23,24 +23,29 @@ int Floorplanning_problem::load_from_file(const std::string &filename) {
     "'. Empty problem instance generated" << endl;
     return -1;
   }
-  getline(file, line);      // Read the first line containing the number of modules
+  getline(file, line);      // Read the first line containing the number of es
   n = stoi(line); // Parse the string into a number
-  module_dimensions.reserve(n);
+  module_fps.resize(n);
 
   cerr << "Reading  " << n << " modules..." << endl;
   // Read the modules and dimensions
   for(int i=0; i<n; ++i) {
     if ( !getline(file, line) ) return -1; // If an eof is read before expected assume malformed input and return, return -1
-    vector < pair <int, int> > dim; // Create a vector to store the pairs
+    vector < pair <int, int> > sf; // Create a vector to store the pairs
     istringstream ln_stream(line);  // Turn the line into a stream to be able to parse it easily
-    while(ln_stream >> w >> h) dim.push_back({w, h});
-    module_dimensions.push_back(dim);
+    while(ln_stream >> w >> h) sf.push_back({w, h});
+    Floorplan fp(sf);
+    module_fps[i] = fp;
   }
   return 0;
 }
 
-size_t Floorplanning_problem::size() const { return module_dimensions.size(); }
+size_t Floorplanning_problem::size() const { return module_fps.size(); }
 
-vector<pair<int, int>> Floorplanning_problem::get_module_dimensions (int module_ix) const {
-  return module_dimensions[module_ix];
+const Floorplan& Floorplanning_problem::get_module_floorplan (int module_id) {
+  return module_fps[module_id-1];
+}
+
+void Floorplanning_problem::print() {
+
 }

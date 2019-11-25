@@ -116,9 +116,10 @@ pair<int, int> NPE::gen_rnd_operand_operator_swap() {
   return {rnd_operator_pos, rnd_operand_pos};
 }
 
-size_t NPE::get_length() { return length; }
+size_t NPE::size() { return length; }
 size_t NPE::get_num_operands() { return num_operands; }
 size_t NPE::get_num_operators() { return num_operators; } // This is an integer division
+int NPE::get_element(size_t ix) {return npe[ix];}
 
 void NPE::print() {
   for (size_t i=0; i<length; ++i) {

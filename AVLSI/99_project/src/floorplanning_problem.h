@@ -11,9 +11,10 @@
 #include <vector>
 #include <map>
 #include <utility>
+#include "floorplan.h"
 
 class Floorplanning_problem {
-  std::vector < std::vector< std::pair<int, int> > > module_dimensions;
+  std::vector <Floorplan> module_fps;
 
 public:
   Floorplanning_problem();
@@ -21,7 +22,9 @@ public:
   int load_from_file(const std::string &filename);
 
   size_t size() const; // Returns the number of modules in the problem
-  std::vector<std::pair<int, int>> get_module_dimensions (int module_ix) const;
+  Floorplan& get_module_floorplan (int module_id) const;
+
+  void print();
 };
 
 #endif
