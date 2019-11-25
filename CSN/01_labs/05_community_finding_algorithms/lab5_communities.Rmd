@@ -1,7 +1,12 @@
 ---
-title: "05_community"
-author: "Francisco Javier Jurado, Luis"
-date: "November 12, 2019"
+output:
+  pdf_document: default
+  html_document: default
+---
+---
+title: "Finding Community Structure"
+author: "Francisco Javier Jurado, Luis Noites Martins"
+date: "November 25, 2019"
 output: pdf_document
 ---
 
@@ -27,28 +32,43 @@ if (rstudioapi::isAvailable()) setwd(dirname(rstudioapi::getActiveDocumentContex
 
 ```
 
-
-```{r cars}
-##################################
-##Argimiro Arratia @2016,2018 CSN Lab 5
-##Communities
-##################################
-##exploring community structure
-##view friendship relation among members of Karate club
-#plot(karate) 
-##Find cluster partition according to Walktrap algorithm:
-#distance is based on random walks, and similarity==shortest random walk
-#wc <- walktrap.community(karate)
-#modularity(wc)
-#membership(wc)
-#plot(wc, karate)
-#gen_communities <- lapply(community_algorithms, function(fun) fun(karate))
-#sum(count_triangles(induced.subgraph(karate, communities[[1]][[1]])) > 0)/length(communities[[1]][[1]])
-#sizes(gen_communities[[1]])
-```
-
 ```{r, echo=FALSE}
+# List of graph names
+graph_names <- c(
+  'Coxeter',
+  'Krackhardt kite',
+  'Levi',
+  'Robertson',
+  'Walther',
+  'Zachary'
+)
 
+# List of algorithm names
+algorithm_names <- c(
+  'Edge Betweenness',
+  'Fast Greedy',
+  'Label Propagation',
+  'Leading Eigenvector',
+  'Multilevel',
+  'Spinglass',
+  'Walktrap',
+  'Infomap'
+)
+
+# List of algorithm functions. Cluter_optimal is disabled as it relies in GLTK which was taken out of R some time ago
+community_algorithms <- c(
+  edge.betweenness.community,
+  fastgreedy.community,
+  label.propagation.community,
+  leading.eigenvector.community,
+  multilevel.community,
+  #cluster.optimal,
+  spinglass.community,
+  walktrap.community,
+  infomap.community
+)
+
+# Functions to calculate the metric and some auxiliary ones
 f_c <- function(coms, g) {
   t <- table(get.edges(g, E(g))*crossing(coms, g))
   sapply(1:length(coms), function(i) { sum(
@@ -75,47 +95,69 @@ conductance <- function (coms, g) {
   fc <- f_c(coms, g)
   weighted.mean(fc/(2*m_c(coms, g) + fc), sizes(coms)/vcount(g))
 }
-```
-# Introduction
-```{r, echo=FALSE, fig.width=16, fig.height=18}
-graph_names <- c(
-  'Coxeter',
-  'Krackhardt kite',
-  'Levi',
-  'Robertson',
-  'Walther',
-  'Zachary'
-)
+
 
 # Generate graphs using iGraph
 famous_graphs <- lapply(graph_names, graph.famous)
 
-algorithm_names <- c(
-  'Edge Betweenness',
-  'Fast Greedy',
-  'Label Propagation',
-  'Leading Eigenvector',
-  'Multilevel',
-  'Spinglass',
-  'Walktrap',
-  'Infomap'
-)
-
-community_algorithms <- c(
-  edge.betweenness.community,
-  fastgreedy.community,
-  label.propagation.community,
-  leading.eigenvector.community,
-  multilevel.community,
-  #cluster_optimal,
-  spinglass.community,
-  walktrap.community,
-  infomap.community
-)
-
+# Generate communities by applying all the algorithmss
+coms <- lapply(famous_graphs, function(g) {
+  lapply(community_algorithms, function(alg) alg(g))
+})
 ```
-We will use the following subset of the "_Famous graphs_" available through iGraph for our assignment: "Coexter","Krackhardt kite", "Levi", "Robertson", "Walther" and "Zachary". Those graphs are convenient as they do not have any loops nor multiedges, as well as
-As they have a fairly low vertex count we can clearly visualize their structure by plotting them:
+
+# Introduction
+
+In this project we were assigned with the task of running and comparing different community finding algorithms on several graphs. For this purpose we applied already implemented algorithms available at \textit{igraph} to a selection of graphs and calculated some metrics on the identified communities. As a second step we were requested to load a large(r) graph containing links between wikipedia pages and to analyze it using one of the community finding algorithms.
+
+## Graphs
+After some experimentation with the graphs from the online repositories we found them to be exceedingly large for the algorithms to finish in a reasonable time in our computers. Because we did not want to resort to very coarse sampling which would destroy most internal structure we decided to choose a set of 6 simple and small graphs available through \textit{igraph}. The small sizes of these graphs allow us to visualize them and the identified communities, being particularly useful for teaching purposes. In addition, these graphs do not have loops nor multiedges so all algorithms work properly on them right from the start. The graphs are the following:
+
+\begin{itemize}
+    \item Coxeter: A non-Hamiltonian cubic symmetric graph with 28 vertices and 42 edges.
+    \item Krackhardt kite: A social network with 10 vertices and 18 edges.
+    \item Levi: A 4-arc transitive cubic graph, it has 30 vertices and 45 edges.
+    \item Robertson: A 4-regular graph of girth 5, it has 19 vertices and 38 edges.
+    \item Walther: An identity graph (has a single graph automorphism) with 25 vertices and 31 edges.
+    \item Zachary: Real social network of friendships between 34 members of a karate club
+\end{itemize}
+
+## Community finding algorithms
+
+As requested in the statement, we applied the following community finding algorithms to the chosen graphs:
+
+\begin{itemize}
+    \item Edge Betweenness:  Process of decompostion where edges are removed in the decreasing order of their edge betweenness scores.
+    \item Fast Greedy: Mmdularity greedy optimization method.
+    \item Label Propagation: Detecting community structure in networks. It works by labeling the vertices with unique labels and then updating the labels by majority voting in the neighborhood of the vertex.
+    \item Leading Eigenvector: Reoptimize the modularity function
+    \item Multilevel: Multi-level modularity optimization algorithm
+    \item Spinglass: Tries to find communities in graphs via a spin-glass model and simulated annealing.
+    \item Walktrap:  Tries to find densely connected subgraphs (communities) in a graph via random walks
+    \item Infomap: Find community structure that minimizes the expected description length of a random walk trajectory.
+\end{itemize}
+
+An additional algorithm, \textit{cluster.optimal} is also proposed in the statement, but it seems not to work due to a missing dependency on a C library (Reported R issue). We did not found a fix that did not involve compiling random libraries from github, so we decided to skip the algorithm.
+
+\section{Metrics}
+
+Finally, the requested metrics were the following:
+
+\begin{itemize}
+    \item Triangle Partition Ratio (TPT): Fraction of nodes in a given cluster that belong to a triad or triangle
+    \item Expansion: Number of edges per node leaving a given cluster
+    \item Conductance: Fraction of total edge volume that points outside a given cluster
+    \item Modularity: Difference between number of edges in a given cluster and the expected number of edges $E[m_c]$ of a random graph with the same degree distribution
+\end{itemize}
+
+Because all this metrics provide per-community results, in order to obtain a graph-wide measure we aggregate them with a weighted average, providing the ratio between the amount of nodes in the community and the total amount of nodes in the graph as weights.
+
+\newpage
+# Results & discussion
+
+# Task 1
+Due to their small size, as a first step to understand the networks we can plot them and see what they look like:
+
 ```{r, echo=FALSE, fig.width=16, fig.height=18}
 old.par <- par(mfrow=c(ceiling(length(famous_graphs)/2), 2))
 par(mar=c(4,4,2,2))
@@ -127,6 +169,12 @@ for (i in 1:length(famous_graphs)) {
 }
 ```
 
+Looking at the graph we can see some densely connected sections that most likely will be aggregated as communities, although in graphs like \textit{Coxeter}, \textit{Robertson} and \textit{Levi} we do not observe any discernible structure.
+
+\newpage
+
+Before generating the communities and their corresponding metrics we can take a look at some more general ones, like we did in previous assignments. We have included the number of vertices \textit{N}, the number of edges \textit{E}, the mean degree \textit{k} and the network density of edges $\delta$:
+ 
 ```{r, echo=FALSE}
 summary_cols <- c('N', 'E', 'k', 'delta')
 metric_stats <- lapply(famous_graphs, function(g) list(
@@ -139,17 +187,11 @@ summary_df <- data.frame(do.call(rbind, lapply(metric_stats, function(x) c(x$N, 
 kable(summary_df, col.names=summary_cols, format='latex', booktabs=T, linesep='', align='c', digits=2) %>%
   kable_styling(latex_options="striped", full_width=F)
 ```
-# Results
-```{r}
-# Generate communities by applying all the algorithmss
-coms <- lapply(famous_graphs, function(g) {
-  lapply(community_algorithms, function(alg) {
-    alg(g)
-  })
-})
-```
 
-```{r, echo=FALSE,results='asis'}
+The graphs are fairly small, k values are quite similar (around 3) and deltas are relatively low.
+Now we can take a look at the metric tables generated for the different graphs:
+
+```{r, echo=FALSE, results='asis'}
 com_det <- structure(lapply(1:length(famous_graphs), function(i) {
   lapply(1:length(coms[[i]]), function(j) {c(
         tpt(coms[[i]][[j]], famous_graphs[[i]]),
@@ -162,72 +204,81 @@ com_det <- structure(lapply(1:length(famous_graphs), function(i) {
 
 for(i in 1:length(coms)) {
   com_det_df <- data.frame(do.call(rbind, com_det[[i]]), row.names=algorithm_names)
-print(kable(com_det_df, format='latex', col.names=c("TPT", "Expansion", "Conductance", "Modularity"), booktabs=T, linesep='', align='c', digits=3) %>%
-  kable_styling(latex_options="striped", full_width=F))
+print(kable(com_det_df, format='latex', col.names=c("TPT", "Expansion", "Conductance", "Modularity"), booktabs=T, linesep='', align='c', digits=3, caption = graph_names[[i]]) %>%
+  kable_styling(latex_options=c("striped", "HOLD_position"), full_width=F,font_size = 7))
 }
 ```
 
-```{ echo=FALSE, include=FALSE}
-/*
-  ssd
-##An alternative way of plotting communities without the shaded regions:
-#plot(karate, vertex.color=membership(wc))
+We can see that for the koxeter, Levi, Robertson and Walther graphs the TPT takes value 0 for all algorithm, so none of them identified a community with triangles inside it. It is worth noting that for some graphs both the leading eigenvector, label propagation and the Infomap algorithms return 0 for all values, indicating that the algorithm was not able to successfully identify communities. This is most likely due to the specific characteristics of the algorith (as all of thems satisfy some interestin property). Modularity is in general quite low, the Walther and Zachary graphs having the largest values. When it's not 0 the TPT takes quite high values, indicating that indeed if two nodes are connected to a third one, it is quite likely that they will be contected among themselves. Expansion is usually about 2, with the exception of the walther which has around 0.7 for most values (except label propagation, which scores low with a 0.32). Conductance ranges between 0.2 and 0.5, and it's somewhat consistent over all algorithms for a given graph.
 
-##to view hierarchical structure (dendogram) given by algorithm that works by hierarchical construction (as fastgreedy) 
- #karate <- graph.famous("Zachary")
-##fastgreedy.community : clustering via greedy optimization of modularity
-fc <- fastgreedy.community(karate)
-dendPlot(fc)
+\newpage
+If we take a look at the amount of communities identified by each algorithm for each graph:
 
-##compare with Girvan-Newman edge betweeness:
-GN<-edge.betweenness.community(karate)
-dendPlot(GN)
-
-modularity(GN); modularity(fc)
-
-##HIERARCHICAL CLUST on dissimilarity graph
-IBEX<-read.table("data/Ibex0809",sep="",header=T)
-dd <-as.dist(2*(1-cor(IBEX)))
-met="ward.D2" ##  complete,single,average,median,mcquitty
-hc <-hclust(dd,method=met)
-plot(hc,main=paste(met," method"),axes=TRUE,xlab="",sub="")
-#compute the cut at mean level K
-l <-length(hc$height);hh <- sort(hc$height);K <- mean(hh[1:l])
-abline(h=K,lty=2,lwd=2) ##draw the cut
-#branches below K make clusters, above go to singletons
-groups <- cutree(hc, h = K)  ##obtain  clusters
-numgp <- max(groups) #number of clusters. 
-#extract the names of each group and convert to list
-W <- list(names(groups[groups==1]))
-##recursively concatenate lists
-for (i in 2:numgp){W <- c(W,list(names(groups[groups==i])))}
-W
-##Xtras
-plot(hc,hang=-1) ##hang=-1 places labels at bottom
-
-##Obtain adjacency matrix from dissimilarity relation (dist)
-A<-as.matrix(dd)
-##create igraph graph object from adjacency matrix
-G <-graph.adjacency(A,mode="undirected",weighted = TRUE)
-plot(G)
-
-##BE AWARE when applying clustering algorithms from igraph to graph object G
-##which are based on maximizing modularity (wrto random graph). Problem: G is complete
-##keep in mind is a weighted graph so it must be indicated
-fG<-fastgreedy.community(G,weights = E(G)$weight)
-dendPlot(fG)
-sizes(fG) ##give community sizes (by max modularity, will see is too rough: gives 1 community)
-modularity(fG)
-##almost 0 :  the problem is the graph is complete so modularity is almost 0 for any partition
-##fix: consider Hamiltonian with parameter gamma > 1.
-
-
-
+```{r, echo=FALSE}
+coms_df <- data.frame(t(do.call(rbind, lapply(coms, function(c) sapply(c, function(x) length(x))))), row.names=algorithm_names)
+kable(coms_df, col.names=graph_names,  format='latex', booktabs=T, linesep='', align='c', digits=2) %>%
+  kable_styling(latex_options="striped", full_width=F)
 ```
 
-## Including Plots
+As we saw before, for some graphs a given algorithm identified a single community, indicating that something on the structure of the graph is particularly challenging to the algorithm. It is woth noting that for the Walther and Zachary all the algorithms were able to identify communities, which makes for the Zachary as it is based on real social interaction data. The Walther simple seems to have a nice structure for the algorithms.
 
-You can also embed plots, for example:
+\newpage
+We can now plot the identified communities in order to visualize them:
 
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+for(i in 1:length(famous_graphs)) {
+  old.par <- par(mfrow=c(ceiling(length(community_algorithms)/2), 2))
+  par(mar=c(4,4,2,2))
+  for(j in 1:length(community_algorithms)) {
+      plot(coms[[i]][[j]], famous_graphs[[i]],    main=paste(graph_names[[i]], ": ", algorithm_names[[j]]))
+  }
+}
+```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Notice that the plotting algorithm re-arranges some of the nodes depending on different instances, while the overall structure is somewhat maintained. We can see in a nice red blob those grap-algorithm combinations that failed to identify communities. For most graphs the communities are quite overlapped so it is not easy to discern much. in some cases like the Krackhardt kite, Walther and Zachary the communities are quite well defined and don't overlap much in the representation. In conclusion, all algorithms seem to work quite well, with some algorithms having difficulties finding communities in graphs with specific properties. Community identification in real community data seems to work quite well for all cases, the time required to run the algorithm being a significant limitation.
+
+\newpage
+## Task 2
+```{r, echo=FALSE}
+wikipedia <- read.graph("data/wikipedia.gml", format="gml")
+wt_coms <- walktrap.community(wikipedia)
+```
+On this task we are requested to load a large wikipedia graph and to analyze on the identified communities. Taking a look at the graph's properties:
+
+```{r, echo=FALSE}
+summary_cols <- c('N', 'E', 'k', 'delta')
+metric_stats <- c(
+          N=vcount(wikipedia),
+          E=ecount(wikipedia),
+          k=2*ecount(wikipedia)/vcount(wikipedia),
+          delta=2*ecount(wikipedia)/(vcount(wikipedia)*(vcount(wikipedia)-1)))
+df_m <- data.frame(metric_stats)
+colnames(df_m) <- "Wikipedia"
+
+kable(t(df_m), col.names=summary_cols, booktabs=T, linesep='', format='latex', align='c', digits=4) %>%
+  kable_styling(latex_options="striped", full_width=F)
+```
+
+We can see that the graph is quite large, with around 6 edges per node on average and an very low network density of edges. Due to this it is not possible for us to plot it or to even use expensive algorithms. It is also directed, so not all algorithms will work properly. Because of these reasons we will use the \textit{walktrap} algorithm, as the fact that it is based in random walks allows it to identify communities in a reasonable amount of time. The algorithm identifies a total of 3352 communities. If we aggregate and plot their sizes in a log-log scale:
+
+```{r, echo=FALSE}
+t_sizes <- table(sizes(wt_coms))
+plot(sort(unique(sizes(wt_coms))), as.vector(t_sizes), log='xy', xlab='community size', ylab='Occurences')
+```
+We can see how the large majority of communities are in the tens of vertices, while larger sizes only occur once. The largest community identified has around 5000 members, significantly more than the rest of the identified communities. By aggregating the table we find that it has id 5, so we can take a look at its labels:
+
+```{r, echo=FALSE}
+head(vertex_attr(induced.subgraph(wikipedia, V(wikipedia)[membership(wt_coms)==5]))$label,15)
+```
+
+We have only listed the first 20 elements in the label list. We can see that they all are math-related pages, and it indeed corresponds to the community of mathematics pages on wikipedia. This was to be expected, as math pages in wikipedia tend to include many links and references to related math topics, so the neighbourhood is quite connected. By checking other large communities we can see that they are quite well defined.  
+
+If we choose a medium-sized community we can try and plot it:
+
+```{r, echo=FALSE}
+plot(induced.subgraph(wikipedia, V(wikipedia)[membership(wt_coms)==21]))
+```
+
+We can see how despite dealing with seemingly different topics, they all relate to the page "Riot", and are involved with that concept in some way or event.
+
+If we check smaller communities we can see that they tend to be on specific topics (or even specific events), sometimes including more general ones tied to a specific happening but in general they are quite specific. Overall, the communities identified make sense with what would be expected.
