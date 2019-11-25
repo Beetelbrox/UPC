@@ -1,22 +1,21 @@
 #ifndef _FP_SOLVER_GUARD
 #define _FP_SOLVER_GUARD
 
-#include "floorplanning_problem.h"
-#include "floorplanning_solution.h"
-
 #include <vector>
+#include <memory>
+#include "floorplanning_problem.h"
+#include "npe.h"
 
 class Floorplanning_solver {
   const Floorplanning_problem& problem;
-  std::vector<Floorplanning_solution> solutions;
+  std::unique_ptr<NPE> npe;
+  std::vector<std::pair<int, int>> perturbations;
 
-  void generate_initial_solution(int size);
+  void generate_random_npe(std::size_t size, std::vector<int> &npe_vec, bool shuffle=false);
   std::pair <int, int> calculate_floorplan_dimensions(const std::vector<int> &npe);
 
 public:
-  static const int V = -1, H = -2;
   Floorplanning_solver(const Floorplanning_problem &problem);
-  ~Floorplanning_solver();
   int solve();
 };
 

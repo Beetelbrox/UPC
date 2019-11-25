@@ -18,7 +18,7 @@ int NPE::parse_npe(){
   // Clean the index data structures
   operand_pos = make_unique<int[]>(num_operands);
   chains.clear();
-  size_t operand_counter = 0, operator_counter = 0, chain_counter = 0;
+  size_t operand_counter = 0, operator_counter = 0;
   unordered_set <size_t> read_operands; // Hash table to check for already inserted elements
 
   for(size_t i=0; i < length; ++i) {
@@ -30,7 +30,7 @@ int NPE::parse_npe(){
     } else if ( (npe[i] == V || npe[i] == H) && (operator_counter + 1 < operand_counter) ) { // Check that the operator IDs are correct and that it meets the balloting rule before allowing to insert operators
       if(operator_counter >= num_operators) break; // Check for exess on the number of operators
       if (npe[i-1] > 0) chains.push_back({i, 1}); // If is a new chain, add it to the list. Relies on correctness of previous elements (it should have freaked out by now)
-      else if (npe[i-1] != npe[i]) ++chains[chain_counter].second; // If the current element is part of a chain and is a skewed tree, add it to the chain.
+      else if (npe[i-1] != npe[i]) ++chains.back().second; // If the current element is part of a chain and is a skewed tree, add it to the chain.
       else break; // If the tree is not skewed, panic
       ++operator_counter;
     } else break; // If we reach this state, the input is malformed
@@ -98,19 +98,19 @@ pair<int, int>  NPE::gen_rnd_chain_swap() {
 pair<int, int> NPE::gen_rnd_operand_operator_swap() {
   // Choose a chain end at random excluding the last one so this is as uniform as possible
   int rnd_choice = rand()%(chains.size()<<1),
-      rnd_chain = (rnd_choice+1)>>1,
+      rnd_chain = (rnd_choice)>>1,
       rnd_side = rnd_choice%2,
       rnd_operator_pos = chains[rnd_chain].first + rnd_side*(chains[rnd_chain].second - 1),
       rnd_operand_pos = rnd_operator_pos + (rnd_side<<1) - 1;
-
-  if(npe[rnd_operator_pos] == npe[rnd_operator_pos + (rnd_side<<2) - 2]) return {-1,-1}; // Check if any of the swaps leads to breaking the skewness of the tree
+  // If the swap breaks the skewness of the tree or if tries to swap with the tree root, panic and jump out
+  if((npe[rnd_operator_pos] == npe[rnd_operator_pos + (rnd_side<<2) - 2]) || (rnd_operator_pos == int(length)-1)) return {-1,-1};
 
   // Check that the perturbation satisfies the balloting rule (only needs to be done if
   // we are pushing operators back
   if (!rnd_side) {
-    int num_operators = 1;
-    for (vector<pair<int, int>>::iterator it = chains.begin(); it != next(chains.begin(), rnd_chain); ++it ) num_operators += it->second;
-    if ( 2*num_operators >= rnd_operand_pos ) return {-1,-1};
+    int op_counter = 1;
+    for (vector<pair<int, int>>::iterator it = chains.begin(); it != next(chains.begin(), rnd_chain); ++it ) op_counter += it->second;
+    if ( 2*op_counter >= rnd_operand_pos+1 ) return {-1,-1};
   }
   // If the perturbation is valid, swap the values in the vector and return 0
   return {rnd_operator_pos, rnd_operand_pos};
