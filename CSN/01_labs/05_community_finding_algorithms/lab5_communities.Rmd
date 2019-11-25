@@ -9,36 +9,172 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+```{r, echo=FALSE, include=FALSE}
+# Load and install necessary packages
+requiredPackages <- c("knitr", "rstudioapi", "kableExtra", "igraph")
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+for (pac in requiredPackages) {
+    if(!require(pac,  character.only=TRUE)){
+        install.packages(pac, repos="http://cran.rstudio.com")
+        library(pac,  character.only=TRUE)
+    }
+}
+rm(pac)
+rm(requiredPackages)
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+# set pwd to current directory, must load rstudioapi before. Need to check availability of API to avoid issues when knitting
+if (rstudioapi::isAvailable()) setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
+```
+
 
 ```{r cars}
 ##################################
 ##Argimiro Arratia @2016,2018 CSN Lab 5
 ##Communities
 ##################################
-
-library(igraph)
-
 ##exploring community structure
-karate <- graph.famous("Zachary")
 ##view friendship relation among members of Karate club
-plot(karate) 
+#plot(karate) 
 ##Find cluster partition according to Walktrap algorithm:
 #distance is based on random walks, and similarity==shortest random walk
-wc <- walktrap.community(karate)
-modularity(wc)
-membership(wc)
-plot(wc, karate)
+#wc <- walktrap.community(karate)
+#modularity(wc)
+#membership(wc)
+#plot(wc, karate)
+#gen_communities <- lapply(community_algorithms, function(fun) fun(karate))
+#sum(count_triangles(induced.subgraph(karate, communities[[1]][[1]])) > 0)/length(communities[[1]][[1]])
+#sizes(gen_communities[[1]])
+```
 
+```{r, echo=FALSE}
+
+f_c <- function(coms, g) {
+  t <- table(get.edges(g, E(g))*crossing(coms, g))
+  sapply(1:length(coms), function(i) { sum(
+    sapply(coms[[i]], function(x) if (is.na(t[toString(x)])) 0 else t[toString(x)])
+  )})
+}
+
+m_c <- function(coms, g) {
+  sapply(1:length(coms), function (i) length(E(induced_subgraph(g, coms[[i]]))))
+}
+
+tpt <- function(coms, g) {
+    weighted.mean(sapply(1:length(coms), function(i){
+      sum(count_triangles(induced_subgraph(g, coms[[i]]))>0)/length(coms[[i]])
+    }), sizes(coms)/vcount(g))
+}
+
+expansion <- function (coms, g) {
+  t <- table(get.edges(g, E(g))*crossing(coms, g))
+  weighted.mean(f_c(coms, g)/as.numeric(sizes(coms)), sizes(coms)/vcount(g))
+}
+
+conductance <- function (coms, g) {
+  fc <- f_c(coms, g)
+  weighted.mean(fc/(2*m_c(coms, g) + fc), sizes(coms)/vcount(g))
+}
+```
+# Introduction
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+graph_names <- c(
+  'Coxeter',
+  'Krackhardt kite',
+  'Levi',
+  'Robertson',
+  'Walther',
+  'Zachary'
+)
+
+# Generate graphs using iGraph
+famous_graphs <- lapply(graph_names, graph.famous)
+
+algorithm_names <- c(
+  'Edge Betweenness',
+  'Fast Greedy',
+  'Label Propagation',
+  'Leading Eigenvector',
+  'Multilevel',
+  'Spinglass',
+  'Walktrap',
+  'Infomap'
+)
+
+community_algorithms <- c(
+  edge.betweenness.community,
+  fastgreedy.community,
+  label.propagation.community,
+  leading.eigenvector.community,
+  multilevel.community,
+  #cluster_optimal,
+  spinglass.community,
+  walktrap.community,
+  infomap.community
+)
+
+```
+We will use the following subset of the "_Famous graphs_" available through iGraph for our assignment: "Coexter","Krackhardt kite", "Levi", "Robertson", "Walther" and "Zachary". Those graphs are convenient as they do not have any loops nor multiedges, as well as
+As they have a fairly low vertex count we can clearly visualize their structure by plotting them:
+```{r, echo=FALSE, fig.width=16, fig.height=18}
+old.par <- par(mfrow=c(ceiling(length(famous_graphs)/2), 2))
+par(mar=c(4,4,2,2))
+for (i in 1:length(famous_graphs)) {
+  plot.igraph(
+    famous_graphs[[i]],
+    main=graph_names[[i]]
+  )
+}
+```
+
+```{r, echo=FALSE}
+summary_cols <- c('N', 'E', 'k', 'delta')
+metric_stats <- lapply(famous_graphs, function(g) list(
+                    N=vcount(g),
+                    E=ecount(g),
+                    k=2*ecount(g)/vcount(g),
+                    delta=2*ecount(g)/(vcount(g)*(vcount(g)-1))))
+
+summary_df <- data.frame(do.call(rbind, lapply(metric_stats, function(x) c(x$N, x$E, x$k, x$delta))), row.names=graph_names)
+kable(summary_df, col.names=summary_cols, format='latex', booktabs=T, linesep='', align='c', digits=2) %>%
+  kable_styling(latex_options="striped", full_width=F)
+```
+# Results
+```{r}
+# Generate communities by applying all the algorithmss
+coms <- lapply(famous_graphs, function(g) {
+  lapply(community_algorithms, function(alg) {
+    alg(g)
+  })
+})
+```
+
+```{r, echo=FALSE,results='asis'}
+com_det <- structure(lapply(1:length(famous_graphs), function(i) {
+  lapply(1:length(coms[[i]]), function(j) {c(
+        tpt(coms[[i]][[j]], famous_graphs[[i]]),
+        expansion(coms[[i]][[j]], famous_graphs[[i]]),
+        conductance(coms[[i]][[j]], famous_graphs[[i]]),
+        modularity(coms[[i]][[j]])
+  )
+  })
+}), names=graph_names)
+
+for(i in 1:length(coms)) {
+  com_det_df <- data.frame(do.call(rbind, com_det[[i]]), row.names=algorithm_names)
+print(kable(com_det_df, format='latex', col.names=c("TPT", "Expansion", "Conductance", "Modularity"), booktabs=T, linesep='', align='c', digits=3) %>%
+  kable_styling(latex_options="striped", full_width=F))
+}
+```
+
+```{ echo=FALSE, include=FALSE}
+/*
+  ssd
 ##An alternative way of plotting communities without the shaded regions:
-plot(karate, vertex.color=membership(wc))
+#plot(karate, vertex.color=membership(wc))
 
 ##to view hierarchical structure (dendogram) given by algorithm that works by hierarchical construction (as fastgreedy) 
- karate <- graph.famous("Zachary")
+ #karate <- graph.famous("Zachary")
 ##fastgreedy.community : clustering via greedy optimization of modularity
 fc <- fastgreedy.community(karate)
 dendPlot(fc)
@@ -93,8 +229,5 @@ modularity(fG)
 
 You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
