@@ -8,9 +8,10 @@
 
 class NPE {
 
-  std::size_t length, num_operands, num_operators;
-  int* npe, operand_pos;
-  std::vector<std::pair<int, int>> chains;
+  std::unique_ptr<int[]> _npe, _operand_pos;
+  int *_limit;
+  std::size_t _n_operands, _n_operators;
+  std::vector<std::pair<int, int>> _chains;
 
   int parse_npe();
   std::pair<int, int> gen_rnd_operand_swap();
@@ -19,7 +20,9 @@ class NPE {
 
 public:
   static const int V = -1, H = -2;
+  NPE();
   NPE(const std::vector<int> &seq);
+  NPE(const int* npe_seq, size_t length);
 
 
   std::pair<int, int> gen_rnd_perturbation();

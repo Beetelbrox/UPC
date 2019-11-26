@@ -7,6 +7,14 @@
 
 using namespace std;
 
+NPE::NPE();
+NPE::NPE(const std::vector<int> &seq);
+NPE::NPE(const int* npe_seq, size_t length): _n_operands((length+1)>>1), _n_operators{length>>1} {
+  _npe = make_unique<int[]>(length);
+  _limit = _npe.get() + length;
+  copy(npe_seq, npe_seq+length, _npe.get());      // Copy the npe to the local structure
+}
+
 NPE::NPE(const int * npe_seq, size_t n): length{n}, num_operands{(n+1)>>1}, num_operators{n>>1} {
   // Allocate space with smart pointers for extra convenience.
   npe = new int[length];
@@ -18,12 +26,12 @@ NPE::NPE(const int * npe_seq, size_t n): length{n}, num_operands{(n+1)>>1}, num_
 
 NPE::NPE(const vector<int> &npe_seq): NPE(npe_seq.begin(), npe_seq.size()) {}
 
-int NPE::parse_npe(){
+int NPE::parse_npe(const int* npe_seq){
   // Clean the index data structures
-  operand_pos = make_unique<int[]>(num_operands);
+  operand_pos.reset(make_unique<int[]>(_n_operands));
   chains.clear();
-  size_t operand_counter = 0, operator_counter = 0;
-  unordered_set <size_t> read_operands; // Hash table to check for already inserted elements
+  size_t operand_ctr = 0, operator_ctr = 0;
+  unordered_set <size_t> rd_operands; // Hash table to check for already inserted elements
 
   for(size_t i=0; i < length; ++i) {
     // Check that the ID is within bounds (As it will be used for indexing on the floorplans) and that we are not repeating elements

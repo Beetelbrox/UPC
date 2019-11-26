@@ -9,7 +9,7 @@ class Floorplan {
   typedef std::pair<int, int> dim;
 
   std::unique_ptr<dim[]> _shapes;
-  dim* _limit;
+  dim *_limit;
   int _x, _y;
 
 public:
@@ -18,13 +18,12 @@ public:
 
   dim* begin() const;
   dim* end() const;
-
   std::size_t size() const;
   dim get_position() const;
   int get_x() const;
   int get_y() const;
   const dim* get_shape(std::size_t ix) const;
   void print() const;
-  
+
 };
 #endif

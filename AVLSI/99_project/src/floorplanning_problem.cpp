@@ -13,12 +13,6 @@ Floorplanning_problem::Floorplanning_problem(): _module_fps(nullptr), _limit(nul
 
 Floorplanning_problem::Floorplanning_problem(const string &filename){ from_file (filename); }
 
-//size_t Floorplanning_problem::size() const { return module_fps.size(); }
-
-//const Floorplan& Floorplanning_problem::get_module_floorplan (int module_id) {
-//  return module_fps[module_id-1];
-//}
-
 int Floorplanning_problem::from_file(const string &filename) {
   ifstream file("data/" + filename);
   if(!file.is_open()) {
