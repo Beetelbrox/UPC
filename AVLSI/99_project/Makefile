@@ -7,8 +7,8 @@ FP_NPE = npe
 FP = floorplan
 TB = testbench
 
-$(TB): $(TB).o $(FP_PROB).o  ${FP}.o
-	$(CCC) $(CFLAGS) -o bin/$(TB) $(TB).o ${FP}.o $(FP_PROB).o
+$(TB): $(TB).o $(FP_PROB).o  ${FP}.o $(FP_NPE).o
+	$(CCC) $(CFLAGS) -o bin/$(TB) $(TB).o ${FP}.o $(FP_PROB).o $(FP_NPE).o
 
 #$(TB): $(TB).o $(FP_SOLVER).o $(FP_PROB).o $(FP_NPE).o ${FP}.o
 #	$(CCC) $(CFLAGS) -o bin/$(TB) $(TB).o ${FP}.o $(FP_NPE).o $(FP_PROB).o $(FP_SOLVER).o

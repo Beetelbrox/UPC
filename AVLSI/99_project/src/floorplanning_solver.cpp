@@ -89,3 +89,59 @@ pair <int, int> Floorplanning_solver::calculate_floorplan_dimensions(const vecto
   */
   return {0,0};
 }
+
+
+// If parse=false, it DOES NOT CHECK CORRECTNESS
+
+
+//TODO do we need an assignment operator?
+
+pair<int, int> NPE::gen_rnd_perturbation() {
+  while(true) { // We will exit this loop by returning
+    switch(rand()%3){
+      case 0: //swap two adjacent operands
+        return gen_rnd_operand_swap();
+      case 1:
+        return gen_rnd_chain_swap();
+      case 2:
+        pair<int, int> swap = gen_rnd_operand_operator_swap();
+        if (swap.first >= 0) return swap;
+    }
+  }
+}
+
+// Assumes correctness of the input
+pair<int, int> NPE::gen_rnd_operand_swap() {
+  int rand_operand = rand()%(num_operands-1); // Choose a number UAR between the fist and the last
+  return {operand_pos[rand_operand], operand_pos[rand_operand+1]};
+}
+
+// Returns a pair of <index, -1> to indicate the chain swap
+pair<int, int>  NPE::gen_rnd_chain_swap() {
+  int rand_chain = rand()%chains.size();
+  return {chains[rand_chain].first, -1};
+}
+
+// This assumes correctness on the input, as it is a private function. Will panic if it's not.
+// ch_ix needs to take a value between 0 and length(chains) - 1. Side cant take either value 0 ir 1,
+// only taking value 0 if ch_ix == length(chains) - 1.
+pair<int, int> NPE::gen_rnd_operand_operator_swap() {
+  // Choose a chain end at random excluding the last one so this is as uniform as possible
+  int rnd_choice = rand()%(chains.size()<<1),
+      rnd_chain = (rnd_choice)>>1,
+      rnd_side = rnd_choice%2,
+      rnd_operator_pos = chains[rnd_chain].first + rnd_side*(chains[rnd_chain].second - 1),
+      rnd_operand_pos = rnd_operator_pos + (rnd_side<<1) - 1;
+  // If the swap breaks the skewness of the tree or if tries to swap with the tree root, panic and jump out
+  if((npe[rnd_operator_pos] == npe[rnd_operator_pos + (rnd_side<<2) - 2]) || (rnd_operator_pos == int(length)-1)) return {-1,-1};
+
+  // Check that the perturbation satisfies the balloting rule (only needs to be done if
+  // we are pushing operators back
+  if (!rnd_side) {
+    int op_counter = 1;
+    for (vector<pair<int, int>>::iterator it = chains.begin(); it != next(chains.begin(), rnd_chain); ++it ) op_counter += it->second;
+    if ( 2*op_counter >= rnd_operand_pos+1 ) return {-1,-1};
+  }
+  // If the perturbation is valid, swap the values in the vector and return 0
+  return {rnd_operator_pos, rnd_operand_pos};
+}

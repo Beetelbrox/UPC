@@ -1,24 +1,22 @@
 #include <iostream>
 
-#include "floorplanning_problem.h"
+#include "npe.h"
 
 
 int main() {
-  //Floorplanning_problem fp_problem("testfile.txt");
-  //fp_problem.load_from_file("testfile.txt");
-  //Floorplanning_solver fp_solver(fp_problem);
-  //fp_solver.solve();
+  NPE empty_npe;
+  std::cout << empty_npe.size() << " " << empty_npe.n_operands() << " " << empty_npe.n_operators() << std::endl;
+  empty_npe.print();
 
-  Floorplanning_problem fp_problem;
-  std::cout << fp_problem.size() << std::endl;
-  if (!fp_problem.from_file("testfile.txt")) {
-    for(Floorplan &fp : fp_problem) { // Use reference as a compy constructor is not implemented
-      fp.print();
-    }
+  NPE small_npe({1, 2, NPE::V, 3, 4, NPE::V, NPE::H});
+  small_npe.print(true);
+  std::cout << small_npe.size() << " " << small_npe.n_operands() << " " << small_npe.n_operators() << std::endl;
 
-    for(size_t i=0; i < fp_problem.size(); ++i) {
-      fp_problem.get_floorplan(i)->print();
-    }
-  }
+  for (int e : small_npe) std::cout << e << " ";
+  std::cout << std::endl;
+
+  std::cout << small_npe.apply_perturbation({5,4}) << std::endl;
+  small_npe.print(true);
+
   return 0;
 }

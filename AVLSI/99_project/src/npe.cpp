@@ -1,143 +1,106 @@
 #include <iostream>
-#include <cstdlib>
-#include <utility>
 #include <unordered_set>
-#include <iterator>
 #include "npe.h"
 
 using namespace std;
 
-NPE::NPE();
-NPE::NPE(const std::vector<int> &seq);
-NPE::NPE(const int* npe_seq, size_t length): _n_operands((length+1)>>1), _n_operators{length>>1} {
+NPE::NPE(): NPE(nullptr, 0) {}
+
+NPE::NPE(const vector<int> &npe_seq): NPE(&npe_seq[0], npe_seq.size()) {}
+
+NPE::NPE(const int* npe_seq, size_t length): _operand_pos{nullptr}{
   _npe = make_unique<int[]>(length);
   _limit = _npe.get() + length;
-  copy(npe_seq, npe_seq+length, _npe.get());      // Copy the npe to the local structure
+  _operand_pos = make_unique<int[]>(n_operands());
+  if(!parse_npe(&npe_seq[0])) copy(npe_seq, npe_seq + length, _npe.get()); // If the parsing succeeds, copy the sequence to the internal structure
+  else {
+    _npe.reset(nullptr);
+    _limit = nullptr;
+    _operand_pos.reset(nullptr);
+  }
 }
 
-NPE::NPE(const int * npe_seq, size_t n): length{n}, num_operands{(n+1)>>1}, num_operators{n>>1} {
-  // Allocate space with smart pointers for extra convenience.
-  npe = new int[length];
-  operand_pos =  new int[num_operands];
-  npe = make_unique<int[]>(length);
-  for(size_t i=0; i < n; ++i) npe[i] = npe_seq[i];  // Copy the whole vector into the member var. If it is malformed it will panic anyways so its' not a great waste
-  if(parse_npe()) length = 0; // If the parsing fails due to malformation, set the length to 0;
-}
+int* NPE::begin() const { return _npe.get(); }
 
-NPE::NPE(const vector<int> &npe_seq): NPE(npe_seq.begin(), npe_seq.size()) {}
+int* NPE::end() const { return _limit; }
+
+size_t NPE::size() const { return _limit - _npe.get(); }
+
+size_t NPE::n_operands() const { return (_limit-_npe.get()+1)>>1; }
+
+size_t NPE::n_operators() const { return (_limit - _npe.get())>>1; }
+
+int NPE::get_element(size_t ix) const { return _npe[ix]; }
 
 int NPE::parse_npe(const int* npe_seq){
-  // Clean the index data structures
-  operand_pos.reset(make_unique<int[]>(_n_operands));
-  chains.clear();
+  // Temporary data structures
+  int operand_pos[n_operands()];
+  vector<pair<int, int>> chains;
   size_t operand_ctr = 0, operator_ctr = 0;
   unordered_set <size_t> rd_operands; // Hash table to check for already inserted elements
 
-  for(size_t i=0; i < length; ++i) {
-    // Check that the ID is within bounds (As it will be used for indexing on the floorplans) and that we are not repeating elements
-    if (npe[i] > 0 && npe[i] <= int(num_operands) && read_operands.find(npe[i]) == read_operands.end()) {
-      if (operand_counter >= num_operands) break; // Check for excesss in the number of operands
-      operand_pos[operand_counter++] = i; // This should not go out of bounds as we're checking correctness before
-      read_operands.insert(npe[i]);
-    } else if ( (npe[i] == V || npe[i] == H) && (operator_counter + 1 < operand_counter) ) { // Check that the operator IDs are correct and that it meets the balloting rule before allowing to insert operators
-      if(operator_counter >= num_operators) break; // Check for exess on the number of operators
-      if (npe[i-1] > 0) chains.push_back({i, 1}); // If is a new chain, add it to the list. Relies on correctness of previous elements (it should have freaked out by now)
-      else if (npe[i-1] != npe[i]) ++chains.back().second; // If the current element is part of a chain and is a skewed tree, add it to the chain.
-      else break; // If the tree is not skewed, panic
-      ++operator_counter;
+  for(size_t i=0; i < size(); ++i) {
+    if (
+      npe_seq[i] > 0 &&                                       // If the value is a block id:
+      npe_seq[i] <= int(n_operands()) &&                      //  1. Check that is within the bounds (as we will use the id to index the floorplan)
+      rd_operands.find(npe_seq[i]) == rd_operands.end() &&    //  2. Check that we have not already read that module id
+      operand_ctr < n_operands()                              //  3. Check that the number of read operands has not reached the expected amount of operands
+    ){
+      operand_pos[operand_ctr++] = i;
+      rd_operands.insert(npe_seq[i]);                         // Add the block id to the read set
+
+    } else if (
+      (npe_seq[i] == V || npe_seq[i] == H) &&                 // If the value is a slice operator:
+      operator_ctr + 1 < operand_ctr  &&                      //  1. Check that the NPE satisfies the balloting rule
+      npe_seq[i-1] != npe_seq[i] &&                           //  2. Check that the NPE is indeed normalized (condition 1 prevents operator for being on the first place, so this is safe)
+      operator_ctr < n_operators()                            //  3. Check that the number of read operators has not exceeded the expected amount of operands (not sure if this is ever broken without breaking anything else before)
+    ) {
+      if (npe_seq[i-1] > 0) chains.emplace_back(i, 1);       // If the element is the head of a new chain, push it into the vector,
+      else ++chains.back().second;                           // oitherwise increase the length on the current chain
+      ++operator_ctr;
+
     } else break; // If we reach this state, the input is malformed
   }
-  // If the number of operands and operators is not the expected, panic and release the pointer resources
-  if (operand_counter < num_operands || operator_counter < num_operators) {
-    cerr << "Error: Malformed npe sequence" << endl;
-    num_operands = num_operators = 0;  // Puts the length at 0. Data structures are handled by the default destructor (thanks smartpointers)
-    operand_pos.reset(nullptr);
-    chains.clear();
-    return -1;
+
+  // If we have read the expected number of operators and operands,
+  // write the new indices on top of the NPE ones
+  if (operand_ctr == n_operands() && operator_ctr == n_operators()) {
+    _chains = chains;
+    copy(&operand_pos[0], &operand_pos[0]+operand_ctr, _operand_pos.get());
+    return 0;
   }
-  return 0;
+  cerr << "Error: Malformed NPE sequence" << endl;
+  return -1;
 }
 
-// If parse=false, it DOES NOT CHECK CORRECTNESS
-int NPE::apply_perturbation(const pair<int, int> &perturbation, bool parse) {
-  if (perturbation.second >= 0) swap(npe[perturbation.first], npe[perturbation.second]);
-  else {
-    for(size_t i=0; perturbation.first + i < length; ++i) {
-
-      if (npe[perturbation.first + i] >= 0) break;
-      npe[perturbation.first+i] = (npe[perturbation.first+i] == V) ? H : V;
+int NPE::apply_perturbation(const pair<int, int> &p, bool parse) {
+  if (p.first < 0 || p.first >= int(size())) return -1; // Out of bounds
+  if (p.second < 0 && (_npe[p.first] == V || _npe[p.first] == H)) {
+    for(size_t i=p.first; i < size(); ++i) {
+      if (_npe[i] >= 0) return 0;
+      _npe[i] = (_npe[i] == V) ? H : V;
     }
+  } else if (p.second >=0 && p.second < int(size())){
+    swap(_npe[p.first], _npe[p.second]);
+    if(!parse) return 0;                    // If parsing is disabled we're done
+    if(!parse_npe(_npe.get())) return 0;              // If the parsing succeeds, we're done
+    apply_perturbation(p, false);           // If the parsing fails, undo the perturbation without checking for correctness
   }
-  if(!parse) return 0;
-  if(parse_npe()) {
-    apply_perturbation(perturbation, false);
-    return -1;
-  }
-  return 0;
+  return -1;                                // If it reaches this point, return error state
 }
 
-//TODO do we need an assignment operator?
-
-pair<int, int> NPE::gen_rnd_perturbation() {
-  while(true) { // We will exit this loop by returning
-    switch(rand()%3){
-      case 0: //swap two adjacent operands
-        return gen_rnd_operand_swap();
-      case 1:
-        return gen_rnd_chain_swap();
-      case 2:
-        pair<int, int> swap = gen_rnd_operand_operator_swap();
-        if (swap.first >= 0) return swap;
-    }
-  }
-}
-
-// Assumes correctness of the input
-pair<int, int> NPE::gen_rnd_operand_swap() {
-  int rand_operand = rand()%(num_operands-1); // Choose a number UAR between the fist and the last
-  return {operand_pos[rand_operand], operand_pos[rand_operand+1]};
-}
-
-// Returns a pair of <index, -1> to indicate the chain swap
-pair<int, int>  NPE::gen_rnd_chain_swap() {
-  int rand_chain = rand()%chains.size();
-  return {chains[rand_chain].first, -1};
-}
-
-// This assumes correctness on the input, as it is a private function. Will panic if it's not.
-// ch_ix needs to take a value between 0 and length(chains) - 1. Side cant take either value 0 ir 1,
-// only taking value 0 if ch_ix == length(chains) - 1.
-pair<int, int> NPE::gen_rnd_operand_operator_swap() {
-  // Choose a chain end at random excluding the last one so this is as uniform as possible
-  int rnd_choice = rand()%(chains.size()<<1),
-      rnd_chain = (rnd_choice)>>1,
-      rnd_side = rnd_choice%2,
-      rnd_operator_pos = chains[rnd_chain].first + rnd_side*(chains[rnd_chain].second - 1),
-      rnd_operand_pos = rnd_operator_pos + (rnd_side<<1) - 1;
-  // If the swap breaks the skewness of the tree or if tries to swap with the tree root, panic and jump out
-  if((npe[rnd_operator_pos] == npe[rnd_operator_pos + (rnd_side<<2) - 2]) || (rnd_operator_pos == int(length)-1)) return {-1,-1};
-
-  // Check that the perturbation satisfies the balloting rule (only needs to be done if
-  // we are pushing operators back
-  if (!rnd_side) {
-    int op_counter = 1;
-    for (vector<pair<int, int>>::iterator it = chains.begin(); it != next(chains.begin(), rnd_chain); ++it ) op_counter += it->second;
-    if ( 2*op_counter >= rnd_operand_pos+1 ) return {-1,-1};
-  }
-  // If the perturbation is valid, swap the values in the vector and return 0
-  return {rnd_operator_pos, rnd_operand_pos};
-}
-
-size_t NPE::size() { return length; }
-size_t NPE::get_num_operands() { return num_operands; }
-size_t NPE::get_num_operators() { return num_operators; } // This is an integer division
-int NPE::get_element(size_t ix) {return npe[ix];}
-
-void NPE::print() {
-  for (size_t i=0; i<length; ++i) {
-    if (npe[i] == V) cout << "V";
-    else if (npe[i] == H) cout << "H";
-    else cout << npe[i];
+void NPE::print(bool print_internals) {
+  for (int* it=_npe.get(); it != _limit; ++it) {
+    if (*it == V) cerr << "V";
+    else if (*it == H) cerr << "H";
+    else cerr << *it;
   }
   cout << endl;
+  if (print_internals) {
+    cerr << "Operand positions:" << endl;
+    for(size_t i=0; i < n_operands(); ++i) cerr << _operand_pos[i] << " ";
+    cerr << endl << "Operator chains:" << endl;
+    for(pair<int, int>& p : _chains) cerr << "(" << p.first << "," << p.second << ") ";
+    cerr << endl;
+  }
 }
