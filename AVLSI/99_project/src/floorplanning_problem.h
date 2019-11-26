@@ -8,22 +8,23 @@
 #define _FP_PROB_GUARD
 
 #include <string>
-#include <vector>
-#include <map>
-#include <utility>
+#include <memory>
 #include "floorplan.h"
 
 class Floorplanning_problem {
-  std::vector<Floorplan> _module_fps;
-  size_t _size;
+  std::unique_ptr<Floorplan[]> _module_fps;
+  Floorplan* _limit;
 
 public:
+  Floorplanning_problem();
   Floorplanning_problem(const std::string &filename);
 
-  size_t size() const; // Returns the number of modules in the problem
-  //Floorplan& get_module_floorplan (int module_id) const;
+  int from_file(const std::string &filename);
 
-  void print();
+  Floorplan* begin() const;
+  Floorplan* end() const;
+  size_t size() const; // Returns the number of modules in the problem
+  const Floorplan* get_floorplan(size_t ix) const;
 };
 
 #endif
