@@ -12,9 +12,10 @@ class Floorplanning_solver {
   NPE _current_npe;
   std::deque<std::pair<int, int>> _perturbations;
 
-  void generate_random_npe(std::size_t size, std::vector<int> &npe_vec, bool shuffle=0);
+  void generate_random_npe(size_t n_operands, NPE& npe, bool shuffle=1);
   std::pair <int, int> calculate_floorplan_dimensions(const std::vector<int> &npe);
   std::pair<int, int> pack_npe();
+  void pack_floorplans(int op, const Floorplan* fp_1, const Floorplan* fp_2, Floorplan &fp_packed);
 public:
   Floorplanning_solver(const Floorplanning_problem &problem);
   int solve();

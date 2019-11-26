@@ -24,7 +24,7 @@ public:
   Floorplan* begin() const;
   Floorplan* end() const;
   size_t size() const; // Returns the number of modules in the problem
-  const Floorplan* get_floorplan(size_t ix) const;
+  const Floorplan* get_floorplan(size_t id) const;
 };
 
 #endif

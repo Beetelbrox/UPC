@@ -34,7 +34,7 @@ int NPE::get_element(size_t ix) const { return _npe[ix]; }
 
 int NPE::parse_npe(const int* npe_seq){
   // Temporary data structures
-  int operand_pos[n_operands()];
+  unique_ptr<int[]> operand_pos = make_unique<int[]>(n_operands());   // Allocate this on the heap to make it resilient to Stack overflow
   vector<pair<int, int>> chains;
   size_t operand_ctr = 0, operator_ctr = 0;
   unordered_set <size_t> rd_operands; // Hash table to check for already inserted elements
@@ -89,7 +89,7 @@ int NPE::apply_perturbation(const pair<int, int> &p, bool parse) {
   return -1;                                // If it reaches this point, return error state
 }
 
-void NPE::print(bool print_internals) {
+void NPE::print(bool print_internals) const{
   for (int* it=_npe.get(); it != _limit; ++it) {
     if (*it == V) cerr << "V";
     else if (*it == H) cerr << "H";
@@ -100,7 +100,7 @@ void NPE::print(bool print_internals) {
     cerr << "Operand positions:" << endl;
     for(size_t i=0; i < n_operands(); ++i) cerr << _operand_pos[i] << " ";
     cerr << endl << "Operator chains:" << endl;
-    for(pair<int, int>& p : _chains) cerr << "(" << p.first << "," << p.second << ") ";
+    for(const pair<int, int>& p : _chains) cerr << "(" << p.first << "," << p.second << ") ";
     cerr << endl;
   }
 }

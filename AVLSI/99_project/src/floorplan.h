@@ -13,7 +13,7 @@ class Floorplan {
   int _x, _y;
 
 public:
-  explicit Floorplan(const std::vector<dim> &sf=std::vector<dim>(), int x=0, int y=0);
+  Floorplan(const std::vector<dim> &sf=std::vector<dim>(), int x=0, int y=0);
   Floorplan(const dim* sf, int num_shapes, int x=0, int y=0);
 
   dim* begin() const;

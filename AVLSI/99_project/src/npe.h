@@ -28,7 +28,7 @@ public:
   std::size_t n_operands() const;
   std::size_t n_operators() const;
   int get_element(size_t ix) const;
-  void print(bool print_internals=0);
+  void print(bool print_internals=0) const;
 };
 
 #endif
