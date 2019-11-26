@@ -14,15 +14,14 @@
 #include "floorplan.h"
 
 class Floorplanning_problem {
-  std::vector <Floorplan> module_fps;
+  std::vector<Floorplan> _module_fps;
+  size_t _size;
 
 public:
-  Floorplanning_problem();
-
-  int load_from_file(const std::string &filename);
+  Floorplanning_problem(const std::string &filename);
 
   size_t size() const; // Returns the number of modules in the problem
-  Floorplan& get_module_floorplan (int module_id) const;
+  //Floorplan& get_module_floorplan (int module_id) const;
 
   void print();
 };

@@ -60,7 +60,7 @@ void Floorplanning_solver::generate_random_npe(size_t size, vector<int> &npe_vec
 pair<int, int> Floorplanning_solver::pack_npe() {
   stack<Floorplan *> fp_stack;
   for(size_t i=0; i < npe->size(); ++i) {
-    if(npe->get_element(i) > 0) fp_stack.push(problem.get_module_floorplan(npe->get_element(i)));
+    //if(npe->get_element(i) > 0) fp_stack.push(problem.get_module_floorplan(npe->get_element(i)));
   }
 }
 

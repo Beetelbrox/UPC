@@ -4,10 +4,12 @@
 #include <vector>
 #include <utility>
 #include <memory>
+#include <cstddef>
 
 class NPE {
+
   std::size_t length, num_operands, num_operators;
-  std::unique_ptr<int[]> npe, operand_pos;
+  int* npe, operand_pos;
   std::vector<std::pair<int, int>> chains;
 
   int parse_npe();
@@ -22,6 +24,8 @@ public:
 
   std::pair<int, int> gen_rnd_perturbation();
   int apply_perturbation(const std::pair<int, int> &perturbation, bool parse=true);
+
+
 
   std::size_t size();
   std::size_t get_num_operands();

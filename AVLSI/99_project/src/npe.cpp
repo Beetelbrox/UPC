@@ -7,12 +7,16 @@
 
 using namespace std;
 
-NPE::NPE(const vector<int> &seq): length{seq.size()}, num_operands{(length+1)>>1}, num_operators{length>>1} {
+NPE::NPE(const int * npe_seq, size_t n): length{n}, num_operands{(n+1)>>1}, num_operators{n>>1} {
   // Allocate space with smart pointers for extra convenience.
+  npe = new int[length];
+  operand_pos =  new int[num_operands];
   npe = make_unique<int[]>(length);
-  for(size_t i=0; i <length; ++i) npe[i] = seq[i];  // Copy the whole vector into the member var. If it is malformed it will panic anyways so its' not a great waste
+  for(size_t i=0; i < n; ++i) npe[i] = npe_seq[i];  // Copy the whole vector into the member var. If it is malformed it will panic anyways so its' not a great waste
   if(parse_npe()) length = 0; // If the parsing fails due to malformation, set the length to 0;
 }
+
+NPE::NPE(const vector<int> &npe_seq): NPE(npe_seq.begin(), npe_seq.size()) {}
 
 int NPE::parse_npe(){
   // Clean the index data structures
