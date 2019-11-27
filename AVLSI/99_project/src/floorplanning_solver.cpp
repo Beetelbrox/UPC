@@ -11,7 +11,7 @@
 using namespace std;
 
 Floorplanning_solver::Floorplanning_solver(const Floorplanning_problem &p): _problem(p) {
-  generate_random_npe(100, _current_npe, 1);
+  generate_random_npe(_problem.size(), _current_npe, 1);
   pack_npe();
 }
 
@@ -60,57 +60,90 @@ void Floorplanning_solver::generate_random_npe(size_t n_operands, NPE& npe, bool
 pair<int, int> Floorplanning_solver::pack_npe() {
   stack<const Floorplan *> fp_stack;
   const Floorplan *fp_1, *fp_2;
-  for(int* npe_it = _current_npe.begin(); npe_it != _current_npe.end(); ++npe_it) {
-    if ( *npe_it > 0) fp_stack.push(_problem.get_floorplan(npe_it-_current_npe.begin() + 1 ) ); // get_floorplan takes an id >= 1
-    else {
-      Floorplan fp_packed;
+  vector<Floorplan> intermediate_fps(_problem.size()-1); // Structure to store intermediate floorplans
+  vector<Floorplan>::iterator fp_ptr = intermediate_fps.begin();
 
+  _current_npe.print();
+  for(int* npe_it = _current_npe.begin(); npe_it != _current_npe.end(); ++npe_it) {
+    if ( *npe_it > 0) fp_stack.push(_problem.get_floorplan(*npe_it ) ); // get_floorplan takes an id >= 1
+    else {
+      cout << "Size: " << fp_stack.size() << endl;
       fp_1 = fp_stack.top(); fp_stack.pop();
       fp_2 = fp_stack.top(); fp_stack.pop();
-      pack_floorplans(*npe_it, fp_1, fp_2, fp_packed);
+      fp_1->print();
+      fp_2->print();
+
+      pack_floorplans(*npe_it, fp_1, fp_2, &*fp_ptr);
+      fp_ptr->print();
+      cout << endl;
+      fp_stack.push(&(*fp_ptr++));
 
     }
   }
   return {0,0};
 }
 
-void Floorplanning_solver::pack_floorplans(int op, const Floorplan* fp_1, const Floorplan* fp_2, Floorplan &fp_packed) {
+int Floorplanning_solver::pack_floorplans(int op, const Floorplan* fp_1, const Floorplan* fp_2, Floorplan* fp_packed) {
+  cout << op << endl;
+
+  if(!fp_1->size() || !fp_2->size()) return -1; // If any of the floorplans is empty there's nothing to pack so return (malformed problem)
+  // From now on we know that both floorplans have at least size 1
   const Floorplan *first_fp, *second_fp;
-  // Find out which floorplan has the smallest w
-  if ( fp_1->get_shape(0)->first <= fp_2->get_shape(0)->first) {
-    first_fp = fp_1;
-    second_fp = fp_2;
-  } else {
-    first_fp = fp_2;
-    second_fp = fp_1;
-  } // 0 for the first one
-
+  pair<int, int> *cur_1, *cur_2;
   vector<pair<int, int>> new_sf;
+  
+  if ( op == NPE::H ) {
+    // Find out which floorplan has the smallest w
+    if ( fp_1->get_shape(0)->first <= fp_2->get_shape(0)->first) {  
+      first_fp = fp_1;
+      second_fp = fp_2;
+    } else {
+      first_fp = fp_2;
+      second_fp = fp_1;
+    } 
 
-  pair<int, int>* it_1 = first_fp->begin(); , it_2 = second_fp->begin();
-  while(it_1 != first_fp->end() && it_2 != second_fp->end()) {
-    if ( op == NPE::H ) {
-      while((it_1+1)->first <)
-      if (it_1->first <= it_2->first && (it_1+1)->first > it_2->first) {    // If it_2 is between it_1 and the next
-
-      }
+    cur_1 = first_fp->begin(), cur_2 = second_fp->begin();
+    while( cur_1+1 <= first_fp->end() && cur_2+1 <= second_fp->end() ) {
+      if ( cur_2->first >= cur_1->first && 
+        cur_2->first < ((cur_1+1) < first_fp->end()) ? (cur_1+1)->first : __INT_MAX__ )
+      {  // If the point in 2 is within the current window
+        new_sf.emplace_back(cur_2->first, cur_1->second + cur_2->second);
+        if ( cur_1+1 >= first_fp->end()) ++cur_2; // If there is no shapes left in floorplan 1
+        else if ( (cur_1+1)->first < ( (cur_2+1) < second_fp->end() ) ? (cur_2+1)->first : __INT_MAX__ )  {
+          new_sf.emplace_back((cur_1+1)->first, (cur_1+1)->second + cur_2->second);
+          ++cur_1;
+        } else ++cur_2;
+      } else ++cur_1;
     }
-  }
-
-  for (pair<int, int>* f_it = first_fp->begin(); f_it != first_fp->end(); ++f_it) {
-    if ( op == NPE::H ) {
-
-    }
-    cout << f_it->first << " " <<  second_fp->begin()->first << endl;
-  }
-
-
-
   } else if ( op == NPE::V ) {
-
+    // Find out which floorplan has the smallest h
+    if ( fp_1->get_shape(0)->second <= fp_2->get_shape(0)->second) {  
+      first_fp = fp_1;
+      second_fp = fp_2;
+    } else {
+      first_fp = fp_2;
+      second_fp = fp_1;
+    } 
+    
+    cur_1 = first_fp->begin(), cur_2 = second_fp->begin();
+    while( cur_1+1 <= first_fp->end() && cur_2+1 <= second_fp->end() ) {
+      if ( cur_2->second >= cur_1->second && 
+        cur_2->second < ((cur_1+1) < first_fp->end()) ? (cur_1+1)->second : __INT_MAX__ )
+      {  // If the point in 2 is within the current window
+        new_sf.emplace_back(cur_1->first + cur_2->first, cur_2->second);
+        if ( cur_1+1 >= first_fp->end()) ++cur_2; // If there is no shapes left in floorplan 1
+        else if ( (cur_1+1)->second < ( (cur_2+1) < second_fp->end() ) ? (cur_2+1)->second : __INT_MAX__ )  {
+          new_sf.emplace_back((cur_1+1)->first + + cur_2->first, (cur_1+1)->second);
+          ++cur_1;
+        } else ++cur_2;
+      } else ++cur_1;
+    }
   } else { // Panic
     cerr << "This state should not be reached" << endl;
   }
+  *fp_packed = Floorplan(new_sf);
+  //return -!fp_packed->size();
+  return 0;
 }
 
 /*

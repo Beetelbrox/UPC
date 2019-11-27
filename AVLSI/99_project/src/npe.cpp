@@ -94,6 +94,7 @@ void NPE::print(bool print_internals) const{
     if (*it == V) cerr << "V";
     else if (*it == H) cerr << "H";
     else cerr << *it;
+    cerr << " ";
   }
   cout << endl;
   if (print_internals) {
