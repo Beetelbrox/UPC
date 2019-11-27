@@ -85,7 +85,17 @@ void Floorplanning_solver::pack_floorplans(int op, const Floorplan* fp_1, const 
     second_fp = fp_1;
   } // 0 for the first one
 
-  pair<int, int>* it_1 = first_fp->begin(); , it_2 = second_fp->begin();;
+  vector<pair<int, int>> new_sf;
+
+  pair<int, int>* it_1 = first_fp->begin(); , it_2 = second_fp->begin();
+  while(it_1 != first_fp->end() && it_2 != second_fp->end()) {
+    if ( op == NPE::H ) {
+      while((it_1+1)->first <)
+      if (it_1->first <= it_2->first && (it_1+1)->first > it_2->first) {    // If it_2 is between it_1 and the next
+
+      }
+    }
+  }
 
   for (pair<int, int>* f_it = first_fp->begin(); f_it != first_fp->end(); ++f_it) {
     if ( op == NPE::H ) {
