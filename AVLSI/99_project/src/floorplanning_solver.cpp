@@ -103,7 +103,7 @@ int Floorplanning_solver::pack_floorplans(int op, const Floorplan* fp_1, const F
     } 
 
     cur_1 = first_fp->begin(), cur_2 = second_fp->begin();
-    while( cur_1+1 <= first_fp->end() && cur_2+1 <= second_fp->end() ) {
+    while( cur_1+1 <= first_fp->end() && cur_2+1 <= second_fp->end() ) { // Check this leq
       if ( cur_2->first >= cur_1->first && 
         cur_2->first < ((cur_1+1) < first_fp->end()) ? (cur_1+1)->first : __INT_MAX__ )
       {  // If the point in 2 is within the current window
@@ -127,20 +127,16 @@ int Floorplanning_solver::pack_floorplans(int op, const Floorplan* fp_1, const F
     
     cur_1 = first_fp->begin(), cur_2 = second_fp->begin();
     while( cur_1+1 <= first_fp->end() && cur_2+1 <= second_fp->end() ) {
-      if ( cur_2->second >= cur_1->second && 
-        cur_2->second < ((cur_1+1) < first_fp->end()) ? (cur_1+1)->second : __INT_MAX__ )
-      {  // If the point in 2 is within the current window
+      if ( cur_2->second >= cur_1->second && cur_2->second < ((cur_1+1) < first_fp->end()) ? (cur_1+1)->second : __INT_MAX__ ) {
         new_sf.emplace_back(cur_1->first + cur_2->first, cur_2->second);
         if ( cur_1+1 >= first_fp->end()) ++cur_2; // If there is no shapes left in floorplan 1
         else if ( (cur_1+1)->second < ( (cur_2+1) < second_fp->end() ) ? (cur_2+1)->second : __INT_MAX__ )  {
-          new_sf.emplace_back((cur_1+1)->first + + cur_2->first, (cur_1+1)->second);
+          new_sf.emplace_back((cur_1+1)->first + cur_2->first, (cur_1+1)->second);
           ++cur_1;
         } else ++cur_2;
       } else ++cur_1;
     }
-  } else { // Panic
-    cerr << "This state should not be reached" << endl;
-  }
+  } else cerr << "This state should not be reached" << endl; // Panic
   *fp_packed = Floorplan(new_sf);
   //return -!fp_packed->size();
   return 0;
