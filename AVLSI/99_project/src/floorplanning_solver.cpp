@@ -101,8 +101,8 @@ int Floorplanning_solver::pack_floorplans(int op, const Floorplan* fp_1, const F
       second_fp = fp_1;
     }
 
-    fp_1->print();
-    fp_2->print();
+    first_fp->print();
+    second_fp->print();
 
     cur_1 = first_fp->begin(), cur_2 = second_fp->begin();
     while( cur_1+1 <= first_fp->end() && cur_2+1 <= second_fp->end() ) { // Check this leq  
@@ -127,21 +127,33 @@ int Floorplanning_solver::pack_floorplans(int op, const Floorplan* fp_1, const F
       second_fp = fp_1;
     }
 
-    fp_1->print();
-    fp_2->print();
+    first_fp->print();
+    second_fp->print();
+
+ 
     
     cur_1 = first_fp->begin(), cur_2 = second_fp->begin();
-      while( cur_1 < first_fp->end() && cur_2 < second_fp->end() ){
-      if ( cur_1->second >= cur_2->second ) {
-        new_sf.emplace_back(cur_1->first + cur_2->first, cur_1->second);
-        if (cur_2->second == cur_1->second && cur_2+1 < second_fp->end()) ++cur_2;
-        if (cur_1 < first_fp->end()) ++cur_1; // Check to ensure it does not go out of bounds
+    pair<int, int> *last_1 = cur_1, *last_2 = cur_2;
+    while( (cur_1 < first_fp->end()) || (cur_2 < second_fp->end()) ){
+         cout << "*(" << last_1->first << "," << last_1->second << ") " << "(" << cur_2->first << "," << cur_2->second << ") " << endl;
+      if (cur_1 < first_fp->end()) last_1 = cur_1;
+      if (cur_2 < second_fp->end()) last_2 = cur_2;
+
+      if ( last_1->second >= last_2->second ) {
+        new_sf.emplace_back(last_1->first + last_2->first, last_1->second);
+        if (cur_1 < first_fp->end()) ++cur_1;
+        cerr << "AAA" << endl;
       }
 
-      if(cur_2->second > (cur_1 < first_fp->end()) ? cur_1->second : (cur_1-1)->second) {
-        new_sf.emplace_back(cur_1->first + cur_2->first, cur_2->second);
-        ++cur_2;
+      if(last_2->second > last_1->second) {
+        new_sf.emplace_back(last_1->first + last_2->first, last_2->second);
+        if (cur_2 < second_fp->end()) ++cur_2;
+        cout << "BBB" << endl;
       }
+
+
+      cout << ">(" << last_1->first << "," << last_1->second << ") " << "(" << cur_2->first << "," << cur_2->second << ") " << endl;
+      
     }
   } else cerr << "This state should not be reached" << endl; // Panic
   *fp_packed = Floorplan(new_sf);
