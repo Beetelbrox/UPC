@@ -134,25 +134,27 @@ int Floorplanning_solver::pack_floorplans(int op, const Floorplan* fp_1, const F
     
     cur_1 = first_fp->begin(), cur_2 = second_fp->begin();
     pair<int, int> *last_1 = cur_1, *last_2 = cur_2;
-    while( (cur_1 < first_fp->end()) || (cur_2 < second_fp->end()) ){
-         cout << "*(" << last_1->first << "," << last_1->second << ") " << "(" << cur_2->first << "," << cur_2->second << ") " << endl;
-      if (cur_1 < first_fp->end()) last_1 = cur_1;
-      if (cur_2 < second_fp->end()) last_2 = cur_2;
-
-      if ( last_1->second >= last_2->second ) {
-        new_sf.emplace_back(last_1->first + last_2->first, last_1->second);
-        if (cur_1 < first_fp->end()) ++cur_1;
+    while( (cur_1 < first_fp->end()) || (cur_2 < second_fp->end() ) ){
+      cout << "*(" << last_1->first << "," << last_1->second << ") " << "(" << last_2->first << "," << last_2->second << ") " << endl;
+      if ( last_1->second >= last_2->second) {
         cerr << "AAA" << endl;
-      }
+        new_sf.emplace_back(last_1->first + last_2->first, last_1->second);
+        if (last_1->second == last_2->second) last_2 = ++cur_2;
+        if (++cur_1 < first_fp->end()) last_1 = cur_1;
+        
 
-      if(last_2->second > last_1->second) {
-        new_sf.emplace_back(last_1->first + last_2->first, last_2->second);
-        if (cur_2 < second_fp->end()) ++cur_2;
+      } else {
         cout << "BBB" << endl;
+        new_sf.emplace_back(cur_1->first + cur_2->first, cur_2->second);
+        if (++cur_2 < second_fp->end()) {
+          last_2 = cur_2;
+        }
+
       }
+      cin.get();
 
 
-      cout << ">(" << last_1->first << "," << last_1->second << ") " << "(" << cur_2->first << "," << cur_2->second << ") " << endl;
+      cout << ">(" << last_1->first << "," << last_1->second << ") " << "(" << last_2->first << "," << last_2->second << ") " << endl;
       
     }
   } else cerr << "This state should not be reached" << endl; // Panic
