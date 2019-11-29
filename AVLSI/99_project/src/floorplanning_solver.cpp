@@ -73,37 +73,45 @@ pair<int, int> Floorplanning_solver::pack_npe() {
 
 
       pack_floorplans(*npe_it, fp_1, fp_2, &*fp_ptr);
+      fp_1->print();
+      fp_2->print();
       fp_ptr->print();
       cout << endl;
       fp_stack.push(&(*fp_ptr++));
-
     }
   }
+  int best_shape_ix, best_shape_val=__INT_MAX__;
+  vector<pair<int, int>> positions(_current_npe.size());
+  const pair<int, int> *shape;
+  int tree_it;
+  for(size_t i=0; i < fp_stack.top()->size(); ++i) {
+    shape = fp_stack.top()->get_shape(i);
+    tree_it=1;
+    if (shape->first * shape->second < best_shape_val ) {
+      best_shape_val = shape->first * shape->second;
+      best_shape_ix = i;
+    }
+  }
+  cerr << endl;
   return {0,0};
 }
 
 int Floorplanning_solver::pack_floorplans(int op, const Floorplan* fp_1, const Floorplan* fp_2, Floorplan* fp_packed) {
-  cout << op << endl;
 
   if(!fp_1->size() || !fp_2->size()) return -1; // If any of the floorplans is empty there's nothing to pack so return (malformed problem)
   // From now on we know that both floorplans have at least size 1
-  const Floorplan *first_fp, *second_fp;
+  const Floorplan *first_fp = fp_1, *second_fp = fp_2;
   pair<int, int> *cur_1, *cur_2;
   vector<pair<int, int>> new_sf;
+  int h=0;
   
+  // I reckon this can be written easily (max(w1 + w2), h2 )
   if ( op == NPE::H ) {
     // Find out which floorplan has the smallest w
-    if ( fp_1->get_shape(0)->first <= fp_2->get_shape(0)->first) {  
-      first_fp = fp_1;
-      second_fp = fp_2;
-    } else {
+    if ( fp_1->get_shape(0)->first > fp_2->get_shape(0)->first) {  
       first_fp = fp_2;
       second_fp = fp_1;
     }
-
-    first_fp->print();
-    second_fp->print();
-
     cur_1 = first_fp->begin(), cur_2 = second_fp->begin();
     while( cur_1+1 <= first_fp->end() && cur_2+1 <= second_fp->end() ) { // Check this leq  
       if ( cur_2->first >= cur_1->first && 
@@ -119,47 +127,20 @@ int Floorplanning_solver::pack_floorplans(int op, const Floorplan* fp_1, const F
     }
   } else if ( op == NPE::V ) {
     // Find out which floorplan has the largest h
-    if ( fp_1->get_shape(0)->second >= fp_2->get_shape(0)->second) {  
-      first_fp = fp_1;
-      second_fp = fp_2;
-    } else {
+    if ( fp_1->get_shape(0)->second < fp_2->get_shape(0)->second) {  
       first_fp = fp_2;
       second_fp = fp_1;
     }
-
-    first_fp->print();
-    second_fp->print();
-
- 
-    
     cur_1 = first_fp->begin(), cur_2 = second_fp->begin();
-    pair<int, int> *last_1 = cur_1, *last_2 = cur_2;
-    while( (cur_1 < first_fp->end()) || (cur_2 < second_fp->end() ) ){
-      cout << "*(" << last_1->first << "," << last_1->second << ") " << "(" << last_2->first << "," << last_2->second << ") " << endl;
-      if ( last_1->second >= last_2->second) {
-        cerr << "AAA" << endl;
-        new_sf.emplace_back(last_1->first + last_2->first, last_1->second);
-        if (last_1->second == last_2->second) last_2 = ++cur_2;
-        if (++cur_1 < first_fp->end()) last_1 = cur_1;
-        
-
-      } else {
-        cout << "BBB" << endl;
-        new_sf.emplace_back(cur_1->first + cur_2->first, cur_2->second);
-        if (++cur_2 < second_fp->end()) {
-          last_2 = cur_2;
-        }
-
-      }
-      cin.get();
-
-
-      cout << ">(" << last_1->first << "," << last_1->second << ") " << "(" << last_2->first << "," << last_2->second << ") " << endl;
-      
+    while( cur_1 < first_fp->end() && cur_2 < second_fp->end() ){
+      h = ( cur_1->second >= cur_2->second ) ? cur_1->second : cur_2->second;
+      new_sf.emplace_back(cur_1->first + cur_2->first, h);
+      if ( h == cur_1->second ) ++cur_1;
+      if ( h == cur_2->second ) ++cur_2;  
     }
   } else cerr << "This state should not be reached" << endl; // Panic
-  *fp_packed = Floorplan(new_sf);
-  //return -!fp_packed->size();
+  *fp_packed = Floorplan(new_sf,0,0,fp_1, fp_2);
+  return -!fp_packed->size();
   return 0;
 }
 
