@@ -8,22 +8,22 @@
 class Floorplan {
   typedef std::pair<int, int> dim;
 
-  std::unique_ptr<dim[]> _shapes;
+  int _id;
+  std::unique_ptr<dim[]> _shapes, _subfp_ix;
   dim *_limit;
-  int _x, _y;
   const Floorplan *_left_child, *_right_child;
 
 public:
-  Floorplan(const std::vector<dim> &sf=std::vector<dim>(), int x=0, int y=0, const Floorplan* left_child=nullptr, const Floorplan* right_child=nullptr);
-  Floorplan(const dim* sf, int num_shapes, int x=0, int y=0, const Floorplan* left_child=nullptr, const Floorplan* right_child=nullptr);
+  Floorplan();
+  Floorplan(int id, const std::vector<dim> &sf, std::vector <dim> subfp_ix=std::vector<dim>(), const Floorplan* left_child=nullptr, const Floorplan* right_child=nullptr);
+  Floorplan(int id, const dim* shapes, int n_shapes, dim* subfp_ix=nullptr, const Floorplan* left_child=nullptr, const Floorplan* right_child=nullptr);
 
   dim* begin() const;
   dim* end() const;
   std::size_t size() const;
-  dim get_position() const;
-  int get_x() const;
-  int get_y() const;
-  const dim* get_shape(std::size_t ix) const;
+  int get_id() const;
+  const dim get_shape(std::size_t ix) const;
+  const dim get_subfp_ix(std::size_t ix) const;
   const Floorplan* get_left_child() const;
   const Floorplan* get_right_child() const;
   void print() const;

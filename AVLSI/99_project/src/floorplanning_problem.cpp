@@ -34,7 +34,7 @@ int Floorplanning_problem::from_file(const string &filename) {
     istringstream ln_stream(line);
     while(ln_stream >> w >> h) shape_function.emplace_back(w, h);
     sort(shape_function.begin(), shape_function.end()); // Sort the shapes by the x coordinate. This is critical for a fast merge of shape functions
-    _module_fps[i] = Floorplan(shape_function); // This is copying structures more than it should. use allocator?
+    _module_fps[i] = Floorplan(i+1, shape_function); // This is copying structures more than it should. use allocator?
     ++module_count;
   }
   if (module_count == n) {
