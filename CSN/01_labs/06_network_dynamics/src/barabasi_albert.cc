@@ -3,7 +3,7 @@
 BarabasiAlbert::BarabasiAlbert (const uint &n0_, const uint &m0_)
     : n0(n0_), m0(m0_), generator(device()) {
     if (m0 > n0)
-        cerr << "WARNING: m0 > n0." << endl;
+        cerr << "WARNING: m0 > n0, but it should be m0 <= n0." << endl;
 }
 
 void BarabasiAlbert::start_random_cycle (Graph &graph) {
