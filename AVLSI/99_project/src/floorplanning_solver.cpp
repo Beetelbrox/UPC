@@ -56,10 +56,6 @@ void Floorplanning_solver::generate_random_npe(size_t n_operands, NPE& npe, bool
 }
 
 void calculate_positions (const Floorplan* fp, int shape_ix, pair<int, int> module_pos, vector<pair<int, int>> &positions, vector<pair<int, int>> &shapes) {
-  //cerr  << "Module " << fp->get_id() << ": " << module_pos.first << ", " << module_pos.second << endl;
-  //cerr << "Shape " << fp->get_shape(shape_ix).first << " " << fp->get_shape(shape_ix).second << endl;
-  //fp->print();
-  //cerr << fp->get_id() << " " << module_pos.first << " " << module_pos.second << " " << endl;
   const Floorplan *l_child = fp->get_left_child(), *r_child = fp->get_right_child();
   if (l_child == nullptr) {
     positions[fp->get_id()-1] = module_pos; // Hit a leaf
@@ -79,6 +75,10 @@ void calculate_positions (const Floorplan* fp, int shape_ix, pair<int, int> modu
                       (fp->get_id() == NPE::H) ? make_pair(module_pos.first, module_pos.second + sm_shape.second) : make_pair(module_pos.first + sm_shape.first, module_pos.second),
                       positions, shapes);
   }
+}
+
+pair<int, float> Floorplanning_solver::calculate_cost(pair<int, int> fp_dim, const vector<pair<int, int>> &positions, const vector<pair<int, int>> &shapes) {
+  return {fp_dim.first*fp_dim.second, 0.0};
 }
 
 // The NPE object ensures correctness of the member NPE, so we don't have to check
@@ -102,26 +102,28 @@ pair<int, int> Floorplanning_solver::pack_npe() {
   }
 
   vector<pair<int, int>> positions(_current_npe.n_operands()), shapes(_current_npe.n_operands());
-  pair<int, int> shape, subfp_ix;
+  pair<int, int> shape;
+  pair<int, float> cost;
+  int best = -1;
+  float best_cost=INFINITY;
 
   cerr << "Positions: " << endl;
   pos_stack.emplace(0,0);
   for(size_t i=0; i < fp_stack.top()->size(); ++i) {
     shape = fp_stack.top()->get_shape(i);
-    subfp_ix = fp_stack.top()->get_subfp_ix(i);
     calculate_positions(fp_stack.top(), i, {0,0}, positions, shapes);
-    //cerr << "Positions: " << positions.size() << endl;
-    for (size_t i =0; i < _current_npe.n_operands(); ++i) {
-      cout << positions[i].first << " " << positions[i].second << " " <<
-        shapes[i].first << " " << shapes[i].second << endl;
+    cost = calculate_cost(shape, positions, shapes);
+    if (cost.first < best_cost) {
+      best = i;
+      best_cost = cost.first;
     }
-    cout << endl;
   }
 
-
-  cerr << endl;
+  cerr << best << " " << best_cost << endl;
   return {0,0};
 }
+
+
 
 int Floorplanning_solver::pack_floorplans(int op, const Floorplan* fp_1, const Floorplan* fp_2, Floorplan* fp_packed) {
   if(!fp_1->size() || !fp_2->size()) return -1; // If any of the floorplans is empty there's nothing to pack so return (malformed problem)
@@ -129,7 +131,6 @@ int Floorplanning_solver::pack_floorplans(int op, const Floorplan* fp_1, const F
   vector<pair<int, int>> new_sf, subfp_ix;
   size_t ix_1=0, ix_2=0;
   
-  // I reckon this can be written easily (max(w1 + w2), h2 )
   if ( op == NPE::H ) {
     while( ix_1 < fp_1->size() || ix_2 < fp_2->size() )
       if ( fp_1->get_shape_width(ix_1) <= fp_2->get_shape_width(ix_2) ) {
@@ -166,31 +167,6 @@ int Floorplanning_solver::pack_floorplans(int op, const Floorplan* fp_1, const F
 }
 
 /*
-pair <int, int> Floorplanning_solver::calculate_floorplan_dimensions(const vector<int> &npe) {
-
-  stack<vector<pair<int, int>>> module_stack;
-  vector<pair<int, int>> shape_function, submod_1, submod_2;
-  for(int e : npe) {
-    vector<pair<int, int>> shape_function;
-    if(e > 0) {
-      // Generate the shape function and push it into the queue
-      for (pair <int, int> p : problem.get_module_dimensions(e-1)) {
-        shape_function.push_back(p);
-        if(p.first != p.second) shape_function.push_back({p.second, p.first});
-      }
-      module_stack.push(problem.get_module_dimensions(e-1));
-    } else if (e < 0) {
-      cout << e << endl;
-      submod_1 = module_stack.top(); module_stack.pop();
-      submod_2 = module_stack.top(); module_stack.pop();
-    } else {
-      cerr << "Error: Bad index in NPE." << endl;
-      return {-1,-1};
-    }
-  }
-
-  return {0,0};
-}
 
 
 // If parse=false, it DOES NOT CHECK CORRECTNESS
