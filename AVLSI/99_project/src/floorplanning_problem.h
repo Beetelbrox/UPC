@@ -12,8 +12,7 @@
 #include "floorplan.h"
 
 class Floorplanning_problem {
-  std::unique_ptr<Floorplan[]> _module_fps;
-  Floorplan* _limit;
+  std::vector<Floorplan> _module_fps;
 
 public:
   Floorplanning_problem();
@@ -21,8 +20,8 @@ public:
 
   int from_file(const std::string &filename);
 
-  Floorplan* begin() const;
-  Floorplan* end() const;
+  const Floorplan* begin() const;
+  const Floorplan* end() const;
   size_t size() const; // Returns the number of modules in the problem
   const Floorplan* get_floorplan(size_t id) const;
 };

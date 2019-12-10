@@ -23,6 +23,8 @@ public:
   std::size_t size() const;
   int get_id() const;
   const dim get_shape(std::size_t ix) const;
+  int get_shape_width(std::size_t ix) const;
+  int get_shape_height(std::size_t ix) const;
   const dim get_subfp_ix(std::size_t ix) const;
   const Floorplan* get_left_child() const;
   const Floorplan* get_right_child() const;
