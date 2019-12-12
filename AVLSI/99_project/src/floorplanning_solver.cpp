@@ -4,14 +4,16 @@
 #include <cmath>
 #include <stack>
 #include <numeric>
+#include <memory>
 
 #include "floorplanning_solver.h"
 #include "floorplan.h"
 
+
 using namespace std;
 
 Floorplanning_solver::Floorplanning_solver(const Floorplanning_problem &p): _problem(p) {
-  generate_random_npe(_problem.size(), _current_npe, 1);
+  generate_random_npe(_problem.size(), _npe, 1);
 }
 
 int Floorplanning_solver::solve() {
@@ -23,9 +25,50 @@ int Floorplanning_solver::solve() {
 
 
   */
- float initial_cost = calculate_cost();
+
+  _npe.print();
+  float initial_cost = calculate_cost();
+  cerr << initial_cost << endl;
+  pair<int, int> perturbation;
+
+  float p = 0.99, r = 0.85;
+
+  float cost_cummulator = 0.0, delta_cost, cost_counter = 0.0;
+  for(int i=0; i < _npe.size(); ++i) {
+    perturbation = gen_rnd_perturbation();
+    delta_cost = calculate_cost(perturbation) - initial_cost;
+    if (delta_cost > 0 ) {
+      cost_cummulator += delta_cost;
+      ++cost_counter;
+    }
+  }
+  float avg_uphill_cost = cost_cummulator/cost_counter;
+  float initial_temp = -avg_uphill_cost / log(p);
 
 
+
+  int k = 10, reject = 0;
+  float last_cost = initial_cost, cur_cost, temp = initial_temp, best_cost = initial_cost, error = 0.01;
+
+  do {
+    cerr << temp << endl;
+    reject = 0;
+
+    for (int iteration=0; iteration < k; ++iteration) {
+      perturbation = gen_rnd_perturbation();
+      cur_cost = calculate_cost(perturbation);
+      delta_cost = cur_cost - last_cost;
+      if (delta_cost <= 0 || (static_cast <float> (rand()) / static_cast <float> (RAND_MAX) < exp(-delta_cost/temp))) {
+        _npe.apply_perturbation(perturbation);
+        _npe.print();
+        if (cur_cost < best_cost) {
+          best_cost = cur_cost;
+          cerr << "Best Cost: " << best_cost << endl;
+        }
+      } else ++reject;
+    }
+    temp *= r;
+  } while (reject/k <= 0.95 && temp >= error );
 
   return 0;
 }
@@ -56,91 +99,57 @@ void Floorplanning_solver::generate_random_npe(size_t n_operands, NPE& npe, bool
   cerr << "done." << endl;
 }
 
-void calculate_positions (const Floorplan* fp, int shape_ix, pair<int, int> module_pos, vector<pair<int, int>> &positions, vector<pair<int, int>> &shapes) {
-  const Floorplan *l_child = fp->get_left_child(), *r_child = fp->get_right_child();
-  if (l_child == nullptr) {
-    positions[fp->get_id()-1] = module_pos; // Hit a leaf
-    shapes[fp->get_id()-1] = fp->get_shape(shape_ix);
+float Floorplanning_solver::calculate_cost( pair<int, int> perturbation ) {
+  vector<Floorplanning_solution> solutions;
+  pack_npe(solutions, perturbation);
+  float best_cost = INFINITY;
+  for (Floorplanning_solution sol : solutions ) {
+    if (sol.cost() < best_cost) best_cost = sol.cost();
   }
-  else {
-
-  calculate_positions(l_child,
-                      fp->get_subfp_ix(shape_ix).first,
-                      module_pos,
-                      positions, shapes);
-
-  pair<int, int> sm_shape = l_child->get_shape(fp->get_subfp_ix(shape_ix).first);
-  //cerr << sm_shape.first << " " << sm_shape.second << endl;
-  calculate_positions(r_child,
-                      fp->get_subfp_ix(shape_ix).second,
-                      (fp->get_id() == NPE::H) ? make_pair(module_pos.first, module_pos.second + sm_shape.second) : make_pair(module_pos.first + sm_shape.first, module_pos.second),
-                      positions, shapes);
-  }
-}
-
-pair<int, float> Floorplanning_solver::calculate_shape_cost(pair<int, int> fp_dim, const vector<pair<int, int>> &positions, const vector<pair<int, int>> &shapes) {
-  return {fp_dim.first*fp_dim.second, 0.0};
-}
-
-float Floorplanning_solver::calculate_cost(pair<int, int> perturbation ) {
-
+  return best_cost;
 };
 
 // The NPE object ensures correctness of the member NPE, so we don't have to check
-pair<int, int> Floorplanning_solver::pack_npe( pair<int, int> perturbation ) {
+void Floorplanning_solver::pack_npe( vector<Floorplanning_solution> &solutions, pair<int, int> perturbation ) {
   stack<const Floorplan *> fp_stack;
-  stack<pair<int, int>> pos_stack;
-  vector<Floorplan> intermediate_fps(_problem.size()-1); // Structure to store intermediate floorplans
   const Floorplan *l_child, *r_child;
+  vector<Floorplan> intermediate_fps(_problem.size()-1); // Structure to store intermediate floorplans
   Floorplan *fp_ptr = &*intermediate_fps.begin();
 
   int next_npe_element;
-  bool perturbated_chain = false;
+  bool inverted_chain = false;
 
-  for( size_t i=0; i < _current_npe.size(); ++i ) {
+  for( size_t i=0; i < _npe.size(); ++i ) {
+    
+    // Check if there if this element is affected by a perturbation
     if ( i == perturbation.first ) {
       if ( perturbation.second < 0 ) {
-        perturbated_chain=true;
-        next_npe_element = _current_npe.get_element(i);
-      } else next_npe_element = _current_npe.get_element(perturbation.second);
-    } else if ( i == perturbation.second ) next_npe_element = _current_npe.get_element(perturbation.first);
-    else next_npe_element = _current_npe.get_element(i);
+        inverted_chain=true;
+        next_npe_element = _npe.get_element(i);
+      } else next_npe_element = _npe.get_element(perturbation.second);
+    } else if ( i == perturbation.second ) next_npe_element = _npe.get_element(perturbation.first);
+    else next_npe_element = _npe.get_element(i);
 
-    if ( next_npe_element > 0 ) fp_stack.push(_problem.get_floorplan( next_npe_element ) ); // get_floorplan takes an id >= 1
+    if ( next_npe_element > 0 ) {
+      fp_stack.push(_problem.get_floorplan( next_npe_element ) ); // get_floorplan takes an id >= 1
+      inverted_chain = false;
+    } 
     else {
-      r_child = fp_stack.top(); fp_stack.pop(); // Remember that popping from a stack returns items in reverse indtroduction order
+      r_child = fp_stack.top(); fp_stack.pop(); // Remember that popping from a stack returns items in reverse insertion order
       l_child = fp_stack.top(); fp_stack.pop();
-      pack_floorplans(*npe_it, l_child, r_child, fp_ptr);
-      fp_ptr->print();
+      if (inverted_chain) next_npe_element = (next_npe_element == NPE::V) ? NPE::H : NPE::V;
+      merge_shape_functions(next_npe_element, l_child, r_child, fp_ptr);
+      //fp_ptr->print();
       fp_stack.push(fp_ptr++);
     }
   }
 
-  vector<pair<int, int>> positions(_current_npe.n_operands()), shapes(_current_npe.n_operands());
-  pair<int, int> shape;
-  pair<int, float> cost;
-  int best = -1;
-  float best_cost=INFINITY;
-
-  cerr << "Positions: " << endl;
-  pos_stack.emplace(0,0);
   for(size_t i=0; i < fp_stack.top()->size(); ++i) {
-    shape = fp_stack.top()->get_shape(i);
-    calculate_positions(fp_stack.top(), i, {0,0}, positions, shapes);
-    cost = calculate_shape_cost(shape, positions, shapes);
-    if (cost.first < best_cost) {
-      best = i;
-      best_cost = cost.first;
-    }
+    solutions.emplace_back(_npe.n_operands(), fp_stack.top(), i);
   }
-
-  cerr << best << " " << best_cost << endl;
-  return {0,0};
 }
 
-
-
-int Floorplanning_solver::pack_floorplans(int op, const Floorplan* fp_1, const Floorplan* fp_2, Floorplan* fp_packed) {
+int Floorplanning_solver::merge_shape_functions(int op, const Floorplan* fp_1, const Floorplan* fp_2, Floorplan* fp_packed) {
   if(!fp_1->size() || !fp_2->size()) return -1; // If any of the floorplans is empty there's nothing to pack so return (malformed problem)
   // From now on we know that both floorplans have at least size 1
   vector<pair<int, int>> new_sf, subfp_ix;
@@ -190,21 +199,22 @@ pair<int, int> Floorplanning_solver::gen_rnd_perturbation() {
         return gen_rnd_chain_inversion();
       case 2:
         pair<int, int> swap = gen_rnd_operand_operator_swap();
-        if (swap.first >= 0) return swap;
+        while(swap.first < 0) swap = gen_rnd_operand_operator_swap();
+        return swap;
     }
   }
 }
 
 // Assumes correctness of the input
 pair<int, int> Floorplanning_solver::gen_rnd_operand_swap() {
-  int rand_operand = rand()%(_current_npe.n_operands()-1); // Choose a number UAR between the fist and the last
-  return {_current_npe.get_operand_pos(rand_operand), _current_npe.get_operand_pos(rand_operand+1) };
+  int rand_operand = rand()%(_npe.n_operands()-1); // Choose a number UAR between the fist and the last
+  return {_npe.get_operand_pos(rand_operand), _npe.get_operand_pos(rand_operand+1) };
 }
 
 // Returns a pair of <index, -1> to indicate the chain swap
 pair<int, int>  Floorplanning_solver::gen_rnd_chain_inversion() {
-  int rand_chain = rand()% _current_npe.n_chains();
-  return { _current_npe.get_chain_pos(rand_chain), -1 };
+  int rand_chain = rand()% _npe.n_chains();
+  return { _npe.get_chain_pos(rand_chain), -1 };
 }
 
 // This assumes correctness on the input, as it is a private function. Will panic if it's not.
@@ -212,19 +222,19 @@ pair<int, int>  Floorplanning_solver::gen_rnd_chain_inversion() {
 // only taking value 0 if ch_ix == length(chains) - 1.
 pair<int, int> Floorplanning_solver::gen_rnd_operand_operator_swap() {
   // Choose a chain end at random excluding the last one so this is as uniform as possible
-  int rnd_choice = rand()%(_current_npe.n_chains()<<1),
+  int rnd_choice = rand()%(_npe.n_chains()<<1),
       rnd_chain = (rnd_choice)>>1,
       rnd_side = rnd_choice%2,
-      rnd_operator_pos = _current_npe.get_chain_pos(rnd_chain) + rnd_side*(_current_npe.get_chain_length(rnd_chain) - 1),
+      rnd_operator_pos = _npe.get_chain_pos(rnd_chain) + rnd_side*(_npe.get_chain_length(rnd_chain) - 1),
       rnd_operand_pos = rnd_operator_pos + (rnd_side<<1) - 1;
   // If the swap breaks the skewness of the tree or if tries to swap with the tree root, panic and jump out
-  if((_current_npe.get_element(rnd_operator_pos)) == _current_npe.get_element(rnd_operator_pos + (rnd_side<<2) - 2) || (rnd_operator_pos == int(_current_npe.size()-1))) return {-1,-1};
+  if((_npe.get_element(rnd_operator_pos)) == _npe.get_element(rnd_operator_pos + (rnd_side<<2) - 2) || (rnd_operator_pos == int(_npe.size()-1))) return {-1,-1};
 
   // Check that the perturbation satisfies the balloting rule (only needs to be done if
   // we are pushing operators back
   if (!rnd_side) {
     int op_counter = 1;
-    for (size_t i=0; i < rnd_chain; ++i) op_counter += _current_npe.get_chain_length(i);
+    for (size_t i=0; i < rnd_chain; ++i) op_counter += _npe.get_chain_length(i);
     if ( 2*op_counter >= rnd_operand_pos+1 ) return {-1,-1};
   }
   // If the perturbation is valid, swap the values in the vector and return 0

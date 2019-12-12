@@ -4,11 +4,12 @@ CFLAGS = -Wall -Wextra
 FP_PROB = floorplanning_problem
 FP_SOLVER = floorplanning_solver
 FP_NPE = npe
+FP_SOL = floorplanning_solution
 FP = floorplan
 TB = testbench
 
-$(TB): $(TB).o $(FP_PROB).o  ${FP}.o $(FP_NPE).o $(FP_SOLVER).o
-	$(CCC) $(CFLAGS) -o bin/$(TB) $(TB).o ${FP}.o $(FP_PROB).o $(FP_NPE).o $(FP_SOLVER).o
+$(TB): $(TB).o $(FP_PROB).o  ${FP}.o $(FP_NPE).o $(FP_SOLVER).o $(FP_SOL).o
+	$(CCC) $(CFLAGS) -o bin/$(TB) $(TB).o ${FP}.o $(FP_PROB).o $(FP_NPE).o $(FP_SOLVER).o $(FP_SOL).o
 
 #$(TB): $(TB).o $(FP_SOLVER).o $(FP_PROB).o $(FP_NPE).o ${FP}.o
 #	$(CCC) $(CFLAGS) -o bin/$(TB) $(TB).o ${FP}.o $(FP_NPE).o $(FP_PROB).o $(FP_SOLVER).o
@@ -21,6 +22,9 @@ ${FP_SOLVER}.o: src/$(FP_SOLVER).cpp src/$(FP_SOLVER).h
 
 ${FP_PROB}.o: src/$(FP_PROB).cpp src/$(FP_PROB).h
 	$(CCC) $(CFLAGS) $(INC) -c src/$(FP_PROB).cpp
+
+${FP_SOL}.o: src/$(FP_SOL).cpp src/$(FP_SOL).h
+	$(CCC) $(CFLAGS) $(INC) -c src/$(FP_SOL).cpp
 
 ${FP}.o: src/$(FP).cpp src/$(FP).h
 	$(CCC) $(CFLAGS) $(INC) -c src/$(FP).cpp

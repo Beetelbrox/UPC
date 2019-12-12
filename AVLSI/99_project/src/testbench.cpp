@@ -10,6 +10,7 @@ int main() {
     fp.print();
   }
   Floorplanning_solver fp_solver(fp_problem);
+  fp_solver.solve();
 
   return 0;
 }
