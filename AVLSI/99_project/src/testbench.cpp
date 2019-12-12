@@ -4,7 +4,7 @@
 
 
 int main() {
-  Floorplanning_problem fp_problem("small_fp.txt");
+  Floorplanning_problem fp_problem("instance_small_40.inp");
 
   for (const Floorplan &fp : fp_problem) {
     fp.print();

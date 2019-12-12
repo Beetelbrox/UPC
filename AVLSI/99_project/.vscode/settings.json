@@ -42,7 +42,11 @@
         "sstream": "cpp",
         "stdexcept": "cpp",
         "streambuf": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "chrono": "cpp",
+        "ctime": "cpp",
+        "random": "cpp",
+        "ratio": "cpp"
     },
     "python.pythonPath": "/home/fjjm/.local/share/virtualenvs/99_project-A_hl_FrE/bin/python"
 }

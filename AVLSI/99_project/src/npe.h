@@ -28,10 +28,12 @@ public:
   std::size_t n_operands() const;
   std::size_t n_operators() const;
   std::size_t n_chains() const;
+
   int get_element(size_t ix) const;
   int get_operand_pos(size_t ix) const;
   int get_chain_pos(size_t ix) const;
   int get_chain_length(size_t ix) const;
+  const int* get_npe_seq() const;
   void print(bool print_internals=0) const;
 };
 

@@ -110,3 +110,4 @@ size_t NPE::n_chains() const { return _chains.size(); }
 int NPE::get_operand_pos(size_t ix) const { return _operand_pos[ix]; }
 int NPE::get_chain_pos(size_t ix) const { return _chains[ix].first; }
 int NPE::get_chain_length(size_t ix) const { return _chains[ix].second; }
+const int* NPE::get_npe_seq() const { return _npe.get(); }

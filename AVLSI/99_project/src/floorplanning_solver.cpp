@@ -5,6 +5,7 @@
 #include <stack>
 #include <numeric>
 #include <memory>
+#include <chrono>
 
 #include "floorplanning_solver.h"
 #include "floorplan.h"
@@ -12,7 +13,7 @@
 
 using namespace std;
 
-Floorplanning_solver::Floorplanning_solver(const Floorplanning_problem &p): _problem(p) {
+Floorplanning_solver::Floorplanning_solver(const Floorplanning_problem &p): _problem(p), rng_engine(chrono::high_resolution_clock::now().time_since_epoch().count()) {
   generate_random_npe(_problem.size(), _npe, 1);
 }
 
@@ -28,31 +29,37 @@ int Floorplanning_solver::solve() {
 
   _npe.print();
   float initial_cost = calculate_cost();
-  cerr << initial_cost << endl;
+  cerr << "Initial Cost: " << initial_cost << endl;
   pair<int, int> perturbation;
 
-  float p = 0.99, r = 0.85;
+  float p = 0.99;
 
   float cost_cummulator = 0.0, delta_cost, cost_counter = 0.0;
-  for(int i=0; i < _npe.size(); ++i) {
+  for(int i=0; i < 100; ++i) {
     perturbation = gen_rnd_perturbation();
     delta_cost = calculate_cost(perturbation) - initial_cost;
-    if (delta_cost > 0 ) {
-      cost_cummulator += delta_cost;
-      ++cost_counter;
-    }
+    cost_cummulator += abs(delta_cost);
   }
-  float avg_uphill_cost = cost_cummulator/cost_counter;
+  float avg_uphill_cost = cost_cummulator/float(_npe.size());
   float initial_temp = -avg_uphill_cost / log(p);
+  cerr << "Initial temp: " << initial_temp << endl;
 
 
 
-  int k = 10, reject = 0;
-  float last_cost = initial_cost, cur_cost, temp = initial_temp, best_cost = initial_cost, error = 0.01;
+  int k = 50000, reject = 0, its = 0, thr = 7, c = 100;
+  float last_cost = initial_cost, cur_cost, temp = initial_temp, best_cost = initial_cost, error = 0.001;
+  NPE best_npe;
+
+  std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
   do {
-    cerr << temp << endl;
+    ++its;
     reject = 0;
+    cost_cummulator = 0;
+    cost_counter = 0;
+
+    if (its > 1) k = 1000;
 
     for (int iteration=0; iteration < k; ++iteration) {
       perturbation = gen_rnd_perturbation();
@@ -60,15 +67,26 @@ int Floorplanning_solver::solve() {
       delta_cost = cur_cost - last_cost;
       if (delta_cost <= 0 || (static_cast <float> (rand()) / static_cast <float> (RAND_MAX) < exp(-delta_cost/temp))) {
         _npe.apply_perturbation(perturbation);
-        _npe.print();
+        //_npe.print();
         if (cur_cost < best_cost) {
           best_cost = cur_cost;
+          best_npe = NPE(_npe.get_npe_seq(), _npe.size());
           cerr << "Best Cost: " << best_cost << endl;
         }
       } else ++reject;
+      cost_cummulator+= abs(delta_cost)/max(last_cost, cur_cost);
+      ++cost_counter;
+      last_cost = cur_cost;
     }
-    temp *= r;
-  } while (reject/k <= 0.95 && temp >= error );
+    if (its <= 1) _npe = NPE(best_npe.get_npe_seq(), _npe.size());
+    else {
+      temp = (initial_temp * (cost_cummulator/cost_counter))/its;
+      if (its <= thr) temp = temp/c;
+    }
+    end = std::chrono::steady_clock::now();
+  } while (reject/k <= 0.95 && temp >= error && std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() <= 300 );
+  _npe = NPE(best_npe.get_npe_seq(), _npe.size());
+  calculate_cost({-1,-1}, 1);
 
   return 0;
 }
@@ -99,13 +117,18 @@ void Floorplanning_solver::generate_random_npe(size_t n_operands, NPE& npe, bool
   cerr << "done." << endl;
 }
 
-float Floorplanning_solver::calculate_cost( pair<int, int> perturbation ) {
+float Floorplanning_solver::calculate_cost( pair<int, int> perturbation, int print_sol ) {
   vector<Floorplanning_solution> solutions;
   pack_npe(solutions, perturbation);
   float best_cost = INFINITY;
-  for (Floorplanning_solution sol : solutions ) {
-    if (sol.cost() < best_cost) best_cost = sol.cost();
+  int best_sol = 0;
+  for (size_t i=0; i < solutions.size(); ++i) {
+    if (solutions[i].cost() < best_cost){
+      best_cost = solutions[i].cost();
+      best_sol = i;
+      } 
   }
+  if(print_sol) solutions[best_sol].print();
   return best_cost;
 };
 
@@ -221,6 +244,7 @@ pair<int, int>  Floorplanning_solver::gen_rnd_chain_inversion() {
 // ch_ix needs to take a value between 0 and length(chains) - 1. Side cant take either value 0 ir 1,
 // only taking value 0 if ch_ix == length(chains) - 1.
 pair<int, int> Floorplanning_solver::gen_rnd_operand_operator_swap() {
+
   // Choose a chain end at random excluding the last one so this is as uniform as possible
   int rnd_choice = rand()%(_npe.n_chains()<<1),
       rnd_chain = (rnd_choice)>>1,
