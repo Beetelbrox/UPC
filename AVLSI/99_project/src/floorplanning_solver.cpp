@@ -11,22 +11,62 @@
 #include "shape_function.h"
 
 
-using namespace std;
+using std::cerr;
+using std::endl;
+using std::vector;
+using std::pair;
 
 Floorplanning_solver::Floorplanning_solver(const Floorplanning_problem &p):
   _problem(p),
-  _slicing_tree(_problem.size()*2-1),
-  _rng_engine(chrono::high_resolution_clock::now().time_since_epoch().count())
+  _npe(p.size(), 0),
+  _rng_engine(std::chrono::high_resolution_clock::now().time_since_epoch().count())
 {
-  generate_random_npe(_problem.size(), _npe, 1);
-  build_slicing_tree();
+  _npe.print();
 }
-
-
 
 void Floorplanning_solver::build_slicing_tree() {
+  std::stack<Shape_function*> sf_stack;
+  for(size_t i=0; i <_npe.size(); ++i) {
+    if(_npe[i] > 0 ) {
 
+    } else if (_npe[i] == NPE::V || _npe[i] == NPE::H) {
+
+    } else {
+      cerr << "Error [NPE]: Malformed NPE sequence while building slicing tree" << endl;
+      exit(EXIT_FAILURE);
+    }
+  }
 }
+
+/*
+void Floorplanning_solver::pack_npe( vector<Floorplanning_solution> &solutions, pair<int, int> perturbation ) {
+  stack<Shape_function*> fp_stack;
+  Shape_function *l_child, *r_child;
+  unique_ptr<Shape_function> new_sf;
+
+  int next_npe_element;
+  bool inverted_chain = false;
+
+  for( size_t i=0; i < _npe.size(); ++i ) {
+
+    if ( _npe[i] > 0 ) {
+      fp_stack.push( _problem.get_module_sf( next_npe_element ) ); // get_floorplan takes an id >= 1
+    } 
+    else {
+      r_child = fp_stack.top(); fp_stack.pop(); // Remember that popping from a stack returns items in reverse insertion order
+      l_child = fp_stack.top(); fp_stack.pop();
+      fp_stack.push(make_unique<Shape_function>(_npe[i], ))
+      merge_shape_functions(next_npe_element, l_child, r_child, fp_ptr);
+      //fp_ptr->print();
+      fp_stack.push(fp_ptr++);
+    }
+  }
+
+  for(size_t i=0; i < fp_stack.top()->size(); ++i) {
+    solutions.emplace_back(_npe.n_operands(), fp_stack.top(), i);
+  }
+}
+
 
 int Floorplanning_solver::solve() {
 
@@ -37,14 +77,13 @@ int Floorplanning_solver::solve() {
   // 3. Reasonable execution time
   // 4. Incremental wirelength
   // 
-
-  /* Simmulated Annealing
+ Simmulated Annealing
     1.- Perturb the initial solution a number of times (number of operands?) to compute the average of all positive uphill climbes avg_uphill
     2.- Calculate the initial temperature as -avg_uphill/ln(P)
 
 
 
-  */
+ 
 
   _npe.print();
   float initial_cost = calculate_cost();
@@ -64,7 +103,7 @@ int Floorplanning_solver::solve() {
   cerr << "Initial temp: " << initial_temp << endl;
 
 
-
+ 
   int k = 50000, reject = 0, its = 0, thr = 7, c = 100;
   float last_cost = initial_cost, cur_cost, temp = initial_temp, best_cost = initial_cost, error = 0.001;
   NPE best_npe;
@@ -72,6 +111,7 @@ int Floorplanning_solver::solve() {
   std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
+ 
   do {
     ++its;
     reject = 0;
@@ -107,34 +147,11 @@ int Floorplanning_solver::solve() {
   _npe = NPE(best_npe.get_npe_seq(), _npe.size());
   calculate_cost({-1,-1}, 1);
 
+
   return 0;
 }
 
 //  std::mt19937{std::random_device{}()} For the RNG
-
-void Floorplanning_solver::generate_random_npe(size_t n_operands, NPE& npe, bool shuffle) {
-  cerr << "Generating random solution...";
-  size_t npe_size = 2*n_operands-1;
-  // Allocate the arrays in the heap to avoid stack overflows
-  unique_ptr<int[]> npe_seq = make_unique<int[]>(npe_size), operands = make_unique<int[]>(n_operands);
-  int *op_it = operands.get(), next_insert;
-
-  // Create a sequence of indices and shuffle it if requested
-  iota(op_it, &op_it[n_operands], 1);
-  if(shuffle) random_shuffle(op_it, &op_it[n_operands]);
-
-  for(int* npe_it = npe_seq.get(); npe_it != &npe_seq[npe_size]; ++npe_it) {
-    if (op_it-operands.get() >= int(n_operands)) next_insert = 1;       // All operands inserted
-    else if ( npe_it - npe_seq.get() + 1 >= 2*(op_it-operands.get()) ) next_insert = 0;  // Balloting rule
-    else next_insert = rand()%2;
-
-    // 1 insert operator, 0 insert operand
-    if(next_insert) *npe_it = *(npe_it-1) < 0 ? !(*(npe_it-1) + 2) - 2 : (rand()%2)-2;
-    else *npe_it =  *(op_it++);
-  }
-  npe = NPE(npe_seq.get(), npe_size);
-  cerr << "done." << endl;
-}
 
 float Floorplanning_solver::calculate_cost( pair<int, int> perturbation, int print_sol ) {
   vector<Floorplanning_solution> solutions;
@@ -157,6 +174,7 @@ unique_ptr<Shape_function> Floorplanning_solver::pack_npe(int ix ) {
     return make_unique<Shape_function>(pack_npe())
   }
 }
+
 
 // The NPE object ensures correctness of the member NPE, so we don't have to check
 void Floorplanning_solver::pack_npe( vector<Floorplanning_solution> &solutions, pair<int, int> perturbation ) {
@@ -186,48 +204,7 @@ void Floorplanning_solver::pack_npe( vector<Floorplanning_solution> &solutions, 
     solutions.emplace_back(_npe.n_operands(), fp_stack.top(), i);
   }
 }
-/*
 
-int Floorplanning_solver::merge_shape_functions(int op, const Floorplan* fp_1, const Floorplan* fp_2, Floorplan* fp_packed) {
-  if(!fp_1->size() || !fp_2->size()) return -1; // If any of the floorplans is empty there's nothing to pack so return (malformed problem)
-  // From now on we know that both floorplans have at least size 1
-  vector<pair<int, int>> new_sf, subfp_ix;
-  size_t ix_1=0, ix_2=0;
-  
-  if ( op == NPE::H ) {
-    while( ix_1 < fp_1->size() || ix_2 < fp_2->size() )
-      if ( fp_1->get_shape_width(ix_1) <= fp_2->get_shape_width(ix_2) ) {
-        if (fp_1->get_shape_width(ix_1) > fp_2->get_shape_width(0) ){  // If this shape is eliminated by the algorithm, skip
-          new_sf.emplace_back(fp_1->get_shape_width(ix_1), fp_1->get_shape_height(ix_1) + fp_2->get_shape_height(ix_2-1));
-          subfp_ix.emplace_back(ix_1, ix_2-1);
-        }
-        ++ix_1;
-      } else {
-        if (fp_2->get_shape_width(ix_2) >= fp_1->get_shape_width(0) ){
-          new_sf.emplace_back(fp_2->get_shape_width(ix_2), fp_1->get_shape_height(ix_1-1) + fp_2->get_shape_height(ix_2));
-          subfp_ix.emplace_back(ix_1-1, ix_2);
-        }
-        ++ix_2;
-      }
-  } else if ( op == NPE::V ) {
-    // Find out which floorplan has the largest h
-    while(ix_1 < fp_1->size() && ix_2 < fp_2->size()) {
-      if ( fp_1->get_shape_height(ix_1) >= fp_2->get_shape_height(ix_2) ) {
-        new_sf.emplace_back(fp_1->get_shape_width(ix_1) + fp_2->get_shape_width(ix_2), fp_1->get_shape_height(ix_1));
-        subfp_ix.emplace_back(ix_1, ix_2);
-        if ( fp_1->get_shape_height(ix_1) == fp_2->get_shape_height(ix_2) ) ++ix_1;
-        ++ix_1;
-      } else {
-        new_sf.emplace_back(fp_1->get_shape_width(ix_1) + fp_2->get_shape_width(ix_2), fp_2->get_shape_height(ix_2));
-        subfp_ix.emplace_back(ix_1, ix_2);
-        ++ix_2;
-      }
-    }
-  } else cerr << "This state should not be reached" << endl; // Panic
-  *fp_packed = Floorplan(op, new_sf,subfp_ix, fp_1, fp_2);
-  return -!fp_packed->size();
-  return 0;
-}
 */
 
 pair<int, int> Floorplanning_solver::gen_rnd_perturbation() {
@@ -263,13 +240,13 @@ pair<int, int>  Floorplanning_solver::gen_rnd_chain_inversion() {
 pair<int, int> Floorplanning_solver::gen_rnd_operand_operator_swap() {
 
   // Choose a chain end at random excluding the last one so this is as uniform as possible
-  int rnd_choice = rand()%(_npe.n_chains()<<1),
+  size_t rnd_choice = rand()%(_npe.n_chains()<<1),
       rnd_chain = (rnd_choice)>>1,
       rnd_side = rnd_choice%2,
       rnd_operator_pos = _npe.get_chain_pos(rnd_chain) + rnd_side*(_npe.get_chain_length(rnd_chain) - 1),
       rnd_operand_pos = rnd_operator_pos + (rnd_side<<1) - 1;
   // If the swap breaks the skewness of the tree or if tries to swap with the tree root, panic and jump out
-  if((_npe.get_element(rnd_operator_pos)) == _npe.get_element(rnd_operator_pos + (rnd_side<<2) - 2) || (rnd_operator_pos == int(_npe.size()-1))) return {-1,-1};
+  if((_npe[rnd_operator_pos]) == _npe[rnd_operator_pos + (rnd_side<<2) - 2] || (rnd_operator_pos == int(_npe.size()-1))) return {-1,-1};
 
   // Check that the perturbation satisfies the balloting rule (only needs to be done if
   // we are pushing operators back

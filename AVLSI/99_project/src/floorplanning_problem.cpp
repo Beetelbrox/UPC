@@ -39,10 +39,10 @@ int Floorplanning_problem::from_file(const string &filename) {
     return 0;
   }
   cerr << "Problem reading Error: Malformed input" << endl;
-  exit(0);
+  exit(EXIT_FAILURE);
 }
 
-vector<pair<int, int>>& Floorplanning_problem::operator[] (int ix) {
+vector<pair<int, int>>& Floorplanning_problem::operator[] (size_t ix) {
   if (ix >= size()) {
     cerr << "Error [Floorplanning Problem]: Array index out of bounds" << endl;
     exit(EXIT_FAILURE);

@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <utility>
-
 #include <memory>
 
 class Shape_function {
@@ -15,7 +14,7 @@ class Shape_function {
   void merge_children_shapes();
 
 public:
-  Shape_function(int op, std::unique_ptr<Shape_function> l_child, unique_ptr<Shape_function> r_child);
+  Shape_function(int op, std::unique_ptr<Shape_function> l_child, std::unique_ptr<Shape_function> r_child);
   Shape_function(int id, const std::vector<std::pair<int, int>> &sf_seq);
   const std::pair<int, int>* begin() const;
   const std::pair<int, int>* end() const;

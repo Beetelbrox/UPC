@@ -7,12 +7,12 @@
 #ifndef _FP_PROB_GUARD
 #define _FP_PROB_GUARD
 
-#include <string>
-#include <memory>
+#include <vector>
+#include <utility>
 #include "shape_function.h"
 
 class Floorplanning_problem {
-  std::vector<vector<pair<int, int>>> _shape_function_seqs;
+  std::vector<std::vector<std::pair<int, int>>> _shape_function_seqs;
 
 public:
   Floorplanning_problem();
@@ -20,11 +20,11 @@ public:
 
   int from_file(const std::string &filename);
 
-  const vector<pair<int, int>>* begin() const;
-  const vector<pair<int, int>>* end() const;
-  vector<pair<int, int>>& operator[] (int ix);
+  const std::vector<std::pair<int, int>>* begin() const;
+  const std::vector<std::pair<int, int>>* end() const;
+  std::vector<std::pair<int, int>>& operator[] (size_t ix);
   size_t size() const; // Returns the number of modules in the problem
-  const vector<pair<int, int>>* get_module_sf_seq(size_t id) const;
+  const std::vector<std::pair<int, int>>* get_module_sf_seq(size_t id) const;
 };
 
 #endif

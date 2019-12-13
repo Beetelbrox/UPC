@@ -3,14 +3,14 @@
 
 #include <vector>
 #include <utility>
-#include <memory>
 
 class NPE {
 
-  std::vector<int> _npe, _operand_pos;
-  std::vector<std::pair<int, int>> _chains;
+  std::vector<int> _npe;
+  std::vector<size_t> _operand_pos;
+  std::vector<std::pair<size_t, size_t>> _chains;
 
-  int parse_npe_seq( const vector<int> &npe_seq );
+  void _parse_npe();
 
 public:
   static const int V = -1, H = -2;
@@ -20,18 +20,16 @@ public:
 
   int apply_perturbation(const std::pair<int, int> &p, bool parse=1);
 
-  int* begin() const;
-  int* end() const;
+  const int* begin() const;
+  const int* end() const;
   int& operator[] (int ix);
-  std::size_t size() const;
-  std::size_t n_operands() const;
-  std::size_t n_operators() const;
-  std::size_t n_chains() const;
-
-  int get_element(size_t ix) const;
-  int get_operand_pos(size_t ix) const;
-  int get_chain_pos(size_t ix) const;
-  int get_chain_length(size_t ix) const;
+  size_t size() const;
+  size_t n_operands() const;
+  size_t n_operators() const;
+  size_t n_chains() const;
+  size_t get_operand_pos(size_t ix) const;
+  size_t get_chain_pos(size_t ix) const;
+  size_t get_chain_length(size_t ix) const;
   void print(bool print_internals=0) const;
 };
 
