@@ -7,13 +7,15 @@
 #include <random>
 #include "npe.h"
 #include "floorplanning_problem.h"
+#include "shape_function.h"
 #include "floorplanning_solution.h"
 
 class Floorplanning_solver {
-  const Floorplanning_problem& _problem;
+  Floorplanning_problem& _problem;
   NPE _npe;
+  std::vector<Shape_function> _slicing_tree;
   std::deque<std::pair<int, int>> _perturbations;
-  std::mt19937 rng_engine;
+  std::mt19937 _rng_engine;
 
   void generate_random_npe(size_t n_operands, NPE& npe, bool shuffle=1);
   std::pair <int, int> calculate_floorplan_dimensions(const std::vector<int> &npe);

@@ -8,16 +8,35 @@
 #include <chrono>
 
 #include "floorplanning_solver.h"
-#include "floorplan.h"
+#include "shape_function.h"
 
 
 using namespace std;
 
-Floorplanning_solver::Floorplanning_solver(const Floorplanning_problem &p): _problem(p), rng_engine(chrono::high_resolution_clock::now().time_since_epoch().count()) {
+Floorplanning_solver::Floorplanning_solver(const Floorplanning_problem &p):
+  _problem(p),
+  _slicing_tree(_problem.size()*2-1),
+  _rng_engine(chrono::high_resolution_clock::now().time_since_epoch().count())
+{
   generate_random_npe(_problem.size(), _npe, 1);
+  build_slicing_tree();
+}
+
+
+
+void Floorplanning_solver::build_slicing_tree() {
+
 }
 
 int Floorplanning_solver::solve() {
+
+
+  // QUESTIONS
+  // 1. Solution Correctness
+  // 2. Problem size
+  // 3. Reasonable execution time
+  // 4. Incremental wirelength
+  // 
 
   /* Simmulated Annealing
     1.- Perturb the initial solution a number of times (number of operands?) to compute the average of all positive uphill climbes avg_uphill
@@ -132,35 +151,31 @@ float Floorplanning_solver::calculate_cost( pair<int, int> perturbation, int pri
   return best_cost;
 };
 
+unique_ptr<Shape_function> Floorplanning_solver::pack_npe(int ix ) {
+  if(_npe[ix] < 0 ) return unique_ptr(_problem.get_module_sf( _npe[ix] )
+  else {
+    return make_unique<Shape_function>(pack_npe())
+  }
+}
+
 // The NPE object ensures correctness of the member NPE, so we don't have to check
 void Floorplanning_solver::pack_npe( vector<Floorplanning_solution> &solutions, pair<int, int> perturbation ) {
-  stack<const Floorplan *> fp_stack;
-  const Floorplan *l_child, *r_child;
-  vector<Floorplan> intermediate_fps(_problem.size()-1); // Structure to store intermediate floorplans
-  Floorplan *fp_ptr = &*intermediate_fps.begin();
+  stack<Shape_function*> fp_stack;
+  Shape_function *l_child, *r_child;
+  unique_ptr<Shape_function> new_sf;
 
   int next_npe_element;
   bool inverted_chain = false;
 
   for( size_t i=0; i < _npe.size(); ++i ) {
-    
-    // Check if there if this element is affected by a perturbation
-    if ( i == perturbation.first ) {
-      if ( perturbation.second < 0 ) {
-        inverted_chain=true;
-        next_npe_element = _npe.get_element(i);
-      } else next_npe_element = _npe.get_element(perturbation.second);
-    } else if ( i == perturbation.second ) next_npe_element = _npe.get_element(perturbation.first);
-    else next_npe_element = _npe.get_element(i);
 
-    if ( next_npe_element > 0 ) {
-      fp_stack.push(_problem.get_floorplan( next_npe_element ) ); // get_floorplan takes an id >= 1
-      inverted_chain = false;
+    if ( _npe[i] > 0 ) {
+      fp_stack.push( _problem.get_module_sf( next_npe_element ) ); // get_floorplan takes an id >= 1
     } 
     else {
       r_child = fp_stack.top(); fp_stack.pop(); // Remember that popping from a stack returns items in reverse insertion order
       l_child = fp_stack.top(); fp_stack.pop();
-      if (inverted_chain) next_npe_element = (next_npe_element == NPE::V) ? NPE::H : NPE::V;
+      fp_stack.push(make_unique<Shape_function>(_npe[i], ))
       merge_shape_functions(next_npe_element, l_child, r_child, fp_ptr);
       //fp_ptr->print();
       fp_stack.push(fp_ptr++);
@@ -171,6 +186,7 @@ void Floorplanning_solver::pack_npe( vector<Floorplanning_solution> &solutions, 
     solutions.emplace_back(_npe.n_operands(), fp_stack.top(), i);
   }
 }
+/*
 
 int Floorplanning_solver::merge_shape_functions(int op, const Floorplan* fp_1, const Floorplan* fp_2, Floorplan* fp_packed) {
   if(!fp_1->size() || !fp_2->size()) return -1; // If any of the floorplans is empty there's nothing to pack so return (malformed problem)
@@ -212,6 +228,7 @@ int Floorplanning_solver::merge_shape_functions(int op, const Floorplan* fp_1, c
   return -!fp_packed->size();
   return 0;
 }
+*/
 
 pair<int, int> Floorplanning_solver::gen_rnd_perturbation() {
   while(true) { // We will exit this loop by returning

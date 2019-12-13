@@ -9,10 +9,10 @@
 
 #include <string>
 #include <memory>
-#include "floorplan.h"
+#include "shape_function.h"
 
 class Floorplanning_problem {
-  std::vector<Floorplan> _module_fps;
+  std::vector<vector<pair<int, int>>> _shape_function_seqs;
 
 public:
   Floorplanning_problem();
@@ -20,12 +20,11 @@ public:
 
   int from_file(const std::string &filename);
 
-  const Floorplan* begin() const;
-  const Floorplan* end() const;
+  const vector<pair<int, int>>* begin() const;
+  const vector<pair<int, int>>* end() const;
+  vector<pair<int, int>>& operator[] (int ix);
   size_t size() const; // Returns the number of modules in the problem
-  const Floorplan* get_floorplan(size_t id) const;
+  const vector<pair<int, int>>* get_module_sf_seq(size_t id) const;
 };
 
 #endif
-
-// DO WE NEED TO HAVE DISTANCE WEIGHTS? CHECK SLIDES AND/OR ASK JORDI

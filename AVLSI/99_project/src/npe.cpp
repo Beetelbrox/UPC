@@ -1,10 +1,46 @@
 #include <iostream>
 #include <unordered_set>
+#include <numeric>      // For iota
+#include <algorithm>    // For random_shuffle
 #include "npe.h"
 
 using namespace std;
 
-NPE::NPE(): NPE(nullptr, 0) {}
+NPE::NPE(size_t num_operands, bool shuffle):
+  _npe(2*num_operands-1)
+{
+  int operands[num_operands];
+
+  // Create a sequence of indices and shuffle it if requested
+  iota(operands, &operands[num_operands], 1);
+  if(shuffle) random_shuffle(operands, &operands[num_operands]);
+
+  bool next_insert = 0;
+  for ( size_t i=0; i < _npe.size(); ++i ) {
+    if ( _operand_pos.size() >= num_operands ) next_insert = 1; // All operands already inserted
+    else if ( i + 1 >= 2*_operand_pos.size()) next_insert = 0;  // Balloting rule
+    else next_insert = rand()%2;
+
+      if (next_insert) {
+    if (_npe[i-1])
+  }
+  }
+
+
+
+  for(int* npe_it = npe_seq.get(); npe_it != &npe_seq[npe_size]; ++npe_it) {
+    if (op_it-operands.get() >= int(n_operands)) next_insert = 1;       // All operands inserted
+    else if ( npe_it - npe_seq.get() + 1 >= 2*(op_it-operands.get()) ) next_insert = 0;  // Balloting rule
+    else next_insert = rand()%2;
+
+    // 1 insert operator, 0 insert operand
+    if(next_insert) *npe_it = *(npe_it-1) < 0 ? !(*(npe_it-1) + 2) - 2 : (rand()%2)-2;
+    else *npe_it =  *(op_it++);
+  }
+  npe = NPE(npe_seq.get(), npe_size);
+  cerr << "done." << endl;
+}
+}
 
 NPE::NPE(const vector<int> &npe_seq): NPE(&npe_seq[0], npe_seq.size()) {}
 
@@ -20,9 +56,45 @@ NPE::NPE(const int* npe_seq, size_t length): _operand_pos{nullptr}{
   }
 }
 
+void Floorplanning_solver::generate_random_npe(size_t n_operands, NPE& npe, bool shuffle) {
+  cerr << "Generating random solution...";
+  size_t npe_size = 2*n_operands-1;
+  // Allocate the arrays in the heap to avoid stack overflows
+  unique_ptr<int[]> npe_seq = make_unique<int[]>(npe_size), operands = make_unique<int[]>(n_operands);
+  int *op_it = operands.get(), next_insert;
+
+  // Create a sequence of indices and shuffle it if requested
+  iota(op_it, &op_it[n_operands], 1);
+  if(shuffle) random_shuffle(op_it, &op_it[n_operands]);
+
+  for(int* npe_it = npe_seq.get(); npe_it != &npe_seq[npe_size]; ++npe_it) {
+    if (op_it-operands.get() >= int(n_operands)) next_insert = 1;       // All operands inserted
+    else if ( npe_it - npe_seq.get() + 1 >= 2*(op_it-operands.get()) ) next_insert = 0;  // Balloting rule
+    else next_insert = rand()%2;
+
+    // 1 insert operator, 0 insert operand
+    if(next_insert) *npe_it = *(npe_it-1) < 0 ? !(*(npe_it-1) + 2) - 2 : (rand()%2)-2;
+    else *npe_it =  *(op_it++);
+  }
+  npe = NPE(npe_seq.get(), npe_size);
+  cerr << "done." << endl;
+}
+
+
+
+
+
 int* NPE::begin() const { return _npe.get(); }
 
 int* NPE::end() const { return _limit; }
+
+int& NPE::operator[] (int ix) {
+  if ( ix >= size() ) {
+    cerr << "NPE Error: Index out of bounds" << endl;
+    exit(EXIT_FAILURE);
+  }
+  return _npe[ix];
+}
 
 size_t NPE::size() const { return _limit - _npe.get(); }
 
