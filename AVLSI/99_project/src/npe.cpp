@@ -13,7 +13,8 @@ NPE::NPE(size_t num_operands, bool shuffle):
   _npe(2*num_operands-1),
   _operand_pos(num_operands)
 {
-  int operands[num_operands], op_counter=0;
+  int operands[num_operands];
+  size_t op_counter=0;
 
   // Create a sequence of indices and shuffle it if requested
   std::iota(operands, &operands[num_operands], 1);
@@ -49,7 +50,7 @@ void NPE::_parse_npe(){
   // Temporary data structures
   _operand_pos = vector<size_t>(n_operands(), 0);
   vector<bool> read_op(n_operands(), 0);
-  int op_counter = 0;
+  size_t op_counter = 0;
 
   for(size_t i=0; i < _npe.size(); ++i) {
     if (_npe[i] > 0 ) {                                         // If the value is a block id:
@@ -76,10 +77,10 @@ const int* NPE::begin() const { return &*_npe.begin(); }
 
 const int* NPE::end() const { return &*_npe.end(); }
 
-int& NPE::operator[] (int ix) {
+int& NPE::operator[] (size_t ix) {
   if ( ix >= size() ) {
-    cerr << "NPE Error: Index out of bounds" << endl;
-    exit(EXIT_FAILURE);
+      cerr << "Error [NPE]: Index out of bounds" << endl;
+      exit(EXIT_FAILURE);
   }
   return _npe[ix];
 }
@@ -93,21 +94,47 @@ size_t NPE::get_chain_pos(size_t ix) const { return _chains[ix].first; }
 size_t NPE::get_chain_length(size_t ix) const { return _chains[ix].second; }
 
 
+// Swap for third case does inefficient reads (1 sweep of the chain and operator list) in one of the cases, 
+// but it's better than remaking all the structures 
+void NPE::apply_perturbation(const pair<size_t, size_t> &p) {
+  cerr << _npe[p.first] << " " << _npe[p.second] << endl;
+  if(p.first < _npe.size() && p.second < _npe.size() ) {
+    if (_npe[p.first] < 0) {
+      for( size_t i=0; _npe[p.first+i] < 0; ++i ) _npe[p.first+i] = (_npe[p.first+i] == V) ? H : V;
+    } else {
+      if ( _npe[p.second] < 0 ) {
+        size_t ix;
+        bool side;
+        cerr << "BB" << endl;
+        for(ix=0; ix < _chains.size(); ++ix) {
+          if (_chains[ix].first == p.second) {
+            side = 0;
+            break;
+          }
+          if( _chains[ix].first + _chains[ix].second == p.second ) {
+            side = 1;
+            break;
+          }
+        }
+        _chains[ix] = {p.second+1, --_chains[ix].second};
+        cerr << "AAA" <<endl; 
+        if(_npe[2*p.first - p.second] < 0) {
+          --_chains[ix + p.first - p.second].first;
+          ++_chains[ix + p.first - p.second].second;
+        } else if (_chains[ix].second == 0) _chains[ix] = {p.second + p.first - p.second, 1};
+        else _chains.insert(std::next(_chains.begin(), ix), {p.second + p.first - p.second, 1});
 
-int NPE::apply_perturbation(const pair<int, int> &p, bool parse) {
-  if (p.first < 0 || p.first >= int(size())) return -1; // Out of bounds
-  if (p.second < 0 && (_npe[p.first] == V || _npe[p.first] == H)) {
-    for(size_t i=p.first; i < size(); ++i) {
-      if (_npe[i] >= 0) return 0;
-      _npe[i] = (_npe[i] == V) ? H : V;
+        if(_chains[ix].second == 0) _chains.erase(std::next(_chains.begin(), ix));
+        ix=0;
+        while(_operand_pos[ix] != p.first) ++ix;
+        _operand_pos[ix] = p.second;
+      }
+      std::swap(_npe[p.first], _npe[p.second]);
     }
-  } else if (p.second >=0 && p.second < int(size())){
-    std::swap(_npe[p.first], _npe[p.second]);
-    if(!parse) return 0;                    // If parsing is disabled we're done
-    //if(!parse_npe(_npe.get())) return 0;              // If the parsing succeeds, we're done
-    apply_perturbation(p, false);           // If the parsing fails, undo the perturbation without checking for correctness
+  } else {
+      cerr << "Error [NPE]: Out of bounds while applying perturbation" << endl;
+      exit(EXIT_FAILURE);
   }
-  return -1;                                // If it reaches this point, return error state
 }
 
 void NPE::print(bool print_internals) const{

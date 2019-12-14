@@ -19,54 +19,54 @@ using std::pair;
 Floorplanning_solver::Floorplanning_solver(const Floorplanning_problem &p):
   _problem(p),
   _npe(p.size(), 0),
+  _slicing_tree(_npe.size()),
   _rng_engine(std::chrono::high_resolution_clock::now().time_since_epoch().count())
 {
   _npe.print();
+  build_slicing_tree();
 }
 
 void Floorplanning_solver::build_slicing_tree() {
   std::stack<Shape_function*> sf_stack;
+  Shape_function *l_child, *r_child;
+  int op_cont = 0;
   for(size_t i=0; i <_npe.size(); ++i) {
-    if(_npe[i] > 0 ) {
-
+    if(_npe[i] > 0 )  {
+      _slicing_tree[_npe[i]-1] = Shape_function(_npe[i], *_problem.get_module_sf_seq(_npe[i]));
+      sf_stack.push(&_slicing_tree[_npe[i]-1]);
     } else if (_npe[i] == NPE::V || _npe[i] == NPE::H) {
-
+      r_child = sf_stack.top(); sf_stack.pop();
+      l_child = sf_stack.top(); sf_stack.pop();
+      _slicing_tree[_problem.size()+op_cont] = Shape_function(_npe[i], l_child, r_child);
+      sf_stack.push(&_slicing_tree[_problem.size()+op_cont]);
+      ++op_cont;
     } else {
       cerr << "Error [NPE]: Malformed NPE sequence while building slicing tree" << endl;
       exit(EXIT_FAILURE);
     }
   }
+  _slicing_tree_root = sf_stack.top();
+  cerr << "Optimum area: " << _slicing_tree_root->get_min_area() << endl;
+}
+
+void Floorplanning_solver::solve() {
+  std::vector<Floorplanning_solution> current_solutions;
+  for( size_t i=0; i < _slicing_tree_root->size(); ++i ) {
+    current_solutions.emplace_back(_slicing_tree_root, _problem.size(), i);
+  }
+
+  // Simmulated Annealing parameters
+  double p=0.99;
+  pair<size_t, size_t> perturbation;
+  for(int i=0; i<2000; ++i){
+    perturbation = gen_rnd_perturbation();
+    cerr << "Perturbation: " << perturbation.first << " " << perturbation.second << endl;
+    _npe.apply_perturbation(perturbation);
+    _npe.print(true);
+  }
 }
 
 /*
-void Floorplanning_solver::pack_npe( vector<Floorplanning_solution> &solutions, pair<int, int> perturbation ) {
-  stack<Shape_function*> fp_stack;
-  Shape_function *l_child, *r_child;
-  unique_ptr<Shape_function> new_sf;
-
-  int next_npe_element;
-  bool inverted_chain = false;
-
-  for( size_t i=0; i < _npe.size(); ++i ) {
-
-    if ( _npe[i] > 0 ) {
-      fp_stack.push( _problem.get_module_sf( next_npe_element ) ); // get_floorplan takes an id >= 1
-    } 
-    else {
-      r_child = fp_stack.top(); fp_stack.pop(); // Remember that popping from a stack returns items in reverse insertion order
-      l_child = fp_stack.top(); fp_stack.pop();
-      fp_stack.push(make_unique<Shape_function>(_npe[i], ))
-      merge_shape_functions(next_npe_element, l_child, r_child, fp_ptr);
-      //fp_ptr->print();
-      fp_stack.push(fp_ptr++);
-    }
-  }
-
-  for(size_t i=0; i < fp_stack.top()->size(); ++i) {
-    solutions.emplace_back(_npe.n_operands(), fp_stack.top(), i);
-  }
-}
-
 
 int Floorplanning_solver::solve() {
 
@@ -173,67 +173,60 @@ unique_ptr<Shape_function> Floorplanning_solver::pack_npe(int ix ) {
   else {
     return make_unique<Shape_function>(pack_npe())
   }
-}
-
-
-// The NPE object ensures correctness of the member NPE, so we don't have to check
-void Floorplanning_solver::pack_npe( vector<Floorplanning_solution> &solutions, pair<int, int> perturbation ) {
-  stack<Shape_function*> fp_stack;
-  Shape_function *l_child, *r_child;
-  unique_ptr<Shape_function> new_sf;
-
-  int next_npe_element;
-  bool inverted_chain = false;
-
-  for( size_t i=0; i < _npe.size(); ++i ) {
-
-    if ( _npe[i] > 0 ) {
-      fp_stack.push( _problem.get_module_sf( next_npe_element ) ); // get_floorplan takes an id >= 1
-    } 
-    else {
-      r_child = fp_stack.top(); fp_stack.pop(); // Remember that popping from a stack returns items in reverse insertion order
-      l_child = fp_stack.top(); fp_stack.pop();
-      fp_stack.push(make_unique<Shape_function>(_npe[i], ))
-      merge_shape_functions(next_npe_element, l_child, r_child, fp_ptr);
-      //fp_ptr->print();
-      fp_stack.push(fp_ptr++);
-    }
-  }
-
-  for(size_t i=0; i < fp_stack.top()->size(); ++i) {
-    solutions.emplace_back(_npe.n_operands(), fp_stack.top(), i);
-  }
-}
+} 
 
 */
 
-pair<int, int> Floorplanning_solver::gen_rnd_perturbation() {
+pair<size_t, size_t> Floorplanning_solver::gen_rnd_perturbation() {
   while(true) { // We will exit this loop by returning
-    switch(rand()%3){
+    int rnd = rand()%3;
+    switch(rnd){
       case 0: //swap two adjacent operands
         return gen_rnd_operand_swap();
       case 1:
         return gen_rnd_chain_inversion();
       case 2:
-        pair<int, int> swap = gen_rnd_operand_operator_swap();
-        while(swap.first < 0) swap = gen_rnd_operand_operator_swap();
-        return swap;
+        return gen_rnd_operand_operator_swap();
     }
   }
 }
 
 // Assumes correctness of the input
-pair<int, int> Floorplanning_solver::gen_rnd_operand_swap() {
-  int rand_operand = rand()%(_npe.n_operands()-1); // Choose a number UAR between the fist and the last
+pair<size_t, size_t> Floorplanning_solver::gen_rnd_operand_swap() {
+  size_t rand_operand = rand()%(_npe.n_operands()-1); // Choose a number UAR between the fist and the last
   return {_npe.get_operand_pos(rand_operand), _npe.get_operand_pos(rand_operand+1) };
 }
 
 // Returns a pair of <index, -1> to indicate the chain swap
-pair<int, int>  Floorplanning_solver::gen_rnd_chain_inversion() {
-  int rand_chain = rand()% _npe.n_chains();
-  return { _npe.get_chain_pos(rand_chain), -1 };
+pair<size_t, size_t>  Floorplanning_solver::gen_rnd_chain_inversion() {
+  size_t rand_chain = rand()% _npe.n_chains();
+  return { _npe.get_chain_pos(rand_chain), 0 };
 }
 
+// This assumes correctness on the input, as it is a private function. Will panic if it's not.
+// ch_ix needs to take a value between 0 and length(chains) - 1. Side cant take either value 0 ir 1,
+// only taking value 0 if ch_ix == length(chains) - 1.
+pair<size_t, size_t> Floorplanning_solver::gen_rnd_operand_operator_swap() {
+  size_t rnd_choice, rnd_chain, rnd_opt_pos, rnd_op_pos, num_ops;
+  bool done = false, rnd_side;
+
+  while( !done ) {
+    // Choose a chain end at random
+    rnd_choice  = rand()%((_npe.n_chains()<<1)-1),
+    rnd_chain = (rnd_choice)>>1;
+    rnd_side = rnd_choice%2;
+    rnd_opt_pos = _npe.get_chain_pos(rnd_chain) + rnd_side*(_npe.get_chain_length(rnd_chain) - 1),
+    rnd_op_pos = rnd_opt_pos + (rnd_side<<1)-1;
+    num_ops = 0;  // The selected operator is included in the count
+    //cerr << rnd_choice << " " << rnd_side << " " << rnd_chain << " " << rnd_opt_pos << " " << rnd_op_pos << endl;    
+    // Count the number of operators before the previously chosen chain
+    for(size_t i=0; i < rnd_chain+ (!rnd_side); ++i ) num_ops += _npe.get_chain_length(i);
+    if ( _npe[rnd_op_pos-1] != _npe[rnd_op_pos+1] && 2*num_ops < rnd_op_pos ) done = true;
+  }
+  return {rnd_op_pos, rnd_opt_pos};
+}
+
+/*
 // This assumes correctness on the input, as it is a private function. Will panic if it's not.
 // ch_ix needs to take a value between 0 and length(chains) - 1. Side cant take either value 0 ir 1,
 // only taking value 0 if ch_ix == length(chains) - 1.
@@ -258,4 +251,5 @@ pair<int, int> Floorplanning_solver::gen_rnd_operand_operator_swap() {
   // If the perturbation is valid, swap the values in the vector and return 0
   return {rnd_operator_pos, rnd_operand_pos};
 }
+*/
 
