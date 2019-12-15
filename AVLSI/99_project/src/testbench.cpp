@@ -4,7 +4,7 @@
 
 
 int main() {
-  Floorplanning_problem fp_problem("instance_621.inp");
+  Floorplanning_problem fp_problem("instance_10.inp");
 
   Floorplanning_solver fp_solver(fp_problem);
   fp_solver.solve();

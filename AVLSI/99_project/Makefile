@@ -6,11 +6,10 @@ FP_SOLVER = floorplanning_solver
 FP_NPE = npe
 FP_SOL = floorplanning_solution
 SF = shape_function
-FP = floorplan
 TB = testbench
 
-$(TB): $(TB).o $(FP_PROB).o  ${FP}.o $(FP_NPE).o $(FP_SOLVER).o $(FP_SOL).o $(SF).o
-	$(CCC) $(CFLAGS) -o bin/$(TB) $(TB).o ${FP}.o $(FP_PROB).o $(FP_NPE).o $(FP_SOLVER).o $(FP_SOL).o $(SF).o
+$(TB): $(TB).o $(FP_PROB).o  $(FP_NPE).o $(FP_SOLVER).o $(FP_SOL).o $(SF).o
+	$(CCC) $(CFLAGS) -o bin/$(TB) $(TB).o $(FP_PROB).o $(FP_NPE).o $(FP_SOLVER).o $(FP_SOL).o $(SF).o
 
 #$(TB): $(TB).o $(FP_SOLVER).o $(FP_PROB).o $(FP_NPE).o ${FP}.o
 #	$(CCC) $(CFLAGS) -o bin/$(TB) $(TB).o ${FP}.o $(FP_NPE).o $(FP_PROB).o $(FP_SOLVER).o
@@ -29,9 +28,6 @@ ${FP_SOL}.o: src/$(FP_SOL).cpp src/$(FP_SOL).h
 
 ${SF}.o: src/$(SF).cpp src/$(SF).h
 	$(CCC) $(CFLAGS) $(INC) -c src/$(SF).cpp
-
-${FP}.o: src/$(FP).cpp src/$(FP).h
-	$(CCC) $(CFLAGS) $(INC) -c src/$(FP).cpp
 
 ${FP_NPE}.o: src/$(FP_NPE).cpp src/$(FP_NPE).h
 	$(CCC) $(CFLAGS) $(INC) -c src/$(FP_NPE).cpp

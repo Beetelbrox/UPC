@@ -11,40 +11,31 @@ using std::pair;
 
 NPE::NPE(size_t num_operands, bool shuffle):
   _npe(2*num_operands-1),
-  _operand_pos(num_operands)
+  _operand_pos(num_operands),
+  _pert_type(-1)
 {
-  int operands[num_operands];
-  size_t op_counter=0;
-
-  // Create a sequence of indices and shuffle it if requested
-  std::iota(operands, &operands[num_operands], 1);
-  if(shuffle) std::random_shuffle(operands, &operands[num_operands]);
-
-  bool next_insert = 0;
-  for ( size_t i=0; i < _npe.size(); ++i ) {
-    if ( op_counter >= num_operands ) next_insert = 1; // All operands already inserted
-    else if ( i+1 >= 2*op_counter) next_insert = 0;  // Balloting rule
-    else next_insert = rand()%2;
-
-    if (next_insert) {
-      if (_npe[i-1] < 0 ){
-        _npe[i] = (_npe[i-1] == V) ? H : V;
-        _chains.back().second++;
-      } else {
-        _npe[i] = (rand()%2) - 2;
-        _chains.push_back( {i, 1} );
-      } 
-    } else {
-      _npe[i] = operands[op_counter];
-      _operand_pos[operands[op_counter]-1] = i;
-      ++op_counter;
-    }
-  }
+ _npe[0] = 1;
+ int n_operands = 1;
+ for (size_t i=1; i < _npe.size();++i) {
+   if (i%2) {
+    _operand_pos[n_operands] = i;
+    _npe[i] = ++n_operands;
+   } else {
+    _chains.emplace_back(i, 1);
+    _npe[i] = V;
+   }
+ }
 }
 
-NPE::NPE(const vector<int> &npe_seq): _npe(npe_seq) {
+NPE::NPE(const vector<int> &npe_seq): _npe(npe_seq), _pert_type(-1) {
   _parse_npe();
 }
+
+NPE::NPE( const NPE& other ):
+  _npe(other._npe),
+  _operand_pos(other._operand_pos),
+  _chains(other._chains),
+  _pert_type(-1) {}
 
 void NPE::_parse_npe(){
   // Temporary data structures
@@ -89,52 +80,128 @@ size_t NPE::size() const { return _npe.size(); }
 size_t NPE::n_operands() const { return (_npe.size()+1)>>1; }
 size_t NPE::n_operators() const { return _npe.size() - n_operands(); }
 size_t NPE::n_chains() const { return _chains.size(); }
-size_t NPE::get_operand_pos(size_t ix) const { return _operand_pos[ix]; }
-size_t NPE::get_chain_pos(size_t ix) const { return _chains[ix].first; }
-size_t NPE::get_chain_length(size_t ix) const { return _chains[ix].second; }
+
+int NPE::get_pert_element(size_t ix) {
+  if ( ix >= size() ) {
+      cerr << "Error [NPE]: Index out of bounds" << endl;
+      exit(EXIT_FAILURE);
+  }
+  int pert_val;
+  //cerr << ix << " " << _pert.first << " " << _pert.second << endl;
+  if (_pert_type < 0) pert_val =  _npe[ix];
+  else if (_pert_type == 0 || _pert_type == 2) {
+    if (ix == _pert.first ) pert_val =  _npe[_pert.second];
+    else if (ix == _pert.second ) pert_val =  _npe[_pert.first];
+    else pert_val = _npe[ix];
+  } else if (_pert_type == 1) {
+    if(ix >= _chains[_pert_chain].first && ix < _chains[_pert_chain].first + _chains[_pert_chain].second)
+      pert_val = (_npe[ix] == V) ? H : V;
+  }
+  //cerr << ix << " " << pert_val << " " <<_npe[ix] << endl;
+  return pert_val;
+}
 
 
-// Swap for third case does inefficient reads (1 sweep of the chain and operator list) in one of the cases, 
+// Swap for third case does inefficient reads (1 sweep of the operator list) in one of the cases, 
 // but it's better than remaking all the structures 
-void NPE::apply_perturbation(const pair<size_t, size_t> &p) {
-  cerr << _npe[p.first] << " " << _npe[p.second] << endl;
-  if(p.first < _npe.size() && p.second < _npe.size() ) {
-    if (_npe[p.first] < 0) {
-      for( size_t i=0; _npe[p.first+i] < 0; ++i ) _npe[p.first+i] = (_npe[p.first+i] == V) ? H : V;
+void NPE::apply_perturbation() {
+  if (_pert_type < 0) return;
+  if(_pert.first < _npe.size() && _pert.second < _npe.size() ) {
+    if(_pert_type == 0) {
+      std::swap(_npe[_pert_op1], _npe[_pert_op2]);
+    } else if (_pert_type == 1){
+      for( size_t i=_chains[_pert_chain].first; i <_chains[_pert_chain].first + _chains[_pert_chain].second; ++i )
+        _npe[i] = (_npe[i] == V) ? H : V;
+    } else if (_pert_type == 2) {
+      size_t op_pos = _chains[_pert_chain].first + ((!_pert_side) ? -1 : _chains[_pert_chain].second),
+            opt_pos = _chains[_pert_chain].first + ((!_pert_side) ? 0 : _chains[_pert_chain].second-1);
+      _chains[_pert_chain] = {_chains[_pert_chain].first+(!_pert_side), --_chains[_pert_chain].second};
+      if (_npe[op_pos + (2*_pert_side - 1)] < 0){
+        _chains[_pert_chain + (2*_pert_side - 1)].first -= _pert_side;
+        ++_chains[_pert_chain + (2*_pert_side - 1)].second;
+      } else if (_chains[_pert_chain].second == 0) _chains[_pert_chain] = {op_pos, 1};
+      else _chains.insert(std::next(_chains.begin(), _pert_chain+_pert_side), {op_pos, 1});
+      if(_chains[_pert_chain].second == 0) _chains.erase(std::next(_chains.begin(), _pert_chain));
+      size_t ix=0;
+      while(_operand_pos[ix] != op_pos) ++ix;
+      _operand_pos[ix] = opt_pos;
+      std::swap(_npe[op_pos], _npe[opt_pos]);
     } else {
-      if ( _npe[p.second] < 0 ) {
-        size_t ix;
-        bool side;
-        cerr << "BB" << endl;
-        for(ix=0; ix < _chains.size(); ++ix) {
-          if (_chains[ix].first == p.second) {
-            side = 0;
-            break;
-          }
-          if( _chains[ix].first + _chains[ix].second == p.second ) {
-            side = 1;
-            break;
-          }
-        }
-        _chains[ix] = {p.second+1, --_chains[ix].second};
-        cerr << "AAA" <<endl; 
-        if(_npe[2*p.first - p.second] < 0) {
-          --_chains[ix + p.first - p.second].first;
-          ++_chains[ix + p.first - p.second].second;
-        } else if (_chains[ix].second == 0) _chains[ix] = {p.second + p.first - p.second, 1};
-        else _chains.insert(std::next(_chains.begin(), ix), {p.second + p.first - p.second, 1});
-
-        if(_chains[ix].second == 0) _chains.erase(std::next(_chains.begin(), ix));
-        ix=0;
-        while(_operand_pos[ix] != p.first) ++ix;
-        _operand_pos[ix] = p.second;
-      }
-      std::swap(_npe[p.first], _npe[p.second]);
+      cerr << "Error [NPE]: Bad perturbation type" << endl;
+      exit(EXIT_FAILURE);
     }
   } else {
       cerr << "Error [NPE]: Out of bounds while applying perturbation" << endl;
       exit(EXIT_FAILURE);
   }
+  _pert_type = -1;
+}
+
+pair<size_t, size_t> NPE::gen_rnd_perturbation() {
+  while(true) { // We will exit this loop by returning
+    _pert_type = rand()%3;
+    switch(_pert_type){
+      case 0: //swap two adjacent operands
+        _pert = gen_rnd_operand_swap();
+        break;
+      case 1: // Invert a chain
+        _pert = gen_rnd_chain_inversion();
+        break;
+      case 2: // Swap an operand-operator pair
+        _pert = gen_rnd_operand_operator_swap();
+        break;
+        // If this fails it returns (0,0)
+    }
+    if( _pert.first || _pert.second) break;
+  }
+  return _pert;
+}
+
+// Assumes correctness of the input
+pair<size_t, size_t> NPE::gen_rnd_operand_swap() {
+  size_t rand_op =rand()%(n_operands()-1);
+  _pert_op1 = _operand_pos[rand_op];
+  _pert_op2 = _operand_pos[rand_op+1];
+  return { _operand_pos[rand_op], _operand_pos[rand_op+1] };
+}
+
+// Returns a pair of <index, 0> to indicate the chain swap
+pair<size_t, size_t>  NPE::gen_rnd_chain_inversion() {
+  size_t rand_chain = rand()% n_chains();
+  _pert_chain = rand_chain;
+  return { _chains[rand_chain].first, 0 };
+}
+
+pair<size_t, size_t> NPE::gen_rnd_operand_operator_swap() {
+  size_t rnd_choice, rnd_chain, rnd_opt_pos, rnd_op_pos, num_ops;
+  bool done = false, rnd_side;
+  int attempts = 0;
+
+  // Need to have a maximum number of tries as there are degenerate cases where this movement is not feasible.
+  // Eg. 1-spaced, 1 length chains with the same separator (as the ones generated in the initial instance)
+  //  Check a multiple of n times to
+  while( !done && attempts < 10*_npe.size()) {
+    // Choose a chain end at random
+    rnd_choice  = rand()%((n_chains()<<1)-1),
+    rnd_chain = rnd_choice>>1;
+    rnd_side = rnd_choice%2;
+    rnd_opt_pos = _chains[rnd_chain].first + rnd_side*(_chains[rnd_chain].second - 1),
+    rnd_op_pos = rnd_opt_pos + (rnd_side<<1)-1;
+    if (!rnd_side) {  // If an operand-operator pair is chosen
+      num_ops=1;      // Count the number of operators (including the chosen one) for the balloting rule
+      for(size_t i=0; i < rnd_chain; ++i ) num_ops += _chains[i].second;
+    } else {          // If an operator-operand pair is chosen
+      num_ops=0;      // If we're moving the operator to the right we will never break the balloting rule
+    }
+    //cerr << rnd_choice << " " << rnd_side << " " << rnd_chain << " " << rnd_op_pos << " " << rnd_opt_pos << endl;
+    if ( _npe[rnd_op_pos-1] != _npe[rnd_op_pos+1] && 2*num_ops < rnd_op_pos+1 ) done = true;
+    ++attempts;
+  }
+
+  if ( !done ) return {0,0};
+  _pert_chain = rnd_chain;
+  _pert_side = rnd_side;
+  return {rnd_op_pos, rnd_opt_pos};
 }
 
 void NPE::print(bool print_internals) const{

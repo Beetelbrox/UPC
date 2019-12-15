@@ -15,14 +15,16 @@ Shape_function::Shape_function(int id, const vector<pair<int, int>> &sf_seq):
     _min_area(sf_seq[0].first*sf_seq[0].second),
     _shapes(sf_seq),
     _left_child(nullptr),
-    _right_child(nullptr)
+    _right_child(nullptr), 
+    _parent(nullptr)
     {}
 
 Shape_function::Shape_function(int op, Shape_function* l_child, Shape_function* r_child):
   _id(op),
   _min_area(l_child->_min_area + r_child->_min_area),
   _left_child(l_child),  // Use std::move to convert to an rvalue and transfer ownership
-  _right_child(r_child)
+  _right_child(r_child),
+  _parent(nullptr)
 {
   merge_children_shapes();
 }
@@ -80,8 +82,11 @@ int Shape_function::get_area(size_t ix) const { return _shapes[ix].first*_shapes
 pair<int, int> Shape_function::get_shape(size_t ix) const { return _shapes[ix]; }
 
 pair<size_t, size_t> Shape_function::get_child_sf_ix(std::size_t ix) const { return _chld_shape_ix[ix]; }
-Shape_function*  Shape_function::get_left_child() const { return _left_child; }
-Shape_function* Shape_function::get_right_child() const { return _right_child; }
+Shape_function*  Shape_function::get_left_child() { return _left_child; }
+Shape_function* Shape_function::get_right_child() { return _right_child; }
+Shape_function* Shape_function::get_parent() { return _parent; }
+
+void Shape_function::set_parent(Shape_function* parent) { _parent = parent; }
 
 void Shape_function::print() const {
   cerr << _id << ": ";

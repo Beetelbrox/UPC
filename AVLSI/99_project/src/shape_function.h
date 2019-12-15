@@ -10,7 +10,7 @@ class Shape_function {
   int _id, _min_area;
   std::vector<std::pair<int, int>> _shapes;
   std::vector<std::pair<std::size_t, std::size_t>> _chld_shape_ix;
-  Shape_function *_left_child, *_right_child;
+  Shape_function *_left_child, *_right_child, *_parent;
   void merge_children_shapes();
 
 public:
@@ -25,8 +25,10 @@ public:
   int get_area(size_t ix) const;
   std::pair<int, int> get_shape(size_t ix) const;
   std::pair<size_t, size_t> get_child_sf_ix(size_t ix) const;
-  Shape_function* get_left_child() const;
-  Shape_function* get_right_child() const;
+  Shape_function* get_left_child();
+  Shape_function* get_right_child();
+  Shape_function* get_parent();
+  void set_parent(Shape_function* parent);
   void print() const;
 
 };

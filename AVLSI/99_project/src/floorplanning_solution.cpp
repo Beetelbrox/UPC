@@ -7,7 +7,9 @@ using std::endl;
 using std::pair;
 using std::cout;
 
-Floorplanning_solution::Floorplanning_solution( const Shape_function *sf, size_t size, size_t shape_ix): 
+Floorplanning_solution::Floorplanning_solution(): _width(__INT_MAX__), _height(__INT_MAX__){};
+
+Floorplanning_solution::Floorplanning_solution( Shape_function *sf, size_t size, size_t shape_ix): 
     _width (sf->get_shape(shape_ix).first),
     _height (sf->get_shape(shape_ix).second),
     _positions(size),
@@ -20,7 +22,7 @@ int Floorplanning_solution::get_width() const { return _width; }
 int Floorplanning_solution::get_height() const {return _height; }
 int Floorplanning_solution::get_area () const { return _width*_height; }
 
-void Floorplanning_solution::calculate_positions (const Shape_function* sf, size_t shape_ix, std::pair<int, int> module_pos) {
+void Floorplanning_solution::calculate_positions (Shape_function* sf, size_t shape_ix, std::pair<int, int> module_pos) {
     if ( sf->get_id() > 0 ) {
         _positions[sf->get_id()-1] = module_pos;
         _shapes[sf->get_id()-1] = sf->get_shape(shape_ix);
