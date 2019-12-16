@@ -23,7 +23,6 @@ Floorplanning_solver::Floorplanning_solver(const Floorplanning_problem &p):
   _npe_mapping(_npe.size()),
   _rng_engine(std::chrono::high_resolution_clock::now().time_since_epoch().count())
 {
-  _npe.print();
   _slicing_tree_root = build_slicing_tree(_npe, _slicing_tree);
   cerr << "Optimal area: " << _slicing_tree_root->get_min_area() << endl;
 }
@@ -72,7 +71,6 @@ void Floorplanning_solver::solve() {
   vector<Shape_function> tentative_tree = vector<Shape_function>(_npe.size());
   Shape_function* tentative_tree_root;
   pair<size_t, size_t> perturbation;
-  Floorplanning_solution tentative_solution, best_solution;
   pair <float, Floorplanning_solution> sol, best_sol;
 
   float last_cost,
@@ -81,35 +79,38 @@ void Floorplanning_solver::solve() {
     initial_temp,
     temp,
     p = 0.99,
-    r = 0.85,
-    error = 0.001;
+    r = 0.999,
+    error = 0.00001;
   
-  int k=5, reject, initial_pert_number = _npe.size()*10;
+  int k=5*_npe.size(), reject, initial_pert_number = _npe.size()*10, ctr=0;
+
+  std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
   best_sol = get_best_solution(_slicing_tree_root);
   cerr << "Initial Cost: " << best_sol.first << endl;
+  cerr << "Initial Area: " << best_sol.second.get_area() << endl;
+  cerr << "Initial Wirelength: " << best_sol.second.get_wirelength() << endl;
   last_cost = best_sol.first;
 
-  _npe.print();
+  //best_sol.second.print();
+  //_problem.print_connections();
+
   for(int i=0; i < initial_pert_number; ++i) {
 
     _npe.gen_rnd_perturbation(); 
     _npe.apply_perturbation();
-    _npe.print();
-    
     tentative_tree_root = build_slicing_tree(_npe, tentative_tree);  // Build the slicing tree
-
     sol = get_best_solution(tentative_tree_root);
     delta_cost = sol.first - last_cost;
-    avg_cost += abs(delta_cost);
+    if ( delta_cost > 0) {
+      avg_cost += delta_cost;
+      ++ctr;
+    }
   }
-  avg_cost = avg_cost/float(initial_pert_number);
+  avg_cost = avg_cost/ctr;
   initial_temp = -avg_cost/log(p);
   temp = initial_temp;
-  cerr << "Initial temp: " << initial_temp << endl;
-
-  std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+  cerr << "Initial temp: " << initial_temp << endl; 
   
   do {
     reject = 0;
@@ -121,21 +122,30 @@ void Floorplanning_solver::solve() {
       if (delta_cost <= 0 || (static_cast <float> (rand()) / static_cast <float> (RAND_MAX) < exp(-delta_cost/temp))) {
         _npe.apply_perturbation();
         last_cost = sol.first;
-        if (sol.first < best_sol.first) best_sol = sol;
+        if (sol.first < best_sol.first) {
+          best_sol = sol;
+          cerr << "Best cost: " << best_sol.first << endl;
+        }
       } else ++reject;
     }
     temp =  temp*r; // Reduce temperature
+    //cerr << "Temp: " << temp << endl;
 
-  } while (reject/k <= 0.95 && temp >= error && std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() <= 180 );
-  cerr << "Cost: " << best_sol.first << endl;
+  } while (reject/k <= 0.95 && temp >= error);
+  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+  cerr << "Elapsed time: " <<  std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " seconds" << endl;
+  cerr << "Best Cost: " << best_sol.first << endl;
+  cerr << "Best Area: " << best_sol.second.get_area() << endl;
+  cerr << "Best Wirelength: " << best_sol.second.get_wirelength() << endl;
   best_sol.second.print();
+  _problem.print_connections();
 }
 
 pair<float, Floorplanning_solution> Floorplanning_solver::get_best_solution(Shape_function *slicing_tree_root) {
   Floorplanning_solution sol, best_sol;
   float best_cost = INFINITY;
   for (size_t i=0; i<slicing_tree_root->size(); ++i) {
-    sol = Floorplanning_solution(slicing_tree_root, _problem.size(), i);
+    sol = Floorplanning_solution(slicing_tree_root, &_problem, _problem.size(), i);
     if (sol.cost() < best_cost) {
       best_cost = sol.cost();
       best_sol = sol;

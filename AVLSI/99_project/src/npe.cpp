@@ -87,17 +87,16 @@ int NPE::get_pert_element(size_t ix) {
       exit(EXIT_FAILURE);
   }
   int pert_val;
-  //cerr << ix << " " << _pert.first << " " << _pert.second << endl;
   if (_pert_type < 0) pert_val =  _npe[ix];
   else if (_pert_type == 0 || _pert_type == 2) {
     if (ix == _pert.first ) pert_val =  _npe[_pert.second];
     else if (ix == _pert.second ) pert_val =  _npe[_pert.first];
     else pert_val = _npe[ix];
   } else if (_pert_type == 1) {
-    if(ix >= _chains[_pert_chain].first && ix < _chains[_pert_chain].first + _chains[_pert_chain].second)
+    if(ix >= _chains[_pert_chain].first && ix < _chains[_pert_chain].first + _chains[_pert_chain].second) {
       pert_val = (_npe[ix] == V) ? H : V;
+    } else pert_val = _npe[ix];
   }
-  //cerr << ix << " " << pert_val << " " <<_npe[ix] << endl;
   return pert_val;
 }
 
@@ -138,7 +137,8 @@ void NPE::apply_perturbation() {
 }
 
 pair<size_t, size_t> NPE::gen_rnd_perturbation() {
-  while(true) { // We will exit this loop by returning
+  _pert={0,0};
+  while(!_pert.first && !_pert.second) {
     _pert_type = rand()%3;
     switch(_pert_type){
       case 0: //swap two adjacent operands
@@ -150,9 +150,7 @@ pair<size_t, size_t> NPE::gen_rnd_perturbation() {
       case 2: // Swap an operand-operator pair
         _pert = gen_rnd_operand_operator_swap();
         break;
-        // If this fails it returns (0,0)
     }
-    if( _pert.first || _pert.second) break;
   }
   return _pert;
 }
