@@ -1,7 +1,11 @@
+/*########################################
+ - File: npe.cpp
+ - Author: Francisco Javier Jurado Moreno
+ - Project: AVLSI Floorplanning project
+##########################################*/
+
 #include <iostream>
 #include <unordered_set>
-#include <numeric>      // For iota
-#include <algorithm>    // For random_shuffle
 #include "npe.h"
 
 using std::cerr;
@@ -9,7 +13,8 @@ using std::endl;
 using std::vector;
 using std::pair;
 
-NPE::NPE(size_t num_operands, bool shuffle):
+// Constructor generating a random npe with n operators
+NPE::NPE(size_t num_operands):
   _npe(2*num_operands-1),
   _operand_pos(num_operands),
   _pert_type(-1)
@@ -37,6 +42,7 @@ NPE::NPE( const NPE& other ):
   _chains(other._chains),
   _pert_type(-1) {}
 
+// Parse the npe and populate the _chains and _operand_pos
 void NPE::_parse_npe(){
   // Temporary data structures
   _operand_pos = vector<size_t>(n_operands(), 0);
@@ -64,10 +70,7 @@ void NPE::_parse_npe(){
   }
 }
 
-const int* NPE::begin() const { return &*_npe.begin(); }
-
-const int* NPE::end() const { return &*_npe.end(); }
-
+// [] Operator allows for convenient random access to the NPE
 int& NPE::operator[] (size_t ix) {
   if ( ix >= size() ) {
       cerr << "Error [NPE]: Index out of bounds" << endl;
@@ -75,6 +78,9 @@ int& NPE::operator[] (size_t ix) {
   }
   return _npe[ix];
 }
+
+const int* NPE::begin() const { return &*_npe.begin(); }
+const int* NPE::end() const { return &*_npe.end(); }
 
 size_t NPE::size() const { return _npe.size(); }
 size_t NPE::n_operands() const { return (_npe.size()+1)>>1; }
@@ -136,6 +142,7 @@ void NPE::apply_perturbation() {
   _pert_type = -1;
 }
 
+// Generate a random perturbation from the three possible choices
 pair<size_t, size_t> NPE::gen_rnd_perturbation() {
   _pert={0,0};
   while(!_pert.first && !_pert.second) {
@@ -155,7 +162,6 @@ pair<size_t, size_t> NPE::gen_rnd_perturbation() {
   return _pert;
 }
 
-// Assumes correctness of the input
 pair<size_t, size_t> NPE::gen_rnd_operand_swap() {
   size_t rand_op =rand()%(n_operands()-1);
   _pert_op1 = _operand_pos[rand_op];
@@ -173,11 +179,11 @@ pair<size_t, size_t>  NPE::gen_rnd_chain_inversion() {
 pair<size_t, size_t> NPE::gen_rnd_operand_operator_swap() {
   size_t rnd_choice, rnd_chain, rnd_opt_pos, rnd_op_pos, num_ops;
   bool done = false, rnd_side;
-  int attempts = 0;
+  size_t attempts = 0;
 
   // Need to have a maximum number of tries as there are degenerate cases where this movement is not feasible.
   // Eg. 1-spaced, 1 length chains with the same separator (as the ones generated in the initial instance)
-  //  Check a multiple of n times to
+  // Check a multiple of n times before exiting
   while( !done && attempts < 10*_npe.size()) {
     // Choose a chain end at random
     rnd_choice  = rand()%((n_chains()<<1)-1),
@@ -191,7 +197,6 @@ pair<size_t, size_t> NPE::gen_rnd_operand_operator_swap() {
     } else {          // If an operator-operand pair is chosen
       num_ops=0;      // If we're moving the operator to the right we will never break the balloting rule
     }
-    //cerr << rnd_choice << " " << rnd_side << " " << rnd_chain << " " << rnd_op_pos << " " << rnd_opt_pos << endl;
     if ( _npe[rnd_op_pos-1] != _npe[rnd_op_pos+1] && 2*num_ops < rnd_op_pos+1 ) done = true;
     ++attempts;
   }

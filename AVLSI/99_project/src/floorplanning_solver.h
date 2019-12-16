@@ -1,3 +1,8 @@
+/*########################################
+ - File: floorplanning_solver.h
+ - Author: Francisco Javier Jurado Moreno
+ - Project: AVLSI Floorplanning project
+##########################################*/
 #ifndef _FP_SOLVER_GUARD
 #define _FP_SOLVER_GUARD
 
@@ -15,10 +20,6 @@ class Floorplanning_solver {
   NPE _npe;
   std::vector<Shape_function> _slicing_tree;
   Shape_function *_slicing_tree_root;
-  std::vector<Shape_function*> _npe_mapping;
-  std::vector<size_t> _sf_parent;
-  std::deque<std::pair<int, int>> _perturbations;
-  std::mt19937 _rng_engine;
 
   Shape_function* build_slicing_tree(NPE &npe, std::vector<Shape_function> &sl_tree);
   void calculate_block_positions ( Shape_function *sf, size_t chld_ix, std::pair<int, int> pos={0,0} );

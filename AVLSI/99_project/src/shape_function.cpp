@@ -1,9 +1,19 @@
+/*########################################
+ - File: floorplanning_solution.cpp
+ - Author: Francisco Javier Jurado Moreno
+ - Project: AVLSI Floorplanning project
+##########################################*/
+
 #include <iostream>
 #include <algorithm>
 #include "shape_function.h"
 #include "npe.h"
 
-using namespace std;
+using std::cerr;
+using std::endl;
+using std::pair;
+using std::vector;
+
 Shape_function::Shape_function():
   _id(0),
   _left_child(nullptr),
@@ -40,7 +50,7 @@ void Shape_function::merge_children_shapes() {
     while( !done ){
       s_1 = _left_child->get_shape(ix_1);
       s_2 = _right_child->get_shape(ix_2);
-      _shapes.emplace_back(max(s_1.first, s_2.first), s_1.second + s_2.second);
+      _shapes.emplace_back(std::max(s_1.first, s_2.first), s_1.second + s_2.second);
       _chld_shape_ix.emplace_back(ix_1, ix_2);
       if (ix_1 == 0 ||  ix_2 == 0) done = true; // If we are on the last element of any of the lists
       if (s_1.first > s_2.first) --ix_1;
@@ -59,7 +69,7 @@ void Shape_function::merge_children_shapes() {
     while( !done ) {
       s_1 = _left_child->get_shape(ix_1);
       s_2 = _right_child->get_shape(ix_2);
-      _shapes.emplace_back(s_1.first + s_2.first, max(s_1.second, s_2.second));
+      _shapes.emplace_back(s_1.first + s_2.first, std::max(s_1.second, s_2.second));
       _chld_shape_ix.emplace_back(ix_1, ix_2);
       if ( s_1.second > s_2.second ) ++ix_1;
       else if ( s_1.second < s_2.second ) ++ix_2;
@@ -85,7 +95,6 @@ pair<size_t, size_t> Shape_function::get_child_sf_ix(std::size_t ix) const { ret
 Shape_function*  Shape_function::get_left_child() { return _left_child; }
 Shape_function* Shape_function::get_right_child() { return _right_child; }
 Shape_function* Shape_function::get_parent() { return _parent; }
-
 void Shape_function::set_parent(Shape_function* parent) { _parent = parent; }
 
 void Shape_function::print() const {
@@ -94,6 +103,6 @@ void Shape_function::print() const {
     cerr << "(" << i->first << "," << i->second << ") ";
   }
   cerr << endl;
-  cerr << "lchild: " << ((_left_child == nullptr) ? "*" : to_string(_left_child->get_id())) << 
-    " rchild: " << ((_right_child == nullptr) ? "*" : to_string(_right_child->get_id())) << endl;
+  cerr << "lchild: " << ((_left_child == nullptr) ? "*" : std::to_string(_left_child->get_id())) << 
+    " rchild: " << ((_right_child == nullptr) ? "*" : std::to_string(_right_child->get_id())) << endl;
 }

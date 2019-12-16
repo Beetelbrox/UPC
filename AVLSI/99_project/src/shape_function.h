@@ -1,9 +1,13 @@
+/*########################################
+ - File: floorplanning_solution.h
+ - Author: Francisco Javier Jurado Moreno
+ - Project: AVLSI Floorplanning project
+##########################################*/
 #ifndef _SHAPE_FUNCTION_GUARD
 #define _SHAPE_FUNCTION_GUARD
 
 #include <vector>
 #include <utility>
-#include <memory>
 
 class Shape_function {
 

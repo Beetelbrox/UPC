@@ -3,7 +3,6 @@
  - Author: Francisco Javier Jurado Moreno
  - Project: AVLSI Floorplanning project
 ##########################################*/
-
 #ifndef _FP_PROB_GUARD
 #define _FP_PROB_GUARD
 

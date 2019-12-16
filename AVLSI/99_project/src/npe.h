@@ -1,3 +1,8 @@
+/*########################################
+ - File: npe.h
+ - Author: Francisco Javier Jurado Moreno
+ - Project: AVLSI Floorplanning project
+##########################################*/
 #ifndef _NPE_GUARD
 #define _NPE_GUARD
 
@@ -22,7 +27,7 @@ class NPE {
 public:
   static const int V = -1, H = -2;
 
-  NPE(size_t num_operands, bool shuffle=0);
+  NPE(size_t num_operands);
   NPE(const std::vector<int> &seq);
   NPE( const NPE& other );
 

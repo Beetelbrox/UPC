@@ -1,3 +1,8 @@
+/*########################################
+ - File: floorplanning_solution.h
+ - Author: Francisco Javier Jurado Moreno
+ - Project: AVLSI Floorplanning project
+##########################################*/
 #ifndef _FP_SOLUTION_GUARD
 #define _FP_SOLUTION_GUARD
 

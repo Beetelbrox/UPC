@@ -1,3 +1,6 @@
 *.pdf
 *.o
+.vscode/
+bin/
 bibliography/
+img/

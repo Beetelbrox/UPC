@@ -3,7 +3,7 @@ import random as rnd
 max_w = 10
 max_h = 10
 
-block_num = 80
+block_num = 160
 blocks = []
 
 num_pieces = 1

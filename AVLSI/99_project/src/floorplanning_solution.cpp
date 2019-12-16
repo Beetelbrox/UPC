@@ -1,3 +1,9 @@
+/*########################################
+ - File: floorplanning_solution.cpp
+ - Author: Francisco Javier Jurado Moreno
+ - Project: AVLSI Floorplanning project
+##########################################*/
+
 #include <iostream>
 #include <cmath>
 #include "floorplanning_solution.h"

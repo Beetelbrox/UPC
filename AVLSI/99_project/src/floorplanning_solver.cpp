@@ -1,3 +1,9 @@
+/*########################################
+ - File: floorplanning_solver.cpp
+ - Author: Francisco Javier Jurado Moreno
+ - Project: AVLSI Floorplanning project
+##########################################*/
+
 #include <iostream>
 #include <cstdlib>
 #include <algorithm>
@@ -10,7 +16,6 @@
 #include "floorplanning_solver.h"
 #include "shape_function.h"
 
-
 using std::cerr;
 using std::endl;
 using std::vector;
@@ -18,10 +23,8 @@ using std::pair;
 
 Floorplanning_solver::Floorplanning_solver(const Floorplanning_problem &p):
   _problem(p),
-  _npe(p.size(), 0),
-  _slicing_tree(_npe.size()),
-  _npe_mapping(_npe.size()),
-  _rng_engine(std::chrono::high_resolution_clock::now().time_since_epoch().count())
+  _npe(p.size()),
+  _slicing_tree(_npe.size())
 {
   _slicing_tree_root = build_slicing_tree(_npe, _slicing_tree);
   cerr << "Optimal area: " << _slicing_tree_root->get_min_area() << endl;
@@ -57,17 +60,6 @@ Shape_function* Floorplanning_solver::build_slicing_tree(NPE &npe, vector<Shape_
 
 void Floorplanning_solver::solve() {
 
-
-  // QUESTIONS
-  // 1. Solution Correctness
-  // 2. Problem size
-  // 3. Reasonable execution time
-  // 4. Incremental wirelength
-  // 
-// Simmulated Annealing
-//    1.- Perturb the initial solution a number of times (number of operands?) to compute the average of all positive uphill climbes avg_uphill
-//    2.- Calculate the initial temperature as -avg_uphill/ln(P)
-
   vector<Shape_function> tentative_tree = vector<Shape_function>(_npe.size());
   Shape_function* tentative_tree_root;
   pair<size_t, size_t> perturbation;
@@ -79,8 +71,8 @@ void Floorplanning_solver::solve() {
     initial_temp,
     temp,
     p = 0.99,
-    r = 0.999,
-    error = 0.00001;
+    r = 0.85,
+    error = 0.0001;
   
   int k=5*_npe.size(), reject, initial_pert_number = _npe.size()*10, ctr=0;
 
@@ -129,7 +121,6 @@ void Floorplanning_solver::solve() {
       } else ++reject;
     }
     temp =  temp*r; // Reduce temperature
-    //cerr << "Temp: " << temp << endl;
 
   } while (reject/k <= 0.95 && temp >= error);
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
