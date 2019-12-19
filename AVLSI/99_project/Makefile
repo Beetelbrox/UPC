@@ -11,9 +11,6 @@ TB = testbench
 $(TB): $(TB).o $(FP_PROB).o  $(FP_NPE).o $(FP_SOLVER).o $(FP_SOL).o $(SF).o
 	$(CCC) $(CFLAGS) -o bin/$(TB) $(TB).o $(FP_PROB).o $(FP_NPE).o $(FP_SOLVER).o $(FP_SOL).o $(SF).o
 
-#$(TB): $(TB).o $(FP_SOLVER).o $(FP_PROB).o $(FP_NPE).o ${FP}.o
-#	$(CCC) $(CFLAGS) -o bin/$(TB) $(TB).o ${FP}.o $(FP_NPE).o $(FP_PROB).o $(FP_SOLVER).o
-
 ${TB}.o: src/$(TB).cpp src/$(FP_SOLVER).h
 	$(CCC) $(CFLAGS) -c src/$(TB).cpp
 

@@ -23,6 +23,7 @@ Floorplanning_problem::Floorplanning_problem(): _n_connections(0) {}
 
 Floorplanning_problem::Floorplanning_problem(const string &filename): _n_connections(0) { from_file (filename); }
 
+// Read the list of modules from file
 int Floorplanning_problem::from_file(const string &filename) {
 
   std::ifstream file("data/" + filename);
@@ -103,10 +104,7 @@ bool Floorplanning_problem::module_has_connections(size_t id) const {
 const vector<pair<size_t, int>>* Floorplanning_problem::get_module_connections(size_t id) const {
   if (_connections.find(id) != _connections.end()) {
     return &_connections.find(id)->second;
-  } else {
-    return nullptr;
-  }
-  
+  } else return nullptr;
 }
 
 void Floorplanning_problem::print_connections() const {

@@ -5,7 +5,6 @@
 ##########################################*/
 
 #include <iostream>
-#include <unordered_set>
 #include "npe.h"
 
 using std::cerr;
@@ -61,7 +60,7 @@ void NPE::_parse_npe(){
       if ( i+1 < 2*op_counter ) exit(EXIT_FAILURE);             //  1. Check that the NPE satisfies the balloting rule
       if (_npe[i-1] == _npe[i] ) exit(EXIT_FAILURE);            //  2. Check that the NPE is indeed normalized (condition 1 prevents operator for being on the first place, so this is safe)
       if (_npe[i-1] > 0) _chains.emplace_back(i, 1);            // If the element is the head of a new chain, push it into the vector,
-      else _chains.back().second++;                             // oitherwise increase the length on the current chain
+      else _chains.back().second++;                             // Otherwise increase the length on the current chain
 
     } else {
       cerr << "Error [NPE]: Malformed NPE sequence while parsing" << endl;
@@ -87,6 +86,7 @@ size_t NPE::n_operands() const { return (_npe.size()+1)>>1; }
 size_t NPE::n_operators() const { return _npe.size() - n_operands(); }
 size_t NPE::n_chains() const { return _chains.size(); }
 
+// Returned the element at position ix of the perturbed NPE without actually applying the perturbation
 int NPE::get_pert_element(size_t ix) {
   if ( ix >= size() ) {
       cerr << "Error [NPE]: Index out of bounds" << endl;
@@ -106,18 +106,18 @@ int NPE::get_pert_element(size_t ix) {
   return pert_val;
 }
 
-
+// Applies the stored perturbation to the NPE
 // Swap for third case does inefficient reads (1 sweep of the operator list) in one of the cases, 
 // but it's better than remaking all the structures 
 void NPE::apply_perturbation() {
   if (_pert_type < 0) return;
   if(_pert.first < _npe.size() && _pert.second < _npe.size() ) {
-    if(_pert_type == 0) {
-      std::swap(_npe[_pert_op1], _npe[_pert_op2]);
-    } else if (_pert_type == 1){
+    if(_pert_type == 0) {                             // Operand-operand swap
+      std::swap(_npe[_pert_op1], _npe[_pert_op2]);  
+    } else if (_pert_type == 1){                      // Chain inversion
       for( size_t i=_chains[_pert_chain].first; i <_chains[_pert_chain].first + _chains[_pert_chain].second; ++i )
         _npe[i] = (_npe[i] == V) ? H : V;
-    } else if (_pert_type == 2) {
+    } else if (_pert_type == 2) {                     // Operand-operator swap. It might require insertion/deletions in the list
       size_t op_pos = _chains[_pert_chain].first + ((!_pert_side) ? -1 : _chains[_pert_chain].second),
             opt_pos = _chains[_pert_chain].first + ((!_pert_side) ? 0 : _chains[_pert_chain].second-1);
       _chains[_pert_chain] = {_chains[_pert_chain].first+(!_pert_side), --_chains[_pert_chain].second};
@@ -128,7 +128,7 @@ void NPE::apply_perturbation() {
       else _chains.insert(std::next(_chains.begin(), _pert_chain+_pert_side), {op_pos, 1});
       if(_chains[_pert_chain].second == 0) _chains.erase(std::next(_chains.begin(), _pert_chain));
       size_t ix=0;
-      while(_operand_pos[ix] != op_pos) ++ix;
+      while(_operand_pos[ix] != op_pos) ++ix; // Find the operator
       _operand_pos[ix] = opt_pos;
       std::swap(_npe[op_pos], _npe[opt_pos]);
     } else {
@@ -139,7 +139,7 @@ void NPE::apply_perturbation() {
       cerr << "Error [NPE]: Out of bounds while applying perturbation" << endl;
       exit(EXIT_FAILURE);
   }
-  _pert_type = -1;
+  _pert_type = -1;    // Clear the stored perturbation
 }
 
 // Generate a random perturbation from the three possible choices

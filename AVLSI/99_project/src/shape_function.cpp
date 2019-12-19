@@ -29,22 +29,27 @@ Shape_function::Shape_function(int id, const vector<pair<int, int>> &sf_seq):
     _parent(nullptr)
     {}
 
+
+// Merge constructor: Creates a new Shape function object containing the sf resulting of merging two other ones
 Shape_function::Shape_function(int op, Shape_function* l_child, Shape_function* r_child):
   _id(op),
   _min_area(l_child->_min_area + r_child->_min_area),
-  _left_child(l_child),  // Use std::move to convert to an rvalue and transfer ownership
+  _left_child(l_child),  
   _right_child(r_child),
   _parent(nullptr)
 {
   merge_children_shapes();
 }
 
+// Iterates through the children shapes to build the merged shape function in linear time. Depends on the children
+// Shapes being sorted by width in increasing order
 void Shape_function::merge_children_shapes() {
 
   size_t ix_1, ix_2;
   bool done;
   pair<int, int> s_1, s_2;
   if ( _id == NPE::H ) {
+    // Start from the end to avoid checking a lot more bounds
     ix_1 = _left_child->size()-1;
     ix_2 = _right_child->size()-1;
     while( !done ){

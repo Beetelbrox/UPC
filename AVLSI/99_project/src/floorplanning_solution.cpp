@@ -32,6 +32,8 @@ int Floorplanning_solution::get_height() const {return _height; }
 int Floorplanning_solution::get_area () const { return _width*_height; }
 float Floorplanning_solution::get_wirelength () const { return _wirelength; }
 
+// Calculate the positions by performing an inorder traversal on the slicing tree and propagating the position of the parent to the children.
+// It assumes that the left child is placed to the left or above the right child for vertical and horizontal cuts, respectively.
 void Floorplanning_solution::calculate_positions (Shape_function* sf, size_t shape_ix, std::pair<int, int> module_pos) {
     if ( sf->get_id() > 0 ) {
         _positions[sf->get_id()-1] = module_pos;
@@ -51,6 +53,7 @@ void Floorplanning_solution::calculate_positions (Shape_function* sf, size_t sha
     }
 }
 
+// Calculate wirelength by iterating over the list of connections
 void Floorplanning_solution::calculate_wirelength(const Floorplanning_problem *p) {
     pair<int, int> p1, p2;
     float cx_1, cx_2, cy_1, cy_2;

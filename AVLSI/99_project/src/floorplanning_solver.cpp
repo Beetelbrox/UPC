@@ -5,7 +5,6 @@
 ##########################################*/
 
 #include <iostream>
-#include <cstdlib>
 #include <algorithm>
 #include <cmath>
 #include <stack>
@@ -30,6 +29,9 @@ Floorplanning_solver::Floorplanning_solver(const Floorplanning_problem &p):
   cerr << "Optimal area: " << _slicing_tree_root->get_min_area() << endl;
 }
 
+// Builds a slicing tree from a giving NPE and it applies the stored perturbation (if any)
+// It uses a stack in order to build the tree as when evaluating expressions. It assumes that the left child is placed to the left of the right side for vertical cuts 
+// and that the left child is placed above the right child for horizontal cuts.
 Shape_function* Floorplanning_solver::build_slicing_tree(NPE &npe, vector<Shape_function> &sl_tree) {
   std::stack<Shape_function*> sf_stack;
   Shape_function *l_child, *r_child;
@@ -58,6 +60,8 @@ Shape_function* Floorplanning_solver::build_slicing_tree(NPE &npe, vector<Shape_
   return sf_stack.top();
 }
 
+
+// Implements the (classic) simmulated annealing algorithm
 void Floorplanning_solver::solve() {
 
   vector<Shape_function> tentative_tree = vector<Shape_function>(_npe.size());
@@ -70,10 +74,13 @@ void Floorplanning_solver::solve() {
     delta_cost = 0.0,
     initial_temp,
     temp,
+    // Simulated annealing parameters
     p = 0.99,
-    r = 0.85,
-    error = 0.0001;
+    r = 0.99,
+    min_temp = 0.0001;
   
+  // The number of iterations per temperature is 5 times the size of the npe, the initial number of pertubations to calculate the initial
+  // temperature is 10 times the npe size
   int k=5*_npe.size(), reject, initial_pert_number = _npe.size()*10, ctr=0;
 
   std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
@@ -84,14 +91,11 @@ void Floorplanning_solver::solve() {
   cerr << "Initial Wirelength: " << best_sol.second.get_wirelength() << endl;
   last_cost = best_sol.first;
 
-  //best_sol.second.print();
-  //_problem.print_connections();
-
+  // Perturb the npe a number of times and record the uphill moves to calculate the initial temperature
   for(int i=0; i < initial_pert_number; ++i) {
-
     _npe.gen_rnd_perturbation(); 
     _npe.apply_perturbation();
-    tentative_tree_root = build_slicing_tree(_npe, tentative_tree);  // Build the slicing tree
+    tentative_tree_root = build_slicing_tree(_npe, tentative_tree);
     sol = get_best_solution(tentative_tree_root);
     delta_cost = sol.first - last_cost;
     if ( delta_cost > 0) {
@@ -104,11 +108,12 @@ void Floorplanning_solver::solve() {
   temp = initial_temp;
   cerr << "Initial temp: " << initial_temp << endl; 
   
+  // Simmulated annealing algorithm as in the slides
   do {
     reject = 0;
     for (int i=0; i < k; ++i) {
       _npe.gen_rnd_perturbation();
-      tentative_tree_root = build_slicing_tree(_npe, tentative_tree);  // Build the slicing tree
+      tentative_tree_root = build_slicing_tree(_npe, tentative_tree);
       sol = get_best_solution(tentative_tree_root);
       delta_cost = sol.first - last_cost;
       if (delta_cost <= 0 || (static_cast <float> (rand()) / static_cast <float> (RAND_MAX) < exp(-delta_cost/temp))) {
@@ -122,21 +127,23 @@ void Floorplanning_solver::solve() {
     }
     temp =  temp*r; // Reduce temperature
 
-  } while (reject/k <= 0.95 && temp >= error);
+  } while (reject/k <= 0.95 && temp >= min_temp);
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
   cerr << "Elapsed time: " <<  std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " seconds" << endl;
   cerr << "Best Cost: " << best_sol.first << endl;
   cerr << "Best Area: " << best_sol.second.get_area() << endl;
   cerr << "Best Wirelength: " << best_sol.second.get_wirelength() << endl;
+  // Print solution to the standard output to dump it into files
   best_sol.second.print();
   _problem.print_connections();
 }
 
+// Select the best solution from the ones available in the shape function
 pair<float, Floorplanning_solution> Floorplanning_solver::get_best_solution(Shape_function *slicing_tree_root) {
   Floorplanning_solution sol, best_sol;
   float best_cost = INFINITY;
   for (size_t i=0; i<slicing_tree_root->size(); ++i) {
-    sol = Floorplanning_solution(slicing_tree_root, &_problem, _problem.size(), i);
+    sol = Floorplanning_solution(slicing_tree_root, &_problem, _problem.size(), i); // A new solution is created for each point in the sf
     if (sol.cost() < best_cost) {
       best_cost = sol.cost();
       best_sol = sol;
